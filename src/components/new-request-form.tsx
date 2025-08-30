@@ -26,9 +26,10 @@ import type { User } from '@/lib/types';
 import { getManagers, getUser } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { budgetCategories } from '@/lib/categories';
 
 const requestSchema = z.object({
-  title: z.string().min(5, 'Judul harus memiliki setidaknya 5 karakter.'),
+  category: z.string().min(1, 'Kategori harus diisi.'),
   amount: z.coerce.number().positive('Jumlah harus angka positif.'),
   description: z
     .string()
@@ -49,7 +50,7 @@ export function NewRequestForm() {
   const form = useForm<FormData>({
     resolver: zodResolver(requestSchema),
     defaultValues: {
-      title: '',
+      category: '',
       amount: 0,
       description: '',
       supervisor: '',
@@ -80,7 +81,7 @@ export function NewRequestForm() {
 
     setIsSubmitting(true);
     const formData = new FormData();
-    formData.append('title', data.title);
+    formData.append('category', data.category);
     formData.append('amount', String(data.amount));
     formData.append('description', data.description);
     formData.append('institution', profileData.institution ?? '');
@@ -157,13 +158,22 @@ export function NewRequestForm() {
 
         <FormField
           control={form.control}
-          name="title"
+          name="category"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Judul Permintaan</FormLabel>
-              <FormControl>
-                <Input placeholder="cth., Laptop baru untuk tim engineering" {...field} />
-              </FormControl>
+              <FormLabel>Kategori Permintaan</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Pilih kategori anggaran" />
+                        </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        {budgetCategories.map(category => (
+                            <SelectItem key={category} value={category}>{category}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
               <FormMessage />
             </FormItem>
           )}

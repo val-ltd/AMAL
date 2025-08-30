@@ -1,3 +1,4 @@
+
 import type { BudgetRequest } from '@/lib/types';
 import {
   Card,
@@ -36,7 +37,7 @@ export default function RequestList({ requests, isManagerView = false }: Request
         <Card key={request.id} className="flex flex-col">
           <CardHeader>
             <div className="flex items-start justify-between">
-                <CardTitle className="mb-1 text-lg">{request.title}</CardTitle>
+                <CardTitle className="mb-1 text-lg">{request.category}</CardTitle>
                 <StatusBadge status={request.status} />
             </div>
             

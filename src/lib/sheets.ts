@@ -1,3 +1,4 @@
+
 import { google } from 'googleapis';
 import type { BudgetRequest } from './types';
 
@@ -37,7 +38,7 @@ const ensureHeaderRow = async (sheets: any, sheetId: string) => {
                 values: [
                     [
                         'ID',
-                        'Title',
+                        'Category',
                         'Amount',
                         'Status',
                         'Requester',
@@ -68,7 +69,7 @@ export async function appendRequestToSheet(request: BudgetRequest) {
     const values = [
       [
         request.id,
-        request.title,
+        request.category,
         request.amount,
         request.status,
         request.requester.name,
@@ -126,7 +127,7 @@ export async function updateRequestInSheet(request: BudgetRequest) {
         const values = [
             [
                 request.id,
-                request.title,
+                request.category,
                 request.amount,
                 request.status,
                 request.requester.name,

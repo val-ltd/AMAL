@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -8,7 +9,7 @@ import { suggestDetails } from '@/ai/flows/suggest-details-for-budget-request';
 import { appendRequestToSheet, updateRequestInSheet } from '@/lib/sheets';
 
 const requestSchema = z.object({
-  title: z.string().min(5, 'Title must be at least 5 characters long.'),
+  category: z.string().min(1, 'Category is required.'),
   amount: z.coerce.number().positive('Amount must be a positive number.'),
   description: z.string().min(10, 'Description must be at least 10 characters long.'),
   institution: z.string().min(1, 'Institution is required.'),
@@ -19,7 +20,7 @@ const requestSchema = z.object({
 export async function createRequestAction(formData: FormData) {
   const supervisorId = formData.get('supervisor');
   const validatedFields = requestSchema.safeParse({
-    title: formData.get('title'),
+    category: formData.get('category'),
     amount: formData.get('amount'),
     description: formData.get('description'),
     institution: formData.get('institution'),

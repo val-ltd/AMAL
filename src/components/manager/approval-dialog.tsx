@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { BudgetRequest } from '@/lib/types';
@@ -38,7 +39,7 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
     setOpen(false);
     toast({
       title: `Permintaan ${status === 'approved' ? 'Disetujui' : 'Ditolak'}`,
-      description: `Permintaan anggaran untuk "${request.title}" telah ${status === 'approved' ? 'disetujui' : 'ditolak'}.`,
+      description: `Permintaan anggaran untuk "${request.category}" telah ${status === 'approved' ? 'disetujui' : 'ditolak'}.`,
     });
   };
 
@@ -73,7 +74,7 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
 
           <div className="rounded-lg border bg-card p-4 space-y-4">
             <div>
-              <h3 className="font-semibold">{request.title}</h3>
+              <h3 className="font-semibold">{request.category}</h3>
               <p className="mt-2 text-sm text-muted-foreground">
                 {request.description}
               </p>

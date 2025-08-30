@@ -21,7 +21,7 @@ export interface BudgetRequest {
     name: string;
     avatarUrl: string;
   };
-  title: string;
+  category: string;
   description: string;
   amount: number;
   status: 'pending' | 'approved' | 'rejected';
