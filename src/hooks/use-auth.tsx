@@ -25,23 +25,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Check if user exists in Firestore, if not, create them
+        // When user logs in, check if they exist in Firestore.
+        // If not, create a new document for them.
         const userDocRef = doc(db, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
 
         if (!userDoc.exists()) {
-          await setDoc(userDocRef, {
-            name: user.displayName,
-            email: user.email,
-            avatarUrl: user.photoURL,
-            role: 'Employee', // Default role
-            position: 'Staff', // Default position
-            institution: 'YAYASAN SAHABAT QURAN', // Default institution
-            division: 'Divisi Dakwah', // Default division
-            // In a real app, you'd have a system to assign these
-            supervisorId: null, 
-            deciderId: null,
-          });
+          // New user: create their profile in Firestore.
+          try {
+            await setDoc(userDocRef, {
+              name: user.displayName || 'Anonymous User',
+              email: user.email,
+              avatarUrl: user.photoURL,
+              role: 'Employee', // Default role for new users
+              position: 'Staff', // Default position
+              institution: 'YAYASAN SAHABAT QURAN', // Default institution
+              division: 'Divisi Dakwah', // Default division
+            });
+            console.log(`Created new user profile for ${user.uid}`);
+          } catch (error) {
+            console.error("Error creating user document:", error);
+          }
         }
       }
       setUser(user);

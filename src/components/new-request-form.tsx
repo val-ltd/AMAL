@@ -20,13 +20,14 @@ import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import type { User } from '@/lib/types';
 import { getManagers, getUser } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { budgetCategories } from '@/lib/categories';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Terminal } from 'lucide-react';
 
 const requestSchema = z.object({
   category: z.string().min(1, 'Kategori harus diisi.'),
@@ -41,11 +42,11 @@ type FormData = z.infer<typeof requestSchema>;
 
 
 export function NewRequestForm() {
-  const router = useRouter();
   const { user: authUser } = useAuth();
   const [profileData, setProfileData] = useState<User | null>(null);
   const [managers, setManagers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(requestSchema),
@@ -74,29 +75,25 @@ export function NewRequestForm() {
   const { toast } = useToast();
   const [suggestions, setSuggestions] = React.useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = React.useState(false);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const {formState: {isSubmitting}} = form;
 
   const onSubmit = async (data: FormData) => {
-    if (!profileData) return;
-
-    setIsSubmitting(true);
+    setFormError(null);
     const formData = new FormData();
     formData.append('category', data.category);
     formData.append('amount', String(data.amount));
     formData.append('description', data.description);
-    formData.append('institution', profileData.institution ?? '');
-    formData.append('division', profileData.division ?? '');
     formData.append('supervisor', data.supervisor);
     
-    await createRequestAction(formData);
+    const result = await createRequestAction(formData);
 
-    toast({
-        title: "Permintaan Terkirim",
-        description: "Permintaan anggaran Anda telah berhasil dikirim.",
-    });
-    
-    router.push('/');
-    setIsSubmitting(false);
+    if (result?.errors) {
+      if (result.errors._form) {
+        setFormError(result.errors._form.join(', '));
+      }
+      // You can also handle field-specific errors if you want
+      // For example: form.setError('supervisor', { message: result.errors.supervisor?.[0] })
+    }
   };
   
   const handleGetSuggestions = async () => {
@@ -255,6 +252,13 @@ export function NewRequestForm() {
             )}
         </div>
 
+        {formError && (
+            <Alert variant="destructive">
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>Gagal Mengirim Permintaan</AlertTitle>
+                <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+        )}
 
         <Button type="submit" disabled={isSubmitting || loading} className="w-full">
             {(isSubmitting || loading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
