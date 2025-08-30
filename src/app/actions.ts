@@ -2,7 +2,7 @@
 'use server';
 
 import { z } from 'zod';
-import { createRequest, updateRequest } from '@/lib/data';
+import { createRequest, getUser, updateRequest } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { suggestDetails } from '@/ai/flows/suggest-details-for-budget-request';
@@ -34,13 +34,9 @@ export async function createRequestAction(formData: FormData) {
     };
   }
   
-    const supervisors: { [key: string]: string } = {
-        'user-2': 'Bob Williams',
-        'user-3': 'Charlie Brown',
-        'user-4': 'Diana Prince',
-    };
-
-    const supervisorName = supervisors[supervisorId as string] || 'N/A';
+    // Fetch supervisor details from Firestore
+    const supervisor = await getUser(supervisorId as string);
+    const supervisorName = supervisor?.name || 'N/A';
 
   const newRequest = await createRequest({
     ...validatedFields.data,
