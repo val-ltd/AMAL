@@ -107,6 +107,11 @@ export async function getMyRequests(): Promise<BudgetRequest[]> {
 
 export async function getPendingRequests(): Promise<BudgetRequest[]> {
   await delay(50);
+  const currentUser = auth.currentUser;
+  // In a real app, you'd filter by manager ID. Here we show all pending.
+  // If you wanted to show only requests where the current user is the supervisor:
+  // if (!currentUser) return [];
+  // return requests.filter(r => r.status === 'pending' && r.supervisor?.id === currentUser.uid);
   return requests
     .filter(r => r.status === 'pending')
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
@@ -115,7 +120,12 @@ export async function getPendingRequests(): Promise<BudgetRequest[]> {
 export async function createRequest(data: Omit<BudgetRequest, 'id' | 'status' | 'createdAt' | 'updatedAt' | 'requester'>): Promise<BudgetRequest> {
   await delay(100);
    const currentUser = auth.currentUser;
-   if (!currentUser) throw new Error("Not authenticated");
+   if (!currentUser) {
+       // This will likely fail in a server action context if not handled properly.
+       // The auth state needs to be passed or determined on the server.
+       // For this mock, we'll proceed, but in a real app this needs a server-side auth check.
+       throw new Error("Not authenticated");
+   }
 
   const newRequest: BudgetRequest = {
     ...data,
