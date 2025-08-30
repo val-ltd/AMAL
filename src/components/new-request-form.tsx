@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -16,12 +17,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { createRequestAction, getSuggestionsAction } from '@/app/actions';
 import { Loader2, Sparkles, Wand2 } from 'lucide-react';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useRouter } from 'next/navigation';
-import { departments } from '@/lib/departments';
+import { useAuth } from '@/hooks/use-auth';
+import type { User } from '@/lib/types';
+import { getUserWithHierarchy } from '@/lib/data';
+import { Skeleton } from './ui/skeleton';
 
 const requestSchema = z.object({
   title: z.string().min(5, 'Judul harus memiliki setidaknya 5 karakter.'),
@@ -29,45 +33,74 @@ const requestSchema = z.object({
   description: z
     .string()
     .min(10, 'Deskripsi harus memiliki setidaknya 10 karakter.'),
-  institution: z.string().min(1, 'Lembaga wajib diisi.'),
-  division: z.string().min(1, 'Divisi wajib diisi.'),
   supervisor: z.string().min(1, 'Silakan pilih supervisor.'),
 });
 
 type FormData = z.infer<typeof requestSchema>;
 
+// Mock data - in a real app, this would come from your user database
 const supervisors = [
     { id: 'user-2', name: 'Bob Williams' },
     { id: 'user-3', name: 'Charlie Brown' },
     { id: 'user-4', name: 'Diana Prince' },
 ];
 
-const institutionOptions = Object.keys(departments);
-
 export function NewRequestForm() {
   const router = useRouter();
+  const { user: authUser } = useAuth();
+  const [profileData, setProfileData] = useState<User | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
   const form = useForm<FormData>({
     resolver: zodResolver(requestSchema),
     defaultValues: {
       title: '',
       amount: 0,
       description: '',
-      institution: '',
-      division: '',
       supervisor: '',
     },
   });
+
+  useEffect(() => {
+    const fetchProfileData = async () => {
+        if (authUser) {
+            setLoadingProfile(true);
+            const data = await getUserWithHierarchy(authUser.uid);
+            setProfileData(data);
+            setLoadingProfile(false);
+        }
+    }
+    fetchProfileData();
+  }, [authUser]);
 
   const { toast } = useToast();
   const [suggestions, setSuggestions] = React.useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const selectedInstitution = form.watch('institution');
+  const onSubmit = async (data: FormData) => {
+    if (!profileData) return;
+
+    setIsSubmitting(true);
+    const formData = new FormData();
+    formData.append('title', data.title);
+    formData.append('amount', String(data.amount));
+    formData.append('description', data.description);
+    formData.append('institution', profileData.institution ?? '');
+    formData.append('division', profileData.division ?? '');
+    formData.append('supervisor', data.supervisor);
+    
+    await createRequestAction(formData);
+
+    toast({
+        title: "Permintaan Terkirim",
+        description: "Permintaan anggaran Anda telah berhasil dikirim.",
+    });
+    
+    router.push('/');
+    setIsSubmitting(false);
+  };
   
-  const divisionOptions = selectedInstitution ? Object.keys(departments[selectedInstitution as keyof typeof departments] || {}) : [];
-
-
   const handleGetSuggestions = async () => {
     const description = form.getValues('description');
     setIsSuggesting(true);
@@ -85,93 +118,62 @@ export function NewRequestForm() {
     }
   };
 
-  const onSubmit = async (data: FormData) => {
-    setIsSubmitting(true);
-    const formData = new FormData();
-    formData.append('title', data.title);
-    formData.append('amount', String(data.amount));
-    formData.append('description', data.description);
-    formData.append('institution', data.institution);
-    formData.append('division', data.division);
-    formData.append('supervisor', data.supervisor);
-    
-    createRequestAction(formData);
 
-    toast({
-        title: "Permintaan Terkirim",
-        description: "Permintaan anggaran Anda telah berhasil dikirim.",
-    });
-    
-    router.push('/');
-    setIsSubmitting(false);
-  };
+  if (loadingProfile) {
+      return (
+          <div className="space-y-8">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-10 w-full" />
+          </div>
+      )
+  }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-           <FormField
-              control={form.control}
-              name="institution"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Lembaga</FormLabel>
-                  <Select onValueChange={(value) => {
-                      field.onChange(value);
-                      form.setValue('division', '');
-                  }} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih lembaga" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {institutionOptions.map(inst => (
-                        <SelectItem key={inst} value={inst}>
-                          {inst}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="division"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Divisi</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={!selectedInstitution}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih divisi" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {divisionOptions.map(div => (
-                        <SelectItem key={div} value={div}>
-                          {div}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-        </div>
+        
+        {profileData && (
+            <Card className="bg-muted/50">
+                <CardHeader>
+                    <CardTitle className='text-base'>Informasi Pemohon</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm space-y-2">
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Nama</span>
+                        <span className="font-medium">{profileData.name}</span>
+                    </div>
+                     <div className="flex justify-between">
+                        <span className="text-muted-foreground">Lembaga</span>
+                        <span className="font-medium">{profileData.institution}</span>
+                    </div>
+                     <div className="flex justify-between">
+                        <span className="text-muted-foreground">Divisi</span>
+                        <span className="font-medium">{profileData.division}</span>
+                    </div>
+                    {profileData.supervisor && (
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Atasan Langsung</span>
+                            <span className="font-medium">{profileData.supervisor.name}</span>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        )}
+
         <FormField
           control={form.control}
           name="supervisor"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Supervisor Penyetuju</FormLabel>
+              <FormLabel>Pilih Supervisor</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Pilih supervisor" />
+                    <SelectValue placeholder="Pilih seorang supervisor untuk menyetujui" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -254,8 +256,8 @@ export function NewRequestForm() {
         </div>
 
 
-        <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <Button type="submit" disabled={isSubmitting || loadingProfile} className="w-full">
+            {(isSubmitting || loadingProfile) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Kirim Permintaan
         </Button>
       </form>
