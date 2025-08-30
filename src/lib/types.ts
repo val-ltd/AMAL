@@ -5,6 +5,13 @@ export interface User {
   email: string;
   role: 'Admin' | 'Manager' | 'Employee';
   avatarUrl: string;
+  position?: string;
+  institution?: string;
+  division?: string;
+  supervisorId?: string;
+  deciderId?: string;
+  supervisor?: User;
+  decider?: User;
 }
 
 export interface BudgetRequest {

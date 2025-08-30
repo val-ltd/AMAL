@@ -12,7 +12,7 @@ import {
   Unsubscribe,
   orderBy,
 } from 'firebase/firestore';
-import type { BudgetRequest } from './types';
+import type { BudgetRequest, User } from './types';
 import { auth, db } from './firebase';
 
 // This function now returns an unsubscribe function for the real-time listener
@@ -154,4 +154,29 @@ export async function updateRequest(
         } as BudgetRequest;
     }
     return undefined;
+}
+
+
+export async function getUser(uid: string): Promise<User | null> {
+    if (!uid) return null;
+    const userDocRef = doc(db, 'users', uid);
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists()) {
+        return { id: userDoc.id, ...userDoc.data() } as User;
+    }
+    return null;
+}
+
+export async function getUserWithHierarchy(uid: string): Promise<User | null> {
+    const user = await getUser(uid);
+    if (!user) return null;
+
+    if (user.supervisorId) {
+        user.supervisor = await getUser(user.supervisorId);
+    }
+    if (user.deciderId) {
+        user.decider = await getUser(user.deciderId);
+    }
+
+    return user;
 }

@@ -34,7 +34,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: user.displayName,
             email: user.email,
             avatarUrl: user.photoURL,
-            role: 'Employee' // Default role for new users
+            role: 'Employee', // Default role
+            position: 'Staff', // Default position
+            institution: 'YAYASAN SAHABAT QURAN', // Default institution
+            division: 'Divisi Dakwah', // Default division
+            // In a real app, you'd have a system to assign these
+            supervisorId: null, 
+            deciderId: null,
           });
         }
       }
