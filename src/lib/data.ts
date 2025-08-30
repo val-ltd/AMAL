@@ -98,15 +98,15 @@ export function getPendingRequests(
 }
 
 export async function createRequest(
-  data: Omit<BudgetRequest, 'id' | 'status' | 'createdAt' | 'updatedAt' | 'requester'>
+  data: Omit<BudgetRequest, 'id' | 'status' | 'createdAt' | 'updatedAt' | 'requester'>,
+  requesterUid: string
 ): Promise<BudgetRequest> {
-  const currentUser = auth.currentUser;
-  if (!currentUser) {
+  if (!requesterUid) {
     throw new Error('Not authenticated');
   }
   
-  // Get the requester's details from the 'users' collection
-  const userDocRef = doc(db, 'users', currentUser.uid);
+  // Get the requester's details from the 'users' collection using the provided UID
+  const userDocRef = doc(db, 'users', requesterUid);
   const userDoc = await getDoc(userDocRef);
   
   if (!userDoc.exists()) {
@@ -118,9 +118,9 @@ export async function createRequest(
   const newRequestData = {
     ...data,
     requester: {
-      id: currentUser.uid,
-      name: userData?.name ?? currentUser.displayName ?? 'Unknown User',
-      avatarUrl: userData?.avatarUrl ?? currentUser.photoURL ?? '',
+      id: requesterUid,
+      name: userData?.name ?? 'Unknown User',
+      avatarUrl: userData?.avatarUrl ?? '',
     },
     status: 'pending' as const,
     createdAt: serverTimestamp(),

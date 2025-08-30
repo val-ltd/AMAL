@@ -59,7 +59,7 @@ export async function createRequestAction(formData: FormData) {
         id: supervisor.id,
         name: supervisor.name,
       },
-    });
+    }, currentUser.uid); // Pass the UID explicitly
 
     // 5. Append to Google Sheets
     if (process.env.GOOGLE_SHEET_ID && process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
