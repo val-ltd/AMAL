@@ -18,6 +18,9 @@ const requests: BudgetRequest[] = [
     createdAt: new Date('2024-05-10T10:00:00Z').toISOString(),
     updatedAt: new Date('2024-05-11T11:30:00Z').toISOString(),
     managerComment: 'Approved. Great initiative for team wellness.',
+    institution: 'DesignCo',
+    division: 'Product Design',
+    supervisor: { id: 'user-2', name: 'Bob Williams' },
   },
   {
     id: 'req-2',
@@ -32,6 +35,9 @@ const requests: BudgetRequest[] = [
     status: 'pending',
     createdAt: new Date('2024-05-15T14:20:00Z').toISOString(),
     updatedAt: new Date('2024-05-15T14:20:00Z').toISOString(),
+    institution: 'DesignCo',
+    division: 'Product Design',
+    supervisor: { id: 'user-4', name: 'Diana Prince' },
   },
   {
     id: 'req-3',
@@ -47,6 +53,9 @@ const requests: BudgetRequest[] = [
     createdAt: new Date('2024-05-20T09:05:00Z').toISOString(),
     updatedAt: new Date('2024-05-21T16:45:00Z').toISOString(),
     managerComment: 'Rejected. Please provide a more detailed breakdown of the ad spend.',
+    institution: 'MarketingLLC',
+    division: 'Growth',
+    supervisor: { id: 'user-3', name: 'Charlie Brown' },
   },
   {
     id: 'req-4',
@@ -61,6 +70,9 @@ const requests: BudgetRequest[] = [
     status: 'pending',
     createdAt: new Date('2024-05-22T11:00:00Z').toISOString(),
     updatedAt: new Date('2024-05-22T11:00:00Z').toISOString(),
+    institution: 'MarketingLLC',
+    division: 'Brand',
+    supervisor: { id: 'user-4', name: 'Diana Prince' },
   },
     {
     id: 'req-5',
@@ -75,6 +87,9 @@ const requests: BudgetRequest[] = [
     status: 'pending',
     createdAt: new Date('2024-05-24T15:30:00Z').toISOString(),
     updatedAt: new Date('2024-05-24T15:30:00Z').toISOString(),
+    institution: 'DevShop',
+    division: 'Mobile Engineering',
+    supervisor: { id: 'user-2', name: 'Bob Williams' },
   },
 ];
 

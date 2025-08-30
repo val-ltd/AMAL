@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import StatusBadge from '../status-badge';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Loader2, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Building, Loader2, ThumbsDown, ThumbsUp, UserCheck } from 'lucide-react';
 
 interface ApprovalDialogProps {
   request: BudgetRequest;
@@ -71,13 +71,29 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
             <StatusBadge status={request.status} />
           </div>
 
-          <div className="rounded-lg border bg-card p-4">
-            <h3 className="font-semibold">{request.title}</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {request.description}
-            </p>
-            <div className="mt-4 text-2xl font-bold">
-              ${request.amount.toLocaleString()}
+          <div className="rounded-lg border bg-card p-4 space-y-4">
+            <div>
+              <h3 className="font-semibold">{request.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {request.description}
+              </p>
+              <div className="mt-4 text-2xl font-bold">
+                ${request.amount.toLocaleString()}
+              </div>
+            </div>
+            <div className="border-t pt-4 space-y-3 text-sm">
+                {request.institution && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                        <Building className="w-4 h-4" />
+                        <span>{request.institution} / {request.division}</span>
+                    </div>
+                )}
+                {request.supervisor && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                        <UserCheck className="w-4 h-4" />
+                        <span>Approving Supervisor: {request.supervisor.name}</span>
+                    </div>
+                )}
             </div>
           </div>
           

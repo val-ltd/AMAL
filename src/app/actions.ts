@@ -10,13 +10,20 @@ const requestSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters long.'),
   amount: z.coerce.number().positive('Amount must be a positive number.'),
   description: z.string().min(10, 'Description must be at least 10 characters long.'),
+  institution: z.string().min(1, 'Institution is required.'),
+  division: z.string().min(1, 'Division is required.'),
+  supervisor: z.string().min(1, 'Please select a supervisor.'),
 });
 
 export async function createRequestAction(formData: FormData) {
+  const supervisorId = formData.get('supervisor');
   const validatedFields = requestSchema.safeParse({
     title: formData.get('title'),
     amount: formData.get('amount'),
     description: formData.get('description'),
+    institution: formData.get('institution'),
+    division: formData.get('division'),
+    supervisor: supervisorId,
   });
 
   if (!validatedFields.success) {
@@ -25,12 +32,24 @@ export async function createRequestAction(formData: FormData) {
     };
   }
 
+  const supervisors: { [key: string]: string } = {
+    'user-2': 'Bob Williams',
+    'user-3': 'Charlie Brown',
+    'user-4': 'Diana Prince',
+  };
+
+  const supervisorName = supervisors[supervisorId as string] || 'N/A';
+
   await createRequest({
     ...validatedFields.data,
     requester: {
       id: 'user-1',
       name: 'Alice Johnson',
       avatarUrl: 'https://i.pravatar.cc/150?u=alice',
+    },
+    supervisor: {
+      id: supervisorId as string,
+      name: supervisorName,
     },
   });
 

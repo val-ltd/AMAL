@@ -20,6 +20,7 @@ import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import React from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from './ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const requestSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters long.'),
@@ -27,9 +28,18 @@ const requestSchema = z.object({
   description: z
     .string()
     .min(10, 'Description must be at least 10 characters long.'),
+  institution: z.string().min(1, 'Institution is required.'),
+  division: z.string().min(1, 'Division is required.'),
+  supervisor: z.string().min(1, 'Please select a supervisor.'),
 });
 
 type FormData = z.infer<typeof requestSchema>;
+
+const supervisors = [
+    { id: 'user-2', name: 'Bob Williams' },
+    { id: 'user-3', name: 'Charlie Brown' },
+    { id: 'user-4', name: 'Diana Prince' },
+];
 
 export function NewRequestForm() {
   const form = useForm<FormData>({
@@ -38,6 +48,9 @@ export function NewRequestForm() {
       title: '',
       amount: 0,
       description: '',
+      institution: '',
+      division: '',
+      supervisor: '',
     },
   });
 
@@ -69,6 +82,9 @@ export function NewRequestForm() {
     formData.append('title', data.title);
     formData.append('amount', String(data.amount));
     formData.append('description', data.description);
+    formData.append('institution', data.institution);
+    formData.append('division', data.division);
+    formData.append('supervisor', data.supervisor);
     
     await createRequestAction(formData);
 
@@ -82,6 +98,58 @@ export function NewRequestForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <FormField
+            control={form.control}
+            name="institution"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Institution</FormLabel>
+                <FormControl>
+                    <Input placeholder="e.g., University of Acme" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="division"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Division</FormLabel>
+                <FormControl>
+                    <Input placeholder="e.g., School of Engineering" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
+        <FormField
+          control={form.control}
+          name="supervisor"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Approving Supervisor</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a supervisor" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {supervisors.map(supervisor => (
+                    <SelectItem key={supervisor.id} value={supervisor.id}>
+                      {supervisor.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="title"
