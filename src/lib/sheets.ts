@@ -118,6 +118,8 @@ export async function updateRequestInSheet(request: BudgetRequest) {
         const rowIndex = rowValues.findIndex(row => row[0] === request.id);
         if (rowIndex === -1) {
             console.error(`Could not find request with ID ${request.id} in the sheet.`);
+            // If not found, just append it as a new row.
+            await appendRequestToSheet(request);
             return;
         }
 
