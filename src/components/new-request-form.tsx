@@ -21,6 +21,7 @@ import React from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { useRouter } from 'next/navigation';
 
 const requestSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters long.'),
@@ -42,6 +43,7 @@ const supervisors = [
 ];
 
 export function NewRequestForm() {
+  const router = useRouter();
   const form = useForm<FormData>({
     resolver: zodResolver(requestSchema),
     defaultValues: {
@@ -86,13 +88,18 @@ export function NewRequestForm() {
     formData.append('division', data.division);
     formData.append('supervisor', data.supervisor);
     
-    await createRequestAction(formData);
+    // The action returns a promise that resolves on redirect, so we don't await it here.
+    // We navigate away optimistically.
+    createRequestAction(formData);
 
     toast({
         title: "Request Submitted",
         description: "Your budget request has been successfully submitted.",
     });
-    // The redirect in the action will navigate the user.
+    
+    // Manually redirect
+    router.push('/');
+    setIsSubmitting(false);
   };
 
   return (

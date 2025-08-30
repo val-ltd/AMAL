@@ -1,8 +1,17 @@
+
+'use client'
+
 import RequestList from "@/components/request-list";
 import { getPendingRequests } from "@/lib/data";
+import { BudgetRequest } from "@/lib/types";
+import { useEffect, useState } from "react";
 
-export default async function ManagerPage() {
-  const requests = await getPendingRequests();
+export default function ManagerPage() {
+  const [requests, setRequests] = useState<BudgetRequest[]>([]);
+  
+  useEffect(() => {
+    getPendingRequests().then(setRequests);
+  }, []);
 
   return (
     <div className="flex flex-col gap-8">
