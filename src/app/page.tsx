@@ -8,13 +8,26 @@ import { getMyRequests } from "@/lib/data"
 import RequestList from "@/components/request-list"
 import { useEffect, useState } from "react"
 import { BudgetRequest } from "@/lib/types"
+import { useAuth } from "@/hooks/use-auth"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function EmployeeDashboard() {
+  const { user, loading: authLoading } = useAuth();
   const [requests, setRequests] = useState<BudgetRequest[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getMyRequests().then(setRequests);
-  }, []);
+    if (!authLoading && user) {
+      setLoading(true);
+      const unsubscribe = getMyRequests((fetchedRequests) => {
+        setRequests(fetchedRequests);
+        setLoading(false);
+      });
+
+      // Cleanup subscription on component unmount
+      return () => unsubscribe();
+    }
+  }, [user, authLoading]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -28,7 +41,17 @@ export default function EmployeeDashboard() {
         </Button>
       </div>
 
-      <RequestList requests={requests} />
+      {loading ? <RequestListSkeleton /> : <RequestList requests={requests} />}
     </div>
   )
+}
+
+function RequestListSkeleton() {
+    return (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Skeleton className="h-56 w-full" />
+            <Skeleton className="h-56 w-full" />
+            <Skeleton className="h-56 w-full" />
+        </div>
+    )
 }

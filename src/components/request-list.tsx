@@ -56,6 +56,9 @@ export default function RequestList({ requests, isManagerView = false }: Request
           </CardHeader>
           <CardContent className="flex-grow">
             <p className="text-sm text-muted-foreground line-clamp-3">{request.description}</p>
+            <div className='mt-4'>
+                <p className="text-sm text-muted-foreground">{request.institution} / {request.division}</p>
+            </div>
           </CardContent>
           <CardFooter className="flex items-end justify-between">
             <div className="text-2xl font-bold">

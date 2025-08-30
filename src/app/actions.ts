@@ -5,8 +5,7 @@ import { createRequest, updateRequest } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { suggestDetails } from '@/ai/flows/suggest-details-for-budget-request';
-import { auth } from '@/lib/firebase';
-import { appendRequestToSheet } from '@/lib/sheets';
+import { appendRequestToSheet, updateRequestInSheet } from '@/lib/sheets';
 
 const requestSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters long.'),
@@ -67,7 +66,15 @@ export async function updateRequestAction(
   status: 'approved' | 'rejected',
   managerComment: string,
 ) {
-  await updateRequest(requestId, status, managerComment);
+  const updatedRequest = await updateRequest(requestId, status, managerComment);
+  
+  // Update in Google Sheet asynchronously
+  if (updatedRequest && process.env.GOOGLE_SHEET_ID && process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+      await updateRequestInSheet(updatedRequest);
+  } else {
+      console.log("Google Sheets environment variables not set or request update failed. Skipping sheet update.");
+  }
+  
   revalidatePath('/manager');
 }
 
