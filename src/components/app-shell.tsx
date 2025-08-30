@@ -1,7 +1,8 @@
+
 'use client';
 
 import Link from 'next/link';
-import { Home, Shield, PlusCircle, User, LogOut, ChevronDown, Wallet } from 'lucide-react';
+import { Home, Shield, PlusCircle, User, LogOut, ChevronDown, Wallet, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from './logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -52,6 +53,7 @@ function DesktopNav() {
   const navItems = [
     { href: '/', label: 'Permintaan Saya', icon: Home },
     { href: '/manager', label: 'Tampilan Manajer', icon: Shield },
+    { href: '/admin', label: 'Manajemen Pengguna', icon: Users },
   ];
 
   return (
@@ -80,19 +82,20 @@ function BottomNav() {
     { href: '/', label: 'Permintaan', icon: Home },
     { href: '/request/new', label: 'Baru', icon: PlusCircle },
     { href: '/manager', label: 'Manajer', icon: Shield },
+    { href: '/admin', label: 'Admin', icon: Users },
     { href: '/profile', label: 'Profil', icon: User },
   ];
 
   return (
     <div className="fixed bottom-0 z-10 w-full border-t bg-background/95 backdrop-blur-sm sm:hidden">
-      <nav className="grid grid-cols-4 items-center justify-around p-2">
+      <nav className="grid grid-cols-5 items-center justify-around p-2">
         {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             className={cn(
               "flex flex-col items-center gap-1 rounded-md p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-              pathname === item.href ? "text-primary" : "text-muted-foreground"
+              pathname.startsWith(item.href) && item.href !== '/' || pathname === item.href ? "text-primary" : "text-muted-foreground"
             )}
           >
             <item.icon className="h-5 w-5" />
@@ -116,7 +119,7 @@ function UserMenu() {
             </Avatar>
             <div className="hidden flex-col items-start text-left sm:flex">
               <span className="font-medium">Alice Johnson</span>
-              <span className="text-xs text-muted-foreground">Karyawan</span>
+              <span className="text-xs text-muted-foreground">Admin</span>
             </div>
             <ChevronDown className="ml-1 h-4 w-4 text-muted-foreground" />
           </div>

@@ -1,7 +1,15 @@
+
 // This is a mock database. In a real application, you would use a proper database.
-import type { BudgetRequest } from './types';
+import type { BudgetRequest, User } from './types';
 
 const MOCK_CURRENT_USER_ID = 'user-1';
+
+const users: User[] = [
+    { id: 'user-1', name: 'Alice Johnson', email: 'alice.j@example.com', role: 'Admin', avatarUrl: 'https://i.pravatar.cc/150?u=alice' },
+    { id: 'user-2', name: 'Bob Williams', email: 'bob.w@example.com', role: 'Manager', avatarUrl: 'https://i.pravatar.cc/150?u=bob' },
+    { id: 'user-3', name: 'Charlie Brown', email: 'charlie.b@example.com', role: 'Manager', avatarUrl: 'https://i.pravatar.cc/150?u=charlie' },
+    { id: 'user-4', name: 'Diana Prince', email: 'diana.p@example.com', role: 'Manager', avatarUrl: 'https://i.pravatar.cc/150?u=diana' },
+];
 
 const requests: BudgetRequest[] = [
   {
@@ -95,6 +103,11 @@ const requests: BudgetRequest[] = [
 
 // Simulate network latency
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+export async function getUsers(): Promise<User[]> {
+    await delay(50);
+    return users;
+}
 
 export async function getMyRequests(): Promise<BudgetRequest[]> {
   await delay(50);
