@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { suggestDetails } from '@/ai/flows/suggest-details-for-budget-request';
 import { auth } from '@/lib/firebase';
+import { appendRequestToSheet } from '@/lib/sheets';
 
 const requestSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters long.'),
@@ -41,13 +42,21 @@ export async function createRequestAction(formData: FormData) {
 
     const supervisorName = supervisors[supervisorId as string] || 'N/A';
 
-  await createRequest({
+  const newRequest = await createRequest({
     ...validatedFields.data,
     supervisor: {
       id: supervisorId as string,
       name: supervisorName,
     },
   });
+
+  // Append to Google Sheet asynchronously
+  if (process.env.GOOGLE_SHEET_ID && process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    await appendRequestToSheet(newRequest);
+  } else {
+    console.log("Google Sheets environment variables not set. Skipping sheet append.");
+  }
+
 
   revalidatePath('/');
   redirect('/');
