@@ -177,20 +177,6 @@ export async function getUser(uid: string): Promise<User | null> {
     return null;
 }
 
-export async function getUserWithHierarchy(uid: string): Promise<User | null> {
-    const user = await getUser(uid);
-    if (!user) return null;
-
-    if (user.supervisorId) {
-        user.supervisor = await getUser(user.supervisorId);
-    }
-    if (user.deciderId) {
-        user.decider = await getUser(user.deciderId);
-    }
-
-    return user;
-}
-
 export async function getManagers(): Promise<User[]> {
     const q = query(
         collection(db, 'users'),

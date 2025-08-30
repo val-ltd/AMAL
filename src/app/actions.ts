@@ -29,17 +29,14 @@ export async function createRequestAction(formData: FormData) {
   });
 
   if (!validatedFields.success) {
-    // This part was missing, so form errors were not being handled
     return {
       errors: validatedFields.error.flatten().fieldErrors,
     };
   }
   
   try {
-    // Fetch supervisor details from Firestore
     const supervisor = await getUser(supervisorId as string);
     if (!supervisor) {
-      // Handle case where supervisor is not found
       return {
         errors: { supervisor: ['Selected supervisor not found.'] },
       }
@@ -54,17 +51,14 @@ export async function createRequestAction(formData: FormData) {
       },
     });
 
-    // For now, let's focus on Firestore. We'll re-enable this later.
-    // if (process.env.GOOGLE_SHEET_ID && process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-    //   await appendRequestToSheet(newRequest);
-    // } else {
-    //   console.log("Google Sheets environment variables not set. Skipping sheet append.");
-    // }
+    if (process.env.GOOGLE_SHEET_ID && process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+      await appendRequestToSheet(newRequest);
+    } else {
+      console.log("Google Sheets environment variables not set. Skipping sheet append.");
+    }
 
   } catch (error) {
     console.error("Failed to create request:", error);
-    // In a real app, you might want to return a generic error message
-    // to the user.
     return {
         errors: { _form: ['An unexpected error occurred. Please try again.'] },
     }
@@ -82,7 +76,6 @@ export async function updateRequestAction(
 ) {
   const updatedRequest = await updateRequest(requestId, status, managerComment);
   
-  // Update in Google Sheet asynchronously
   if (updatedRequest && process.env.GOOGLE_SHEET_ID && process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
       await updateRequestInSheet(updatedRequest);
   } else {
