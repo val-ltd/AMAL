@@ -20,7 +20,6 @@ import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import type { User } from '@/lib/types';
@@ -33,17 +32,10 @@ const requestSchema = z.object({
   description: z
     .string()
     .min(10, 'Deskripsi harus memiliki setidaknya 10 karakter.'),
-  supervisor: z.string().min(1, 'Silakan pilih supervisor.'),
 });
 
 type FormData = z.infer<typeof requestSchema>;
 
-// Mock data - in a real app, this would come from your user database
-const supervisors = [
-    { id: 'user-2', name: 'Bob Williams' },
-    { id: 'user-3', name: 'Charlie Brown' },
-    { id: 'user-4', name: 'Diana Prince' },
-];
 
 export function NewRequestForm() {
   const router = useRouter();
@@ -57,7 +49,6 @@ export function NewRequestForm() {
       title: '',
       amount: 0,
       description: '',
-      supervisor: '',
     },
   });
 
@@ -79,7 +70,14 @@ export function NewRequestForm() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const onSubmit = async (data: FormData) => {
-    if (!profileData) return;
+    if (!profileData || !profileData.supervisor) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Supervisor tidak ditemukan. Silakan hubungi admin.',
+        });
+        return;
+    }
 
     setIsSubmitting(true);
     const formData = new FormData();
@@ -88,7 +86,7 @@ export function NewRequestForm() {
     formData.append('description', data.description);
     formData.append('institution', profileData.institution ?? '');
     formData.append('division', profileData.division ?? '');
-    formData.append('supervisor', data.supervisor);
+    formData.append('supervisor', profileData.supervisor.id);
     
     await createRequestAction(formData);
 
@@ -156,7 +154,7 @@ export function NewRequestForm() {
                     </div>
                     {profileData.supervisor && (
                         <div className="flex justify-between">
-                            <span className="text-muted-foreground">Atasan Langsung</span>
+                            <span className="text-muted-foreground">Nama Atasan</span>
                             <span className="font-medium">{profileData.supervisor.name}</span>
                         </div>
                     )}
@@ -164,30 +162,6 @@ export function NewRequestForm() {
             </Card>
         )}
 
-        <FormField
-          control={form.control}
-          name="supervisor"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Pilih Supervisor</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih seorang supervisor untuk menyetujui" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {supervisors.map(supervisor => (
-                    <SelectItem key={supervisor.id} value={supervisor.id}>
-                      {supervisor.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <FormField
           control={form.control}
           name="title"
