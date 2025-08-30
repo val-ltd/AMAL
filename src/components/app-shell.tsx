@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -16,9 +15,17 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const pathname = usePathname();
+
+  if (loading || !user || pathname === '/login') {
+    return <>{children}</>;
+  }
+  
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -108,18 +115,22 @@ function BottomNav() {
 }
 
 function UserMenu() {
+  const { user, logout } = useAuth();
+
+  if (!user) return null;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-auto px-2">
           <div className="flex items-center gap-2">
             <Avatar className="h-8 w-8">
-              <AvatarImage src="https://i.pravatar.cc/150?u=alice" alt="Alice Johnson" data-ai-hint="person" />
-              <AvatarFallback>AJ</AvatarFallback>
+              <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? ''} data-ai-hint="person" />
+              <AvatarFallback>{user.displayName?.charAt(0) ?? 'U'}</AvatarFallback>
             </Avatar>
             <div className="hidden flex-col items-start text-left sm:flex">
-              <span className="font-medium">Alice Johnson</span>
-              <span className="text-xs text-muted-foreground">Admin</span>
+              <span className="font-medium">{user.displayName}</span>
+              <span className="text-xs text-muted-foreground">{user.email}</span>
             </div>
             <ChevronDown className="ml-1 h-4 w-4 text-muted-foreground" />
           </div>
@@ -128,9 +139,9 @@ function UserMenu() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Alice Johnson</p>
+            <p className="text-sm font-medium leading-none">{user.displayName}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              alice.j@example.com
+              {user.email}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -141,7 +152,7 @@ function UserMenu() {
                 <span>Profil</span>
             </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={logout}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Keluar</span>
         </DropdownMenuItem>
