@@ -12,9 +12,9 @@ export default function NewRequestPage() {
     <div className="mx-auto max-w-2xl">
       <Card>
         <CardHeader>
-          <CardTitle>Create Budget Request</CardTitle>
+          <CardTitle>Buat Permintaan Anggaran</CardTitle>
           <CardDescription>
-            Fill out the form below to submit a new budget request for approval.
+            Isi formulir di bawah ini untuk mengajukan permintaan anggaran baru untuk persetujuan.
           </CardDescription>
         </CardHeader>
         <CardContent>

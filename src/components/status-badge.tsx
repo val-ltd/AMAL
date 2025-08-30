@@ -13,9 +13,15 @@ export default function StatusBadge({ status, className }: StatusBadgeProps) {
     rejected: 'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300',
   };
 
+  const statusText = {
+    pending: 'Tertunda',
+    approved: 'Disetujui',
+    rejected: 'Ditolak',
+  }
+
   return (
     <Badge variant="outline" className={cn("capitalize border-none", statusStyles[status], className)}>
-      {status}
+      {statusText[status]}
     </Badge>
   )
 }

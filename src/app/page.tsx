@@ -19,11 +19,11 @@ export default function EmployeeDashboard() {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">My Requests</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Permintaan Saya</h1>
         <Button asChild className="hidden sm:inline-flex">
           <Link href="/request/new">
             <PlusCircle className="mr-2 h-4 w-4" />
-            New Request
+            Permintaan Baru
           </Link>
         </Button>
       </div>

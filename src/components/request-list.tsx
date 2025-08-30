@@ -10,6 +10,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import StatusBadge from './status-badge';
 import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 import { ApprovalDialog } from './manager/approval-dialog';
 
 interface RequestListProps {
@@ -21,9 +22,9 @@ export default function RequestList({ requests, isManagerView = false }: Request
   if (requests.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed bg-card p-12 text-center">
-        <h3 className="text-xl font-medium">No requests found</h3>
+        <h3 className="text-xl font-medium">Tidak ada permintaan ditemukan</h3>
         <p className="text-muted-foreground">
-          {isManagerView ? "There are no pending requests to review." : "You haven't submitted any requests yet."}
+          {isManagerView ? "Tidak ada permintaan tertunda untuk ditinjau." : "Anda belum mengajukan permintaan apa pun."}
         </p>
       </div>
     );
@@ -41,7 +42,7 @@ export default function RequestList({ requests, isManagerView = false }: Request
             
             <CardDescription className="flex items-center gap-2 pt-1">
               {!isManagerView ? (
-                <span>Submitted on {format(new Date(request.createdAt), 'MMM d, yyyy')}</span>
+                <span>Dikirim pada {format(new Date(request.createdAt), 'PP', { locale: id })}</span>
               ) : (
                 <>
                   <Avatar className="h-6 w-6">

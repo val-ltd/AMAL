@@ -1,6 +1,5 @@
 'use client';
 
-import { useFormState } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,16 +21,17 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useRouter } from 'next/navigation';
+import { departments } from '@/lib/departments';
 
 const requestSchema = z.object({
-  title: z.string().min(5, 'Title must be at least 5 characters long.'),
-  amount: z.coerce.number().positive('Amount must be a positive number.'),
+  title: z.string().min(5, 'Judul harus memiliki setidaknya 5 karakter.'),
+  amount: z.coerce.number().positive('Jumlah harus angka positif.'),
   description: z
     .string()
-    .min(10, 'Description must be at least 10 characters long.'),
-  institution: z.string().min(1, 'Institution is required.'),
-  division: z.string().min(1, 'Division is required.'),
-  supervisor: z.string().min(1, 'Please select a supervisor.'),
+    .min(10, 'Deskripsi harus memiliki setidaknya 10 karakter.'),
+  institution: z.string().min(1, 'Lembaga wajib diisi.'),
+  division: z.string().min(1, 'Divisi wajib diisi.'),
+  supervisor: z.string().min(1, 'Silakan pilih supervisor.'),
 });
 
 type FormData = z.infer<typeof requestSchema>;
@@ -41,6 +41,8 @@ const supervisors = [
     { id: 'user-3', name: 'Charlie Brown' },
     { id: 'user-4', name: 'Diana Prince' },
 ];
+
+const institutionOptions = Object.keys(departments);
 
 export function NewRequestForm() {
   const router = useRouter();
@@ -60,6 +62,11 @@ export function NewRequestForm() {
   const [suggestions, setSuggestions] = React.useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const selectedInstitution = form.watch('institution');
+  
+  const divisionOptions = selectedInstitution ? Object.keys(departments[selectedInstitution as keyof typeof departments] || {}) : [];
+
 
   const handleGetSuggestions = async () => {
     const description = form.getValues('description');
@@ -88,16 +95,13 @@ export function NewRequestForm() {
     formData.append('division', data.division);
     formData.append('supervisor', data.supervisor);
     
-    // The action returns a promise that resolves on redirect, so we don't await it here.
-    // We navigate away optimistically.
     createRequestAction(formData);
 
     toast({
-        title: "Request Submitted",
-        description: "Your budget request has been successfully submitted.",
+        title: "Permintaan Terkirim",
+        description: "Permintaan anggaran Anda telah berhasil dikirim.",
     });
     
-    // Manually redirect
     router.push('/');
     setIsSubmitting(false);
   };
@@ -106,31 +110,56 @@ export function NewRequestForm() {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <FormField
-            control={form.control}
-            name="institution"
-            render={({ field }) => (
+           <FormField
+              control={form.control}
+              name="institution"
+              render={({ field }) => (
                 <FormItem>
-                <FormLabel>Institution</FormLabel>
-                <FormControl>
-                    <Input placeholder="e.g., University of Acme" {...field} />
-                </FormControl>
-                <FormMessage />
+                  <FormLabel>Lembaga</FormLabel>
+                  <Select onValueChange={(value) => {
+                      field.onChange(value);
+                      form.setValue('division', '');
+                  }} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih lembaga" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {institutionOptions.map(inst => (
+                        <SelectItem key={inst} value={inst}>
+                          {inst}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
                 </FormItem>
-            )}
+              )}
             />
             <FormField
-            control={form.control}
-            name="division"
-            render={({ field }) => (
+              control={form.control}
+              name="division"
+              render={({ field }) => (
                 <FormItem>
-                <FormLabel>Division</FormLabel>
-                <FormControl>
-                    <Input placeholder="e.g., School of Engineering" {...field} />
-                </FormControl>
-                <FormMessage />
+                  <FormLabel>Divisi</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={!selectedInstitution}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih divisi" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {divisionOptions.map(div => (
+                        <SelectItem key={div} value={div}>
+                          {div}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
                 </FormItem>
-            )}
+              )}
             />
         </div>
         <FormField
@@ -138,11 +167,11 @@ export function NewRequestForm() {
           name="supervisor"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Approving Supervisor</FormLabel>
+              <FormLabel>Supervisor Penyetuju</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a supervisor" />
+                    <SelectValue placeholder="Pilih supervisor" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -162,9 +191,9 @@ export function NewRequestForm() {
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Request Title</FormLabel>
+              <FormLabel>Judul Permintaan</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., New Laptops for Engineering Team" {...field} />
+                <Input placeholder="cth., Laptop baru untuk tim engineering" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -175,9 +204,9 @@ export function NewRequestForm() {
           name="amount"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Amount ($)</FormLabel>
+              <FormLabel>Jumlah (Rp)</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="e.g., 5000" {...field} />
+                <Input type="number" placeholder="cth., 15000000" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -188,10 +217,10 @@ export function NewRequestForm() {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description & Justification</FormLabel>
+              <FormLabel>Deskripsi & Justifikasi</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Provide a detailed description of the request and why it's needed."
+                  placeholder="Berikan deskripsi terperinci tentang permintaan dan mengapa itu diperlukan."
                   className="min-h-[120px]"
                   {...field}
                 />
@@ -208,12 +237,12 @@ export function NewRequestForm() {
             ) : (
                 <Wand2 className="mr-2 h-4 w-4" />
             )}
-            Get AI Suggestions
+            Dapatkan Saran AI
             </Button>
             {suggestions.length > 0 && (
             <Card className="bg-accent/50">
                 <CardContent className="p-4 space-y-2">
-                    <h4 className="font-semibold flex items-center gap-2"><Sparkles className="w-4 h-4 text-yellow-500" />Suggestions</h4>
+                    <h4 className="font-semibold flex items-center gap-2"><Sparkles className="w-4 h-4 text-yellow-500" />Saran</h4>
                     <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
                         {suggestions.map((suggestion, index) => (
                         <li key={index}>{suggestion}</li>
@@ -227,7 +256,7 @@ export function NewRequestForm() {
 
         <Button type="submit" disabled={isSubmitting} className="w-full">
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Submit Request
+            Kirim Permintaan
         </Button>
       </form>
     </Form>

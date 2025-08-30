@@ -38,7 +38,7 @@ function Header() {
         <Button asChild>
             <Link href="/request/new">
                 <PlusCircle className="mr-2 h-4 w-4" />
-                New Request
+                Permintaan Baru
             </Link>
         </Button>
         <UserMenu />
@@ -50,8 +50,8 @@ function Header() {
 function DesktopNav() {
   const pathname = usePathname();
   const navItems = [
-    { href: '/', label: 'My Requests', icon: Home },
-    { href: '/manager', label: 'Manager View', icon: Shield },
+    { href: '/', label: 'Permintaan Saya', icon: Home },
+    { href: '/manager', label: 'Tampilan Manajer', icon: Shield },
   ];
 
   return (
@@ -77,10 +77,10 @@ function DesktopNav() {
 function BottomNav() {
   const pathname = usePathname();
   const navItems = [
-    { href: '/', label: 'My Requests', icon: Home },
-    { href: '/request/new', label: 'New', icon: PlusCircle },
-    { href: '/manager', label: 'Manager', icon: Shield },
-    { href: '/profile', label: 'Profile', icon: User },
+    { href: '/', label: 'Permintaan', icon: Home },
+    { href: '/request/new', label: 'Baru', icon: PlusCircle },
+    { href: '/manager', label: 'Manajer', icon: Shield },
+    { href: '/profile', label: 'Profil', icon: User },
   ];
 
   return (
@@ -116,7 +116,7 @@ function UserMenu() {
             </Avatar>
             <div className="hidden flex-col items-start text-left sm:flex">
               <span className="font-medium">Alice Johnson</span>
-              <span className="text-xs text-muted-foreground">Employee</span>
+              <span className="text-xs text-muted-foreground">Karyawan</span>
             </div>
             <ChevronDown className="ml-1 h-4 w-4 text-muted-foreground" />
           </div>
@@ -135,23 +135,14 @@ function UserMenu() {
         <DropdownMenuItem asChild>
             <Link href="/profile">
                 <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
+                <span>Profil</span>
             </Link>
         </DropdownMenuItem>
         <DropdownMenuItem>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>Keluar</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
-
-// A new page for profile
-function ProfilePage() {
-    return (
-        <div>
-            <h1>Profile</h1>
-        </div>
-    )
 }

@@ -21,11 +21,11 @@ export default function ProfilePage() {
             <CardContent className="space-y-4">
                 <Button variant="outline" className="w-full justify-start">
                     <User className="mr-2 h-4 w-4" />
-                    <span>Edit Profile</span>
+                    <span>Ubah Profil</span>
                 </Button>
                 <Button variant="destructive" className="w-full justify-start">
                     <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
+                    <span>Keluar</span>
                 </Button>
             </CardContent>
         </Card>

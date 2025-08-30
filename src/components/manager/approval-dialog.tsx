@@ -8,8 +8,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogClose
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,6 +16,7 @@ import { updateRequestAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import StatusBadge from '../status-badge';
 import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Building, Loader2, ThumbsDown, ThumbsUp, UserCheck } from 'lucide-react';
 
@@ -37,21 +36,21 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
     setIsSubmitting(false);
     setOpen(false);
     toast({
-      title: `Request ${status}`,
-      description: `The budget request for "${request.title}" has been ${status}.`,
+      title: `Permintaan ${status === 'approved' ? 'Disetujui' : 'Ditolak'}`,
+      description: `Permintaan anggaran untuk "${request.title}" telah ${status === 'approved' ? 'disetujui' : 'ditolak'}.`,
     });
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>Review</Button>
+        <Button>Tinjau</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
-          <DialogTitle>Review Budget Request</DialogTitle>
+          <DialogTitle>Tinjau Permintaan Anggaran</DialogTitle>
           <DialogDescription>
-            Review the details below and approve or reject the request.
+            Tinjau detail di bawah ini dan setujui atau tolak permintaan.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -64,7 +63,7 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
                 <div>
                     <div className="font-semibold">{request.requester.name}</div>
                     <div className="text-sm text-muted-foreground">
-                        Submitted on {format(new Date(request.createdAt), 'PP')}
+                        Dikirim pada {format(new Date(request.createdAt), 'PP', { locale: id })}
                     </div>
                 </div>
             </div>
@@ -91,7 +90,7 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
                 {request.supervisor && (
                     <div className="flex items-center gap-2 text-muted-foreground">
                         <UserCheck className="w-4 h-4" />
-                        <span>Approving Supervisor: {request.supervisor.name}</span>
+                        <span>Penyetuju: {request.supervisor.name}</span>
                     </div>
                 )}
             </div>
@@ -99,11 +98,11 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
           
           <div>
             <label htmlFor="manager-comment" className="mb-2 block text-sm font-medium">
-              Your Comment (Optional)
+              Komentar Anda (Opsional)
             </label>
             <Textarea
               id="manager-comment"
-              placeholder="Provide a reason for your decision..."
+              placeholder="Berikan alasan untuk keputusan Anda..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               disabled={isSubmitting}
@@ -112,7 +111,7 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
-            Cancel
+            Batal
           </Button>
           <Button
             variant="destructive"
@@ -121,11 +120,11 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
             className="bg-red-600 hover:bg-red-700"
           >
             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsDown className="mr-2 h-4 w-4" />}
-            Reject
+            Tolak
           </Button>
           <Button onClick={() => handleSubmit('approved')} disabled={isSubmitting} className="bg-green-600 hover:bg-green-700">
              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsUp className="mr-2 h-4 w-4" />}
-            Approve
+            Setujui
           </Button>
         </DialogFooter>
       </DialogContent>
