@@ -11,6 +11,7 @@ import {
   getDoc,
   Unsubscribe,
   orderBy,
+  getDocs,
 } from 'firebase/firestore';
 import type { BudgetRequest, User } from './types';
 import { auth, db } from './firebase';
@@ -179,4 +180,17 @@ export async function getUserWithHierarchy(uid: string): Promise<User | null> {
     }
 
     return user;
+}
+
+export async function getManagers(): Promise<User[]> {
+    const q = query(
+        collection(db, 'users'),
+        where('role', '==', 'Manager')
+    );
+    const querySnapshot = await getDocs(q);
+    const managers: User[] = [];
+    querySnapshot.forEach((doc) => {
+        managers.push({ id: doc.id, ...doc.data() } as User);
+    });
+    return managers;
 }

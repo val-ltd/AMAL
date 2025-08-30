@@ -23,8 +23,9 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import type { User } from '@/lib/types';
-import { getUserWithHierarchy } from '@/lib/data';
+import { getManagers, getUser } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const requestSchema = z.object({
   title: z.string().min(5, 'Judul harus memiliki setidaknya 5 karakter.'),
@@ -32,6 +33,7 @@ const requestSchema = z.object({
   description: z
     .string()
     .min(10, 'Deskripsi harus memiliki setidaknya 10 karakter.'),
+  supervisor: z.string().min(1, 'Silakan pilih atasan.'),
 });
 
 type FormData = z.infer<typeof requestSchema>;
@@ -41,7 +43,8 @@ export function NewRequestForm() {
   const router = useRouter();
   const { user: authUser } = useAuth();
   const [profileData, setProfileData] = useState<User | null>(null);
-  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [managers, setManagers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const form = useForm<FormData>({
     resolver: zodResolver(requestSchema),
@@ -49,19 +52,22 @@ export function NewRequestForm() {
       title: '',
       amount: 0,
       description: '',
+      supervisor: '',
     },
   });
 
   useEffect(() => {
-    const fetchProfileData = async () => {
+    const fetchInitialData = async () => {
         if (authUser) {
-            setLoadingProfile(true);
-            const data = await getUserWithHierarchy(authUser.uid);
-            setProfileData(data);
-            setLoadingProfile(false);
+            setLoading(true);
+            const userProfile = await getUser(authUser.uid);
+            const managerList = await getManagers();
+            setProfileData(userProfile);
+            setManagers(managerList);
+            setLoading(false);
         }
     }
-    fetchProfileData();
+    fetchInitialData();
   }, [authUser]);
 
   const { toast } = useToast();
@@ -70,14 +76,7 @@ export function NewRequestForm() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const onSubmit = async (data: FormData) => {
-    if (!profileData || !profileData.supervisor) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Supervisor tidak ditemukan. Silakan hubungi admin.',
-        });
-        return;
-    }
+    if (!profileData) return;
 
     setIsSubmitting(true);
     const formData = new FormData();
@@ -86,7 +85,7 @@ export function NewRequestForm() {
     formData.append('description', data.description);
     formData.append('institution', profileData.institution ?? '');
     formData.append('division', profileData.division ?? '');
-    formData.append('supervisor', profileData.supervisor.id);
+    formData.append('supervisor', data.supervisor);
     
     await createRequestAction(formData);
 
@@ -117,7 +116,7 @@ export function NewRequestForm() {
   };
 
 
-  if (loadingProfile) {
+  if (loading) {
       return (
           <div className="space-y-8">
               <Skeleton className="h-24 w-full" />
@@ -152,12 +151,6 @@ export function NewRequestForm() {
                         <span className="text-muted-foreground">Divisi</span>
                         <span className="font-medium">{profileData.division}</span>
                     </div>
-                    {profileData.supervisor && (
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Nama Atasan</span>
-                            <span className="font-medium">{profileData.supervisor.name}</span>
-                        </div>
-                    )}
                 </CardContent>
             </Card>
         )}
@@ -205,6 +198,29 @@ export function NewRequestForm() {
             </FormItem>
           )}
         />
+
+        <FormField
+            control={form.control}
+            name="supervisor"
+            render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Nama Atasan</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Pilih seorang atasan untuk menyetujui" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {managers.map(manager => (
+                                <SelectItem key={manager.id} value={manager.id}>{manager.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+            )}
+        />
         
         <div className="space-y-4">
             <Button type="button" variant="outline" onClick={handleGetSuggestions} disabled={isSuggesting}>
@@ -230,8 +246,8 @@ export function NewRequestForm() {
         </div>
 
 
-        <Button type="submit" disabled={isSubmitting || loadingProfile} className="w-full">
-            {(isSubmitting || loadingProfile) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <Button type="submit" disabled={isSubmitting || loading} className="w-full">
+            {(isSubmitting || loading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Kirim Permintaan
         </Button>
       </form>
