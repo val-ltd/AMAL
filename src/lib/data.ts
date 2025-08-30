@@ -108,6 +108,11 @@ export async function createRequest(
   // Get the requester's details from the 'users' collection
   const userDocRef = doc(db, 'users', currentUser.uid);
   const userDoc = await getDoc(userDocRef);
+  
+  if (!userDoc.exists()) {
+    throw new Error('Requester user data not found in Firestore.');
+  }
+  
   const userData = userDoc.data();
 
   const newRequestData = {
@@ -124,12 +129,16 @@ export async function createRequest(
 
   const docRef = await addDoc(collection(db, 'requests'), newRequestData);
   
+  // To provide a complete object back to the action, we'll fetch the newly created doc
+  const newDoc = await getDoc(docRef);
+  const createdData = newDoc.data();
+
   return {
-      ...newRequestData,
-      id: docRef.id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-  };
+    id: newDoc.id,
+    ...createdData,
+    createdAt: createdData?.createdAt?.toDate().toISOString(),
+    updatedAt: createdData?.updatedAt?.toDate().toISOString(),
+  } as BudgetRequest;
 }
 
 export async function updateRequest(

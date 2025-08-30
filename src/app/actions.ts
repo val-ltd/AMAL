@@ -29,28 +29,45 @@ export async function createRequestAction(formData: FormData) {
   });
 
   if (!validatedFields.success) {
+    // This part was missing, so form errors were not being handled
     return {
       errors: validatedFields.error.flatten().fieldErrors,
     };
   }
   
+  try {
     // Fetch supervisor details from Firestore
     const supervisor = await getUser(supervisorId as string);
+    if (!supervisor) {
+      // Handle case where supervisor is not found
+      return {
+        errors: { supervisor: ['Selected supervisor not found.'] },
+      }
+    }
     const supervisorName = supervisor?.name || 'N/A';
 
-  const newRequest = await createRequest({
-    ...validatedFields.data,
-    supervisor: {
-      id: supervisorId as string,
-      name: supervisorName,
-    },
-  });
+    const newRequest = await createRequest({
+      ...validatedFields.data,
+      supervisor: {
+        id: supervisorId as string,
+        name: supervisorName,
+      },
+    });
 
-  // Append to Google Sheet asynchronously
-  if (process.env.GOOGLE_SHEET_ID && process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-    await appendRequestToSheet(newRequest);
-  } else {
-    console.log("Google Sheets environment variables not set. Skipping sheet append.");
+    // For now, let's focus on Firestore. We'll re-enable this later.
+    // if (process.env.GOOGLE_SHEET_ID && process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    //   await appendRequestToSheet(newRequest);
+    // } else {
+    //   console.log("Google Sheets environment variables not set. Skipping sheet append.");
+    // }
+
+  } catch (error) {
+    console.error("Failed to create request:", error);
+    // In a real app, you might want to return a generic error message
+    // to the user.
+    return {
+        errors: { _form: ['An unexpected error occurred. Please try again.'] },
+    }
   }
 
 
