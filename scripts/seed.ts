@@ -2,15 +2,17 @@
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { config } from 'dotenv';
+import path from 'path';
 
 // Load environment variables from .env file
-config({ path: '.env.local' });
+config({ path: path.resolve(__dirname, '../.env.local') });
 config();
 
 // Find your service account credentials in the Firebase console
 // and place them in a file named `service-account.json` in the root
 // of your project.
-const serviceAccount = require('../service-account.json');
+const serviceAccountPath = path.resolve(__dirname, '../service-account.json');
+const serviceAccount = require(serviceAccountPath);
 
 // --- Your sample data goes here ---
 
