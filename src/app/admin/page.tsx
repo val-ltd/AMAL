@@ -3,7 +3,8 @@
 
 import { useEffect, useState } from "react";
 import { User } from "@/lib/types";
-import { getUsers } from "@/lib/data";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,7 +17,13 @@ export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([]);
   
   useEffect(() => {
-    getUsers().then(setUsers);
+    const fetchUsers = async () => {
+        const usersCollection = collection(db, 'users');
+        const userSnapshot = await getDocs(usersCollection);
+        const userList = userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+        setUsers(userList);
+    }
+    fetchUsers();
   }, []);
 
   return (

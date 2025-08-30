@@ -5,6 +5,7 @@ import { createRequest, updateRequest } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { suggestDetails } from '@/ai/flows/suggest-details-for-budget-request';
+import { auth } from '@/lib/firebase';
 
 const requestSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters long.'),
@@ -31,22 +32,17 @@ export async function createRequestAction(formData: FormData) {
       errors: validatedFields.error.flatten().fieldErrors,
     };
   }
+  
+    const supervisors: { [key: string]: string } = {
+        'user-2': 'Bob Williams',
+        'user-3': 'Charlie Brown',
+        'user-4': 'Diana Prince',
+    };
 
-  const supervisors: { [key: string]: string } = {
-    'user-2': 'Bob Williams',
-    'user-3': 'Charlie Brown',
-    'user-4': 'Diana Prince',
-  };
-
-  const supervisorName = supervisors[supervisorId as string] || 'N/A';
+    const supervisorName = supervisors[supervisorId as string] || 'N/A';
 
   await createRequest({
     ...validatedFields.data,
-    requester: {
-      id: 'user-1',
-      name: 'Alice Johnson',
-      avatarUrl: 'https://i.pravatar.cc/150?u=alice',
-    },
     supervisor: {
       id: supervisorId as string,
       name: supervisorName,

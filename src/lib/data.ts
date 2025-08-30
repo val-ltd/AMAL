@@ -1,17 +1,9 @@
 
 // This is a mock database. In a real application, you would use a proper database.
 import type { BudgetRequest, User } from './types';
+import { auth } from './firebase';
 
-const MOCK_CURRENT_USER_ID = 'user-1';
-
-const users: User[] = [
-    { id: 'user-1', name: 'Alice Johnson', email: 'alice.j@example.com', role: 'Admin', avatarUrl: 'https://i.pravatar.cc/150?u=alice' },
-    { id: 'user-2', name: 'Bob Williams', email: 'bob.w@example.com', role: 'Manager', avatarUrl: 'https://i.pravatar.cc/150?u=bob' },
-    { id: 'user-3', name: 'Charlie Brown', email: 'charlie.b@example.com', role: 'Manager', avatarUrl: 'https://i.pravatar.cc/150?u=charlie' },
-    { id: 'user-4', name: 'Diana Prince', email: 'diana.p@example.com', role: 'Manager', avatarUrl: 'https://i.pravatar.cc/150?u=diana' },
-];
-
-const requests: BudgetRequest[] = [
+let requests: BudgetRequest[] = [
   {
     id: 'req-1',
     requester: {
@@ -104,15 +96,12 @@ const requests: BudgetRequest[] = [
 // Simulate network latency
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
-export async function getUsers(): Promise<User[]> {
-    await delay(50);
-    return users;
-}
-
 export async function getMyRequests(): Promise<BudgetRequest[]> {
   await delay(50);
+  const currentUser = auth.currentUser;
+  if (!currentUser) return [];
   return requests
-    .filter(r => r.requester.id === MOCK_CURRENT_USER_ID)
+    .filter(r => r.requester.id === currentUser.uid)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
@@ -123,11 +112,19 @@ export async function getPendingRequests(): Promise<BudgetRequest[]> {
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
-export async function createRequest(data: Omit<BudgetRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>): Promise<BudgetRequest> {
+export async function createRequest(data: Omit<BudgetRequest, 'id' | 'status' | 'createdAt' | 'updatedAt' | 'requester'>): Promise<BudgetRequest> {
   await delay(100);
+   const currentUser = auth.currentUser;
+   if (!currentUser) throw new Error("Not authenticated");
+
   const newRequest: BudgetRequest = {
     ...data,
     id: `req-${Date.now()}`,
+    requester: {
+        id: currentUser.uid,
+        name: currentUser.displayName || 'Unknown User',
+        avatarUrl: currentUser.photoURL || '',
+    },
     status: 'pending',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
