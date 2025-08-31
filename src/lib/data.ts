@@ -12,6 +12,7 @@ import {
   Unsubscribe,
   orderBy,
   getDocs,
+  deleteDoc,
 } from 'firebase/firestore';
 import type { BudgetRequest, User } from './types';
 import { auth, db } from './firebase';
@@ -98,30 +99,10 @@ export function getPendingRequests(
 }
 
 export async function createRequest(
-  data: Omit<BudgetRequest, 'id' | 'status' | 'createdAt' | 'updatedAt' | 'requester'>,
-  requesterUid: string
+  data: Omit<BudgetRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>
 ): Promise<BudgetRequest> {
-  if (!requesterUid) {
-    throw new Error('Not authenticated');
-  }
-  
-  // Get the requester's details from the 'users' collection using the provided UID
-  const userDocRef = doc(db, 'users', requesterUid);
-  const userDoc = await getDoc(userDocRef);
-  
-  if (!userDoc.exists()) {
-    throw new Error('Requester user data not found in Firestore.');
-  }
-  
-  const userData = userDoc.data();
-
   const newRequestData = {
     ...data,
-    requester: {
-      id: requesterUid,
-      name: userData?.name ?? 'Unknown User',
-      avatarUrl: userData?.avatarUrl ?? '',
-    },
     status: 'pending' as const,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -129,7 +110,6 @@ export async function createRequest(
 
   const docRef = await addDoc(collection(db, 'requests'), newRequestData);
   
-  // To provide a complete object back to the action, we'll fetch the newly created doc
   const newDoc = await getDoc(docRef);
   const createdData = newDoc.data();
 
@@ -188,4 +168,17 @@ export async function getManagers(): Promise<User[]> {
         managers.push({ id: doc.id, ...doc.data() } as User);
     });
     return managers;
+}
+
+export async function updateUserInFirestore(userId: string, data: Partial<User>) {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, data);
+}
+
+export async function deleteUserFromFirestore(userId: string) {
+    // Note: This only deletes the user's document in Firestore.
+    // It does NOT delete their authentication record from Firebase Auth.
+    // For a full user deletion, you would need to use the Firebase Admin SDK in a secure environment.
+    const userRef = doc(db, 'users', userId);
+    await deleteDoc(userRef);
 }
