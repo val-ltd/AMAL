@@ -12,7 +12,7 @@ export interface User {
   deciderId?: string;
   supervisor?: User;
   decider?: User;
-  departmentId?: string;
+  departmentIds?: string[]; // Changed from departmentId to departmentIds
 }
 
 export interface BudgetRequest {

@@ -23,9 +23,11 @@ import { db } from '@/lib/firebase';
 
 interface SaveDepartmentDialogProps {
   department?: Department;
+  onDepartmentAdded?: (newDepartment: Department) => void;
+  triggerButton?: React.ReactElement;
 }
 
-export function SaveDepartmentDialog({ department }: SaveDepartmentDialogProps) {
+export function SaveDepartmentDialog({ department, onDepartmentAdded, triggerButton }: SaveDepartmentDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -39,8 +41,8 @@ export function SaveDepartmentDialog({ department }: SaveDepartmentDialogProps) 
     const data = {
         lembaga: formData.get('lembaga') as string,
         divisi: formData.get('divisi') as string,
-        bagian: formData.get('bagian') as string || null,
-        unit: formData.get('unit') as string || null,
+        bagian: formData.get('bagian') as string || '',
+        unit: formData.get('unit') as string || '',
     };
 
     if (!data.lembaga || !data.divisi) {
@@ -53,10 +55,14 @@ export function SaveDepartmentDialog({ department }: SaveDepartmentDialogProps) 
       if (isEditing) {
         const deptRef = doc(db, 'departments', department.id);
         await updateDoc(deptRef, data);
+        toast({ title: `Departemen Diperbarui`, description: `Departemen telah berhasil diperbarui.` });
       } else {
-        await addDoc(collection(db, 'departments'), data);
+        const docRef = await addDoc(collection(db, 'departments'), data);
+        toast({ title: `Departemen Ditambahkan`, description: `Departemen telah berhasil ditambahkan.` });
+        if(onDepartmentAdded) {
+          onDepartmentAdded({id: docRef.id, ...data});
+        }
       }
-      toast({ title: `Departemen ${isEditing ? 'Diperbarui' : 'Ditambahkan'}`, description: `Departemen telah berhasil di${isEditing ? 'perbarui' : 'tambahkan'}.` });
       setOpen(false);
     } catch (error) {
       console.error('Error saving department: ', error);
@@ -70,21 +76,33 @@ export function SaveDepartmentDialog({ department }: SaveDepartmentDialogProps) 
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {isEditing ? (
-            <button className="flex items-center w-full text-left">
-                <Edit className="mr-2 h-4 w-4" />
-                Ubah Departemen
-            </button>
-        ) : (
+  const Trigger = () => {
+    if (triggerButton) {
+        return <DialogTrigger asChild>{triggerButton}</DialogTrigger>;
+    }
+    if (isEditing) {
+        return (
+            <DialogTrigger asChild>
+                <button className="flex items-center w-full text-left">
+                    <Edit className="mr-2 h-4 w-4" />
+                    Ubah Departemen
+                </button>
+            </DialogTrigger>
+        )
+    }
+    return (
+        <DialogTrigger asChild>
             <Button>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Tambah Departemen
             </Button>
-        )}
-      </DialogTrigger>
+        </DialogTrigger>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Trigger />
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Ubah' : 'Tambah'} Departemen</DialogTitle>

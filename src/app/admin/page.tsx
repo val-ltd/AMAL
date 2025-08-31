@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { User, Department } from "@/lib/types";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -37,6 +37,10 @@ export default function AdminPage() {
     };
   }, []);
 
+  const handleDepartmentAdded = useCallback((newDepartment: Department) => {
+    setDepartments(prev => [...prev, newDepartment]);
+  }, []);
+
   const renderAddButton = () => {
     switch (activeTab) {
       case 'users':
@@ -47,7 +51,7 @@ export default function AdminPage() {
             </Button>
         );
       case 'departments':
-        return <SaveDepartmentDialog />;
+        return <SaveDepartmentDialog onDepartmentAdded={handleDepartmentAdded} />;
       default:
         return null;
     }
@@ -66,7 +70,7 @@ export default function AdminPage() {
           <TabsTrigger value="departments">Departemen</TabsTrigger>
         </TabsList>
         <TabsContent value="users">
-            <UserManagementTab users={users} loading={loading} departments={departments} />
+            <UserManagementTab users={users} loading={loading} departments={departments} onDepartmentAdded={handleDepartmentAdded} />
         </TabsContent>
         <TabsContent value="departments">
             <DepartmentManagementTab departments={departments} loading={loading} />

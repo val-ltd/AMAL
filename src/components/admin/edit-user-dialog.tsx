@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -18,37 +18,60 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { User, Department } from '@/lib/types';
-import { Edit, Loader2 } from 'lucide-react';
+import { Edit, Loader2, PlusCircle, Check, ChevronsUpDown } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatDepartment } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Badge } from '@/components/ui/badge';
+import { SaveDepartmentDialog } from './save-department-dialog';
 
 interface EditUserDialogProps {
   user: User;
   departments: Department[];
+  onDepartmentAdded: (newDepartment: Department) => void;
 }
 
-export function EditUserDialog({ user, departments }: EditUserDialogProps) {
+export function EditUserDialog({ user, departments, onDepartmentAdded }: EditUserDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>(user.departmentIds || []);
 
+  const handleToggleDepartment = (departmentId: string) => {
+    setSelectedDepartments((prev) =>
+      prev.includes(departmentId)
+        ? prev.filter((id) => id !== departmentId)
+        : [...prev, departmentId]
+    );
+  };
+  
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     
     const formData = new FormData(event.currentTarget);
-    const departmentId = formData.get('departmentId') as string;
-    const department = departments.find(d => d.id === departmentId);
 
     const updatedData: Partial<User> = {
         name: formData.get('name') as string,
         email: formData.get('email') as string,
         role: formData.get('role') as 'Admin' | 'Manager' | 'Employee',
-        departmentId: departmentId,
-        institution: department?.lembaga,
-        division: department?.divisi,
+        departmentIds: selectedDepartments,
     };
+    
+    // For compatibility with old structure, we can set institution/division from the first department
+    if (selectedDepartments.length > 0) {
+        const firstDept = departments.find(d => d.id === selectedDepartments[0]);
+        if (firstDept) {
+            updatedData.institution = firstDept.lembaga;
+            updatedData.division = firstDept.divisi;
+        }
+    } else {
+        updatedData.institution = '';
+        updatedData.division = '';
+    }
+
 
     try {
         const userRef = doc(db, 'users', user.id);
@@ -67,6 +90,10 @@ export function EditUserDialog({ user, departments }: EditUserDialogProps) {
     }
   };
 
+  const selectedDepartmentDetails = useMemo(() => {
+    return departments.filter(d => selectedDepartments.includes(d.id));
+  }, [selectedDepartments, departments]);
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -75,7 +102,7 @@ export function EditUserDialog({ user, departments }: EditUserDialogProps) {
           Ubah Pengguna
         </button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>Ubah Pengguna</DialogTitle>
           <DialogDescription>
@@ -110,20 +137,60 @@ export function EditUserDialog({ user, departments }: EditUserDialogProps) {
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="departmentId" className="text-right">
+          <div className="grid grid-cols-4 items-start gap-4">
+            <Label className="text-right pt-2">
               Departemen
             </Label>
-            <Select name="departmentId" defaultValue={user.departmentId}>
-                <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Pilih Departemen" />
-                </SelectTrigger>
-                <SelectContent>
-                    {departments.map(dept => (
-                        <SelectItem key={dept.id} value={dept.id}>{formatDepartment(dept)}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+            <div className="col-span-3 space-y-2">
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between font-normal h-auto"
+                        >
+                            <div className="flex flex-wrap gap-1">
+                                {selectedDepartmentDetails.length > 0 ? (
+                                    selectedDepartmentDetails.map(dept => (
+                                        <Badge key={dept.id} variant="secondary">{formatDepartment(dept)}</Badge>
+                                    ))
+                                ) : (
+                                    <span className="text-muted-foreground">Pilih departemen...</span>
+                                )}
+                            </div>
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[350px] p-0">
+                        <Command>
+                            <CommandInput placeholder="Cari departemen..." />
+                            <CommandList>
+                                <CommandEmpty>Departemen tidak ditemukan.</CommandEmpty>
+                                <CommandGroup>
+                                    {departments.map((dept) => (
+                                        <CommandItem
+                                            key={dept.id}
+                                            value={formatDepartment(dept)}
+                                            onSelect={() => handleToggleDepartment(dept.id)}
+                                        >
+                                            <Check
+                                                className={`mr-2 h-4 w-4 ${selectedDepartments.includes(dept.id) ? 'opacity-100' : 'opacity-0'}`}
+                                            />
+                                            {formatDepartment(dept)}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
+                <SaveDepartmentDialog onDepartmentAdded={onDepartmentAdded} triggerButton={
+                    <Button type="button" variant="ghost" size="sm" className="text-sm">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Tambah Departemen Baru
+                    </Button>
+                } />
+            </div>
           </div>
           <DialogFooter>
             <DialogClose asChild>

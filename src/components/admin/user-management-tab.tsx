@@ -17,14 +17,17 @@ interface UserManagementTabProps {
     users: User[];
     loading: boolean;
     departments: Department[];
+    onDepartmentAdded: (newDepartment: Department) => void;
 }
 
-export function UserManagementTab({ users, loading, departments }: UserManagementTabProps) {
+export function UserManagementTab({ users, loading, departments, onDepartmentAdded }: UserManagementTabProps) {
 
-    const getDepartmentForUser = (user: User) => {
-        if (!user.departmentId) return "N/A";
-        const dept = departments.find(d => d.id === user.departmentId);
-        return dept ? formatDepartment(dept) : "N/A";
+    const getDepartmentsForUser = (user: User) => {
+        if (!user.departmentIds || user.departmentIds.length === 0) return "N/A";
+        return user.departmentIds.map(id => {
+            const dept = departments.find(d => d.id === id);
+            return dept ? formatDepartment(dept) : "Departemen Dihapus";
+        }).join(', ');
     }
 
     return (
@@ -64,7 +67,7 @@ export function UserManagementTab({ users, loading, departments }: UserManagemen
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="font-medium">{getDepartmentForUser(user)}</div>
+                                        <div className="font-medium max-w-xs whitespace-pre-wrap">{getDepartmentsForUser(user)}</div>
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant={user.role === 'Admin' ? 'destructive' : user.role === 'Manager' ? 'secondary' : 'outline'}>
@@ -82,7 +85,7 @@ export function UserManagementTab({ users, loading, departments }: UserManagemen
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuLabel>Aksi</DropdownMenuLabel>
                                                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                                    <EditUserDialog user={user} departments={departments} />
+                                                    <EditUserDialog user={user} departments={departments} onDepartmentAdded={onDepartmentAdded} />
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">

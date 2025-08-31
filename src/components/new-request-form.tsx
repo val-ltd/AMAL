@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,7 +17,7 @@ import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { budgetCategories } from '@/lib/categories';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatDepartment } from '@/lib/utils';
 
@@ -27,8 +27,8 @@ export function NewRequestForm() {
   const { toast } = useToast();
 
   const [profileData, setProfileData] = useState<User | null>(null);
-  const [department, setDepartment] = useState<Department | null>(null);
   const [managers, setManagers] = useState<User[]>([]);
+  const [userDepartments, setUserDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Form State
@@ -36,6 +36,7 @@ export function NewRequestForm() {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [supervisorId, setSupervisorId] = useState('');
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -52,10 +53,14 @@ export function NewRequestForm() {
                 const userProfile = await getUser(authUser.uid);
                 setProfileData(userProfile);
 
-                if(userProfile?.departmentId) {
-                  const dept = await getDoc(doc(db, 'departments', userProfile.departmentId));
-                  if(dept.exists()) {
-                    setDepartment({id: dept.id, ...dept.data()} as Department);
+                if(userProfile?.departmentIds && userProfile.departmentIds.length > 0) {
+                  const deptPromises = userProfile.departmentIds.map(id => getDoc(doc(db, 'departments', id)));
+                  const deptDocs = await Promise.all(deptPromises);
+                  const depts = deptDocs.map(d => ({id: d.id, ...d.data()}) as Department);
+                  setUserDepartments(depts);
+                  // set the first department as the default selected one
+                  if(depts.length > 0) {
+                      setSelectedDepartmentId(depts[0].id);
                   }
                 }
 
@@ -81,6 +86,10 @@ export function NewRequestForm() {
       setFormError("Semua kolom harus diisi.");
       return;
     }
+     if (userDepartments.length > 1 && !selectedDepartmentId) {
+      setFormError("Silakan pilih departemen untuk permintaan ini.");
+      return;
+    }
     if (description.length < 10) {
       setFormError("Deskripsi harus memiliki setidaknya 10 karakter.");
       return;
@@ -88,10 +97,6 @@ export function NewRequestForm() {
     if (!profileData || !authUser) {
         setFormError("Data pengguna tidak ditemukan. Silakan login kembali.");
         return;
-    }
-     if (!profileData.institution || !profileData.division) {
-      setFormError('Profil pengguna Anda tidak lengkap. Harap perbarui lembaga dan divisi Anda.');
-      return;
     }
 
     setIsSubmitting(true);
@@ -101,20 +106,25 @@ export function NewRequestForm() {
         if (!supervisor) {
             throw new Error("Supervisor yang dipilih tidak valid.");
         }
+        
+        const selectedDepartment = userDepartments.find(d => d.id === selectedDepartmentId);
+        if(!selectedDepartment) {
+            throw new Error("Departemen yang dipilih tidak valid.");
+        }
 
         // 2. Prepare data object
         const newRequestData = {
             category,
             amount: Number(amount),
             description,
-            institution: profileData.institution ?? '',
-            division: profileData.division ?? '',
-            department: department ? {
-                lembaga: department.lembaga,
-                divisi: department.divisi,
-                bagian: department.bagian ?? '',
-                unit: department.unit ?? '',
-            } : {},
+            institution: selectedDepartment.lembaga,
+            division: selectedDepartment.divisi,
+            department: {
+                lembaga: selectedDepartment.lembaga,
+                divisi: selectedDepartment.divisi,
+                bagian: selectedDepartment.bagian || '',
+                unit: selectedDepartment.unit || '',
+            },
             requester: {
                 id: authUser.uid,
                 name: profileData.name || 'Unknown User',
@@ -169,7 +179,7 @@ export function NewRequestForm() {
     }
   };
 
-  const isFormReady = !loading && !authLoading && profileData && profileData.institution && profileData.division;
+  const isFormReady = !loading && !authLoading && profileData && userDepartments.length > 0;
 
   if (authLoading || loading) {
       return (
@@ -183,6 +193,13 @@ export function NewRequestForm() {
           </div>
       )
   }
+
+  const primaryDepartment = useMemo(() => {
+    if (userDepartments.length === 0) return 'N/A';
+    if (userDepartments.length === 1) return formatDepartment(userDepartments[0]);
+    // If multiple departments, let them select. The info card will show a generic message.
+    return `${userDepartments.length} departemen ditugaskan`;
+  }, [userDepartments]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -199,11 +216,27 @@ export function NewRequestForm() {
                    <div className="flex justify-between">
                       <span className="text-muted-foreground">Departemen</span>
                       <span className="font-medium text-right">
-                        {department ? formatDepartment(department) : (profileData.institution && profileData.division) ? `${profileData.institution} / ${profileData.division}`: 'N/A'}
+                        {primaryDepartment}
                       </span>
                   </div>
               </CardContent>
           </Card>
+      )}
+
+      {userDepartments.length > 1 && (
+        <div>
+            <label htmlFor="department" className="block text-sm font-medium mb-1">Pilih Departemen untuk Permintaan Ini</label>
+            <Select onValueChange={setSelectedDepartmentId} value={selectedDepartmentId} disabled={!isFormReady || isSubmitting}>
+                <SelectTrigger id="department">
+                    <SelectValue placeholder="Pilih departemen" />
+                </SelectTrigger>
+                <SelectContent>
+                    {userDepartments.map(dept => (
+                        <SelectItem key={dept.id} value={dept.id}>{formatDepartment(dept)}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
       )}
 
       <div>
@@ -280,6 +313,14 @@ export function NewRequestForm() {
           </Card>
           )}
       </div>
+
+      {!isFormReady && !loading && (
+           <Alert variant="destructive">
+              <Terminal className="h-4 w-4" />
+              <AlertTitle>Profil Tidak Lengkap</AlertTitle>
+              <AlertDescription>Profil Anda harus memiliki setidaknya satu departemen yang ditugaskan untuk membuat permintaan. Hubungi administrator.</AlertDescription>
+          </Alert>
+      )}
 
       {formError && (
           <Alert variant="destructive">

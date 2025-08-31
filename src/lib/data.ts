@@ -100,9 +100,7 @@ export function getPendingRequests(
 
 export async function createRequest(
   data: Omit<BudgetRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>,
-  uid: string
 ): Promise<BudgetRequest> {
-  if (!uid) throw new Error('You must be logged in to create a request.');
 
   const newRequestData = {
     ...data,
