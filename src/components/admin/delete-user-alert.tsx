@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -16,7 +15,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Trash } from 'lucide-react';
-import { deleteUserAction } from '@/app/admin/actions';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface DeleteUserAlertProps {
   userId: string;
@@ -28,17 +28,18 @@ export function DeleteUserAlert({ userId }: DeleteUserAlertProps) {
 
   const handleDelete = async () => {
     setIsSubmitting(true);
-    const result = await deleteUserAction(userId);
-    setIsSubmitting(false);
-
-    if (result.success) {
+    try {
+      await deleteDoc(doc(db, 'users', userId));
       toast({ title: 'Pengguna Dihapus', description: 'Pengguna telah berhasil dihapus dari sistem.' });
-    } else {
+    } catch (error) {
+      console.error('Error deleting user:', error);
       toast({
         title: 'Gagal Menghapus Pengguna',
-        description: result.error || 'Terjadi kesalahan yang tidak diketahui.',
+        description: 'Terjadi kesalahan yang tidak diketahui.',
         variant: 'destructive',
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -18,7 +17,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Division } from '@/lib/types';
 import { Edit, Loader2, PlusCircle } from 'lucide-react';
-import { saveDivisionAction } from '@/app/admin/actions';
+import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface SaveDivisionDialogProps {
   division?: Division;
@@ -35,20 +35,32 @@ export function SaveDivisionDialog({ division }: SaveDivisionDialogProps) {
     setIsSubmitting(true);
     
     const formData = new FormData(event.currentTarget);
-    const result = await saveDivisionAction(formData);
+    const name = formData.get('name') as string;
 
-    setIsSubmitting(false);
+    if (!name) {
+      toast({ title: 'Nama tidak boleh kosong', variant: 'destructive'});
+      setIsSubmitting(false);
+      return;
+    }
 
-    if (result.success) {
+    try {
+      if (isEditing) {
+        const divRef = doc(db, 'divisions', division.id);
+        await updateDoc(divRef, { name });
+      } else {
+        await addDoc(collection(db, 'divisions'), { name });
+      }
       toast({ title: `Divisi ${isEditing ? 'Diperbarui' : 'Ditambahkan'}`, description: `Divisi telah berhasil di${isEditing ? 'perbarui' : 'tambahkan'}.` });
       setOpen(false);
-    } else {
-       const errorMessages = Object.values(result.errors ?? {}).flat().join('\n');
-       toast({
+    } catch (error) {
+      console.error('Error saving division: ', error);
+      toast({
         title: `Gagal ${isEditing ? 'Memperbarui' : 'Menambahkan'} Divisi`,
-        description: errorMessages || 'Terjadi kesalahan yang tidak diketahui.',
+        description: 'Terjadi kesalahan yang tidak diketahui.',
         variant: 'destructive',
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -75,7 +87,6 @@ export function SaveDivisionDialog({ division }: SaveDivisionDialogProps) {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-          {isEditing && <input type="hidden" name="id" value={division.id} />}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
               Nama

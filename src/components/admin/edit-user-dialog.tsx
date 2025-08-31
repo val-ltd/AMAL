@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -19,7 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import type { User, Institution, Division } from '@/lib/types';
 import { Edit, Loader2 } from 'lucide-react';
-import { updateUserAction } from '@/app/admin/actions';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface EditUserDialogProps {
   user: User;
@@ -37,20 +37,28 @@ export function EditUserDialog({ user, institutions, divisions }: EditUserDialog
     setIsSubmitting(true);
     
     const formData = new FormData(event.currentTarget);
-    const result = await updateUserAction(formData);
+    const updatedData = {
+        name: formData.get('name') as string,
+        email: formData.get('email') as string,
+        role: formData.get('role') as 'Admin' | 'Manager' | 'Employee',
+        institution: formData.get('institution') as string,
+        division: formData.get('division') as string,
+    };
 
-    setIsSubmitting(false);
-
-    if (result.success) {
-      toast({ title: 'Pengguna Diperbarui', description: `Data untuk ${user.name} telah berhasil diperbarui.` });
-      setOpen(false);
-    } else {
-       const errorMessages = Object.values(result.errors ?? {}).flat().join('\n');
-       toast({
-        title: 'Gagal Memperbarui Pengguna',
-        description: errorMessages || 'Terjadi kesalahan yang tidak diketahui.',
-        variant: 'destructive',
-      });
+    try {
+        const userRef = doc(db, 'users', user.id);
+        await updateDoc(userRef, updatedData);
+        toast({ title: 'Pengguna Diperbarui', description: `Data untuk ${user.name} telah berhasil diperbarui.` });
+        setOpen(false);
+    } catch (error) {
+        console.error("Error updating user: ", error);
+        toast({
+            title: 'Gagal Memperbarui Pengguna',
+            description: 'Terjadi kesalahan yang tidak diketahui.',
+            variant: 'destructive',
+        });
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -70,7 +78,6 @@ export function EditUserDialog({ user, institutions, divisions }: EditUserDialog
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-          <input type="hidden" name="id" value={user.id} />
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
               Nama

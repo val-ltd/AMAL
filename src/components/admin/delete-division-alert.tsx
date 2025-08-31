@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -16,7 +15,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Trash } from 'lucide-react';
-import { deleteDivisionAction } from '@/app/admin/actions';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface DeleteDivisionAlertProps {
   divisionId: string;
@@ -28,17 +28,18 @@ export function DeleteDivisionAlert({ divisionId }: DeleteDivisionAlertProps) {
 
   const handleDelete = async () => {
     setIsSubmitting(true);
-    const result = await deleteDivisionAction(divisionId);
-    setIsSubmitting(false);
-
-    if (result.success) {
+    try {
+      await deleteDoc(doc(db, 'divisions', divisionId));
       toast({ title: 'Divisi Dihapus', description: 'Divisi telah berhasil dihapus dari sistem.' });
-    } else {
+    } catch (error) {
+      console.error('Error deleting division:', error);
       toast({
         title: 'Gagal Menghapus Divisi',
-        description: result.error || 'Terjadi kesalahan yang tidak diketahui.',
+        description: 'Terjadi kesalahan yang tidak diketahui.',
         variant: 'destructive',
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

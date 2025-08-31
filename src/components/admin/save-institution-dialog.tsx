@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -18,7 +17,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Institution } from '@/lib/types';
 import { Edit, Loader2, PlusCircle } from 'lucide-react';
-import { saveInstitutionAction } from '@/app/admin/actions';
+import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface SaveInstitutionDialogProps {
   institution?: Institution;
@@ -35,20 +35,32 @@ export function SaveInstitutionDialog({ institution }: SaveInstitutionDialogProp
     setIsSubmitting(true);
     
     const formData = new FormData(event.currentTarget);
-    const result = await saveInstitutionAction(formData);
+    const name = formData.get('name') as string;
 
-    setIsSubmitting(false);
+    if (!name) {
+        toast({ title: 'Nama tidak boleh kosong', variant: 'destructive'});
+        setIsSubmitting(false);
+        return;
+    }
 
-    if (result.success) {
-      toast({ title: `Lembaga ${isEditing ? 'Diperbarui' : 'Ditambahkan'}`, description: `Lembaga telah berhasil di${isEditing ? 'perbarui' : 'tambahkan'}.` });
-      setOpen(false);
-    } else {
-       const errorMessages = Object.values(result.errors ?? {}).flat().join('\n');
-       toast({
-        title: `Gagal ${isEditing ? 'Memperbarui' : 'Menambahkan'} Lembaga`,
-        description: errorMessages || 'Terjadi kesalahan yang tidak diketahui.',
-        variant: 'destructive',
-      });
+    try {
+        if (isEditing) {
+            const instRef = doc(db, 'institutions', institution.id);
+            await updateDoc(instRef, { name });
+        } else {
+            await addDoc(collection(db, 'institutions'), { name });
+        }
+        toast({ title: `Lembaga ${isEditing ? 'Diperbarui' : 'Ditambahkan'}`, description: `Lembaga telah berhasil di${isEditing ? 'perbarui' : 'tambahkan'}.` });
+        setOpen(false);
+    } catch (error) {
+        console.error('Error saving institution: ', error);
+        toast({
+            title: `Gagal ${isEditing ? 'Memperbarui' : 'Menambahkan'} Lembaga`,
+            description: 'Terjadi kesalahan yang tidak diketahui.',
+            variant: 'destructive',
+        });
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -75,7 +87,6 @@ export function SaveInstitutionDialog({ institution }: SaveInstitutionDialogProp
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-          {isEditing && <input type="hidden" name="id" value={institution.id} />}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
               Nama

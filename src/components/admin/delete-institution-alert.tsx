@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -16,7 +15,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Trash } from 'lucide-react';
-import { deleteInstitutionAction } from '@/app/admin/actions';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface DeleteInstitutionAlertProps {
   institutionId: string;
@@ -28,17 +28,18 @@ export function DeleteInstitutionAlert({ institutionId }: DeleteInstitutionAlert
 
   const handleDelete = async () => {
     setIsSubmitting(true);
-    const result = await deleteInstitutionAction(institutionId);
-    setIsSubmitting(false);
-
-    if (result.success) {
+    try {
+      await deleteDoc(doc(db, 'institutions', institutionId));
       toast({ title: 'Lembaga Dihapus', description: 'Lembaga telah berhasil dihapus dari sistem.' });
-    } else {
+    } catch (error) {
+      console.error('Error deleting institution:', error);
       toast({
         title: 'Gagal Menghapus Lembaga',
-        description: result.error || 'Terjadi kesalahan yang tidak diketahui.',
+        description: 'Terjadi kesalahan yang tidak diketahui.',
         variant: 'destructive',
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
