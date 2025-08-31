@@ -21,6 +21,7 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Building, Loader2, ThumbsDown, ThumbsUp, UserCheck } from 'lucide-react';
+import { formatDepartment } from '@/lib/utils';
 
 interface ApprovalDialogProps {
   request: BudgetRequest;
@@ -83,12 +84,10 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
               </div>
             </div>
             <div className="border-t pt-4 space-y-3 text-sm">
-                {request.institution && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <Building className="w-4 h-4" />
-                        <span>{request.institution} / {request.division}</span>
-                    </div>
-                )}
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    <Building className="w-4 h-4" />
+                    <span>{request.department ? formatDepartment(request.department) : `${request.institution} / ${request.division}`}</span>
+                </div>
                 {request.supervisor && (
                     <div className="flex items-center gap-2 text-muted-foreground">
                         <UserCheck className="w-4 h-4" />

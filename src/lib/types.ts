@@ -12,6 +12,7 @@ export interface User {
   deciderId?: string;
   supervisor?: User;
   decider?: User;
+  departmentId?: string;
 }
 
 export interface BudgetRequest {
@@ -34,14 +35,13 @@ export interface BudgetRequest {
     id: string;
     name: string;
   };
+  department?: Department;
 }
 
-export interface Institution {
+export interface Department {
     id: string;
-    name: string;
-}
-
-export interface Division {
-    id: string;
-    name: string;
+    lembaga: string;
+    divisi: string;
+    bagian?: string;
+    unit?: string;
 }

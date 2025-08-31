@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -16,18 +17,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import type { User, Institution, Division } from '@/lib/types';
+import type { User, Department } from '@/lib/types';
 import { Edit, Loader2 } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { formatDepartment } from '@/lib/utils';
 
 interface EditUserDialogProps {
   user: User;
-  institutions: Institution[];
-  divisions: Division[];
+  departments: Department[];
 }
 
-export function EditUserDialog({ user, institutions, divisions }: EditUserDialogProps) {
+export function EditUserDialog({ user, departments }: EditUserDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -37,12 +38,16 @@ export function EditUserDialog({ user, institutions, divisions }: EditUserDialog
     setIsSubmitting(true);
     
     const formData = new FormData(event.currentTarget);
-    const updatedData = {
+    const departmentId = formData.get('departmentId') as string;
+    const department = departments.find(d => d.id === departmentId);
+
+    const updatedData: Partial<User> = {
         name: formData.get('name') as string,
         email: formData.get('email') as string,
         role: formData.get('role') as 'Admin' | 'Manager' | 'Employee',
-        institution: formData.get('institution') as string,
-        division: formData.get('division') as string,
+        departmentId: departmentId,
+        institution: department?.lembaga,
+        division: department?.divisi,
     };
 
     try {
@@ -106,31 +111,16 @@ export function EditUserDialog({ user, institutions, divisions }: EditUserDialog
             </Select>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="institution" className="text-right">
-              Lembaga
+            <Label htmlFor="departmentId" className="text-right">
+              Departemen
             </Label>
-            <Select name="institution" defaultValue={user.institution}>
+            <Select name="departmentId" defaultValue={user.departmentId}>
                 <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Pilih Lembaga" />
+                    <SelectValue placeholder="Pilih Departemen" />
                 </SelectTrigger>
                 <SelectContent>
-                    {institutions.map(inst => (
-                        <SelectItem key={inst.id} value={inst.name}>{inst.name}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-          </div>
-           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="division" className="text-right">
-              Divisi
-            </Label>
-            <Select name="division" defaultValue={user.division}>
-                <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Pilih Divisi" />
-                </SelectTrigger>
-                <SelectContent>
-                    {divisions.map(div => (
-                        <SelectItem key={div.id} value={div.name}>{div.name}</SelectItem>
+                    {departments.map(dept => (
+                        <SelectItem key={dept.id} value={dept.id}>{formatDepartment(dept)}</SelectItem>
                     ))}
                 </SelectContent>
             </Select>

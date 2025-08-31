@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -15,47 +16,52 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import type { Division } from '@/lib/types';
+import type { Department } from '@/lib/types';
 import { Edit, Loader2, PlusCircle } from 'lucide-react';
 import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-interface SaveDivisionDialogProps {
-  division?: Division;
+interface SaveDepartmentDialogProps {
+  department?: Department;
 }
 
-export function SaveDivisionDialog({ division }: SaveDivisionDialogProps) {
+export function SaveDepartmentDialog({ department }: SaveDepartmentDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const isEditing = !!division;
+  const isEditing = !!department;
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     
     const formData = new FormData(event.currentTarget);
-    const name = formData.get('name') as string;
+    const data = {
+        lembaga: formData.get('lembaga') as string,
+        divisi: formData.get('divisi') as string,
+        bagian: formData.get('bagian') as string || null,
+        unit: formData.get('unit') as string || null,
+    };
 
-    if (!name) {
-      toast({ title: 'Nama tidak boleh kosong', variant: 'destructive'});
+    if (!data.lembaga || !data.divisi) {
+      toast({ title: 'Lembaga dan Divisi harus diisi', variant: 'destructive'});
       setIsSubmitting(false);
       return;
     }
 
     try {
       if (isEditing) {
-        const divRef = doc(db, 'divisions', division.id);
-        await updateDoc(divRef, { name });
+        const deptRef = doc(db, 'departments', department.id);
+        await updateDoc(deptRef, data);
       } else {
-        await addDoc(collection(db, 'divisions'), { name });
+        await addDoc(collection(db, 'departments'), data);
       }
-      toast({ title: `Divisi ${isEditing ? 'Diperbarui' : 'Ditambahkan'}`, description: `Divisi telah berhasil di${isEditing ? 'perbarui' : 'tambahkan'}.` });
+      toast({ title: `Departemen ${isEditing ? 'Diperbarui' : 'Ditambahkan'}`, description: `Departemen telah berhasil di${isEditing ? 'perbarui' : 'tambahkan'}.` });
       setOpen(false);
     } catch (error) {
-      console.error('Error saving division: ', error);
+      console.error('Error saving department: ', error);
       toast({
-        title: `Gagal ${isEditing ? 'Memperbarui' : 'Menambahkan'} Divisi`,
+        title: `Gagal ${isEditing ? 'Memperbarui' : 'Menambahkan'} Departemen`,
         description: 'Terjadi kesalahan yang tidak diketahui.',
         variant: 'destructive',
       });
@@ -70,28 +76,46 @@ export function SaveDivisionDialog({ division }: SaveDivisionDialogProps) {
         {isEditing ? (
             <button className="flex items-center w-full text-left">
                 <Edit className="mr-2 h-4 w-4" />
-                Ubah Divisi
+                Ubah Departemen
             </button>
         ) : (
             <Button>
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Tambah Divisi
+                Tambah Departemen
             </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Ubah' : 'Tambah'} Divisi</DialogTitle>
+          <DialogTitle>{isEditing ? 'Ubah' : 'Tambah'} Departemen</DialogTitle>
           <DialogDescription>
-            {isEditing ? 'Ubah nama divisi.' : 'Tambah divisi baru ke dalam sistem.'}
+            {isEditing ? 'Ubah detail departemen.' : 'Tambah departemen baru ke dalam sistem.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
-              Nama
+            <Label htmlFor="lembaga" className="text-right">
+              Lembaga*
             </Label>
-            <Input id="name" name="name" defaultValue={division?.name} className="col-span-3" placeholder="cth. Divisi Dakwah" />
+            <Input id="lembaga" name="lembaga" defaultValue={department?.lembaga} className="col-span-3" required />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="divisi" className="text-right">
+              Divisi*
+            </Label>
+            <Input id="divisi" name="divisi" defaultValue={department?.divisi} className="col-span-3" required/>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="bagian" className="text-right">
+              Bagian
+            </Label>
+            <Input id="bagian" name="bagian" defaultValue={department?.bagian} className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="unit" className="text-right">
+              Unit
+            </Label>
+            <Input id="unit" name="unit" defaultValue={department?.unit} className="col-span-3" />
           </div>
           <DialogFooter>
             <DialogClose asChild>

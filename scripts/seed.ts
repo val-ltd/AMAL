@@ -11,7 +11,7 @@ config();
 // Find your service account credentials in the Firebase console
 // and place them in a file named `service-account.json` in the root
 // of your project.
-const serviceAccountPath = path.resolve(__dirname, '../service-account.json');
+const serviceAccountPath = path.resolve(process.cwd(), 'service-account.json');
 const serviceAccount = require(serviceAccountPath);
 
 // --- Your sample data goes here ---
@@ -111,6 +111,36 @@ const requests = [
   },
 ];
 
+const departments = [
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Dewan Direksi ICWM" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Keuangan", bagian: "Kasir" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Keuangan", bagian: "Infaq Bulanan Wali Santri" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Humas dan Tamu" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Administrasi WNA" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Konsumsi" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Transportasi" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Sarana-Prasarana & Inventaris" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Pembangunan" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Pertanian dan Perkebunan" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Keamanan" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Program Sosial", bagian: "Yayasan Mimbar Hidayah Qur'an (MHQ)", unit: "Bagian Hubungan Masyarakat (Humas)" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Program Sosial", bagian: "Yayasan Mimbar Hidayah Qur'an (MHQ)", unit: "Bagian Pengawasan Proyek" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Program Sosial", bagian: "Yayasan Mimbar Hidayah Qur'an (MHQ)", unit: "Bagian IT dan Dokumentasi" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Program Sosial", bagian: "LAZIS SaQu", unit: "Bagian IT dan Publikasi" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Ma'had Sabilul Qur'an (MSQ)" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Ma'had Sulthon Al-Islamy (MSI)" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Ma'had Tahfiz Imtiaz" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Mahabbah Boarding School" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "MAJELIS IDAROH" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Perekonomian", bagian: "Bagian Fotokopi" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Perekonomian", bagian: "Bagian Koperasi" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Perekonomian", bagian: "Bagian Kantin" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Perekonomian", bagian: "Bagian Sahabat Resto" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Perekonomian", bagian: "Bagian Peternakan dan Perikanan" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Pondok Cabang (PKM, SMA, SMP)", bagian: "Bagian Pengabdian dan Alumni" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Pelaksana Harian ICWM", bagian: "Manajemen SDM (Personalia dan PSMB)" },
+];
+
 
 // --- Seeding logic ---
 
@@ -157,6 +187,34 @@ async function seed() {
       console.log(`Added request: ${request.category}`);
     } else {
       console.log(`Request for ${request.category} already exists. Skipping.`);
+    }
+  }
+
+  // Seed departments
+  console.log('\nSeeding departments...');
+  const departmentsCollection = db.collection('departments');
+  for (const department of departments) {
+    // Check if a similar department exists to avoid duplicates
+    let query: any = departmentsCollection.where('lembaga', '==', department.lembaga).where('divisi', '==', department.divisi);
+    
+    const querySnapshot = await query.get();
+    
+    let exists = false;
+    if (!querySnapshot.empty) {
+        for (const doc of querySnapshot.docs) {
+            const data = doc.data();
+            if(data.bagian === (department.bagian || null) && data.unit === (department.unit || null)) {
+                exists = true;
+                break;
+            }
+        }
+    }
+      
+    if (!exists) {
+      await departmentsCollection.add(department);
+      console.log(`Added department: ${department.lembaga} / ${department.divisi}`);
+    } else {
+      console.log(`Department for ${department.lembaga} / ${department.divisi} already exists. Skipping.`);
     }
   }
 

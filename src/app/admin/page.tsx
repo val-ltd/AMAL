@@ -2,46 +2,38 @@
 'use client'
 
 import { useEffect, useState } from "react";
-import { User, Institution, Division } from "@/lib/types";
+import { User, Department } from "@/lib/types";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserManagementTab } from "@/components/admin/user-management-tab";
-import { InstitutionManagementTab } from "@/components/admin/institution-management-tab";
-import { DivisionManagementTab } from "@/components/admin/division-management-tab";
+import { DepartmentManagementTab } from "@/components/admin/department-management-tab";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
-import { SaveInstitutionDialog } from "@/components/admin/save-institution-dialog";
-import { SaveDivisionDialog } from "@/components/admin/save-division-dialog";
+import { SaveDepartmentDialog } from "@/components/admin/save-department-dialog";
 
 export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([]);
-  const [institutions, setInstitutions] = useState<Institution[]>([]);
-  const [divisions, setDivisions] = useState<Division[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("users");
   
   useEffect(() => {
     setLoading(true);
     const usersQuery = query(collection(db, 'users'), orderBy('name', 'asc'));
-    const institutionsQuery = query(collection(db, 'institutions'), orderBy('name', 'asc'));
-    const divisionsQuery = query(collection(db, 'divisions'), orderBy('name', 'asc'));
+    const departmentsQuery = query(collection(db, 'departments'), orderBy('lembaga', 'asc'), orderBy('divisi', 'asc'));
 
     const unsubUsers = onSnapshot(usersQuery, (snapshot) => {
         setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)));
         setLoading(false);
     });
-    const unsubInstitutions = onSnapshot(institutionsQuery, (snapshot) => {
-        setInstitutions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Institution)));
-    });
-    const unsubDivisions = onSnapshot(divisionsQuery, (snapshot) => {
-        setDivisions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Division)));
+    const unsubDepartments = onSnapshot(departmentsQuery, (snapshot) => {
+        setDepartments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Department)));
     });
 
     return () => {
         unsubUsers();
-        unsubInstitutions();
-        unsubDivisions();
+        unsubDepartments();
     };
   }, []);
 
@@ -54,10 +46,8 @@ export default function AdminPage() {
                 Tambah Pengguna
             </Button>
         );
-      case 'institutions':
-        return <SaveInstitutionDialog />;
-      case 'divisions':
-        return <SaveDivisionDialog />;
+      case 'departments':
+        return <SaveDepartmentDialog />;
       default:
         return null;
     }
@@ -71,19 +61,15 @@ export default function AdminPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="users">Pengguna</TabsTrigger>
-          <TabsTrigger value="institutions">Lembaga</TabsTrigger>
-          <TabsTrigger value="divisions">Divisi</TabsTrigger>
+          <TabsTrigger value="departments">Departemen</TabsTrigger>
         </TabsList>
         <TabsContent value="users">
-            <UserManagementTab users={users} loading={loading} institutions={institutions} divisions={divisions} />
+            <UserManagementTab users={users} loading={loading} departments={departments} />
         </TabsContent>
-        <TabsContent value="institutions">
-            <InstitutionManagementTab institutions={institutions} loading={loading} />
-        </TabsContent>
-        <TabsContent value="divisions">
-            <DivisionManagementTab divisions={divisions} loading={loading} />
+        <TabsContent value="departments">
+            <DepartmentManagementTab departments={departments} loading={loading} />
         </TabsContent>
       </Tabs>
     </div>

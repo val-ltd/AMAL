@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -18,23 +19,23 @@ import { Trash } from 'lucide-react';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-interface DeleteDivisionAlertProps {
-  divisionId: string;
+interface DeleteDepartmentAlertProps {
+  departmentId: string;
 }
 
-export function DeleteDivisionAlert({ divisionId }: DeleteDivisionAlertProps) {
+export function DeleteDepartmentAlert({ departmentId }: DeleteDepartmentAlertProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      await deleteDoc(doc(db, 'divisions', divisionId));
-      toast({ title: 'Divisi Dihapus', description: 'Divisi telah berhasil dihapus dari sistem.' });
+      await deleteDoc(doc(db, 'departments', departmentId));
+      toast({ title: 'Departemen Dihapus', description: 'Departemen telah berhasil dihapus dari sistem.' });
     } catch (error) {
-      console.error('Error deleting division:', error);
+      console.error('Error deleting department:', error);
       toast({
-        title: 'Gagal Menghapus Divisi',
+        title: 'Gagal Menghapus Departemen',
         description: 'Terjadi kesalahan yang tidak diketahui.',
         variant: 'destructive',
       });
@@ -55,7 +56,7 @@ export function DeleteDivisionAlert({ divisionId }: DeleteDivisionAlertProps) {
         <AlertDialogHeader>
           <AlertDialogTitle>Apakah Anda benar-benar yakin?</AlertDialogTitle>
           <AlertDialogDescription>
-            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data divisi secara permanen dari basis data.
+            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data departemen secara permanen dari basis data.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -66,7 +67,7 @@ export function DeleteDivisionAlert({ divisionId }: DeleteDivisionAlertProps) {
               onClick={handleDelete}
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Menghapus...' : 'Ya, Hapus Divisi'}
+              {isSubmitting ? 'Menghapus...' : 'Ya, Hapus Departemen'}
             </Button>
           </AlertDialogAction>
         </AlertDialogFooter>

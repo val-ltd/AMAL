@@ -13,6 +13,7 @@ import StatusBadge from './status-badge';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { ApprovalDialog } from './manager/approval-dialog';
+import { formatDepartment } from '@/lib/utils';
 
 interface RequestListProps {
   requests: BudgetRequest[];
@@ -58,7 +59,7 @@ export default function RequestList({ requests, isManagerView = false }: Request
           <CardContent className="flex-grow">
             <p className="text-sm text-muted-foreground line-clamp-3">{request.description}</p>
             <div className='mt-4'>
-                <p className="text-sm text-muted-foreground">{request.institution} / {request.division}</p>
+                <p className="text-sm text-muted-foreground">{request.department ? formatDepartment(request.department) : `${request.institution} / ${request.division}`}</p>
             </div>
           </CardContent>
           <CardFooter className="flex items-end justify-between">

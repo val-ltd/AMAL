@@ -1,7 +1,7 @@
 
 'use client'
 
-import type { User, Institution, Division } from "@/lib/types";
+import type { User, Department } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,15 +11,22 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Badge } from "@/components/ui/badge";
 import { EditUserDialog } from "@/components/admin/edit-user-dialog";
 import { DeleteUserAlert } from "@/components/admin/delete-user-alert";
+import { formatDepartment } from "@/lib/utils";
 
 interface UserManagementTabProps {
     users: User[];
     loading: boolean;
-    institutions: Institution[];
-    divisions: Division[];
+    departments: Department[];
 }
 
-export function UserManagementTab({ users, loading, institutions, divisions }: UserManagementTabProps) {
+export function UserManagementTab({ users, loading, departments }: UserManagementTabProps) {
+
+    const getDepartmentForUser = (user: User) => {
+        if (!user.departmentId) return "N/A";
+        const dept = departments.find(d => d.id === user.departmentId);
+        return dept ? formatDepartment(dept) : "N/A";
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -31,7 +38,7 @@ export function UserManagementTab({ users, loading, institutions, divisions }: U
                     <TableHeader>
                         <TableRow>
                             <TableHead>Pengguna</TableHead>
-                            <TableHead>Lembaga / Divisi</TableHead>
+                            <TableHead>Departemen</TableHead>
                             <TableHead>Peran</TableHead>
                             <TableHead className="text-right">Aksi</TableHead>
                         </TableRow>
@@ -57,8 +64,7 @@ export function UserManagementTab({ users, loading, institutions, divisions }: U
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="font-medium">{user.institution || 'N/A'}</div>
-                                        <div className="text-sm text-muted-foreground">{user.division || 'N/A'}</div>
+                                        <div className="font-medium">{getDepartmentForUser(user)}</div>
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant={user.role === 'Admin' ? 'destructive' : user.role === 'Manager' ? 'secondary' : 'outline'}>
@@ -76,7 +82,7 @@ export function UserManagementTab({ users, loading, institutions, divisions }: U
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuLabel>Aksi</DropdownMenuLabel>
                                                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                                    <EditUserDialog user={user} institutions={institutions} divisions={divisions} />
+                                                    <EditUserDialog user={user} departments={departments} />
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">

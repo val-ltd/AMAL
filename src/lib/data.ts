@@ -14,7 +14,7 @@ import {
   getDocs,
   deleteDoc,
 } from 'firebase/firestore';
-import type { BudgetRequest, User, Institution, Division } from './types';
+import type { BudgetRequest, User, Department } from './types';
 import { auth, db } from './firebase';
 
 // This function now returns an unsubscribe function for the real-time listener
@@ -99,8 +99,11 @@ export function getPendingRequests(
 }
 
 export async function createRequest(
-  data: Omit<BudgetRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>
+  data: Omit<BudgetRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>,
+  uid: string
 ): Promise<BudgetRequest> {
+  if (!uid) throw new Error('You must be logged in to create a request.');
+
   const newRequestData = {
     ...data,
     status: 'pending' as const,
@@ -168,55 +171,4 @@ export async function getManagers(): Promise<User[]> {
         managers.push({ id: doc.id, ...doc.data() } as User);
     });
     return managers;
-}
-
-export async function updateUserInFirestore(userId: string, data: Partial<Omit<User, 'id'>>) {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, data);
-}
-
-export async function deleteUserFromFirestore(userId: string) {
-    const userRef = doc(db, 'users', userId);
-    await deleteDoc(userRef);
-}
-
-// Institution Functions
-export async function getInstitutions(): Promise<Institution[]> {
-    const q = query(collection(db, 'institutions'), orderBy('name', 'asc'));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Institution));
-}
-
-export async function addInstitution(name: string) {
-    await addDoc(collection(db, 'institutions'), { name });
-}
-
-export async function updateInstitution(id: string, name: string) {
-    const instRef = doc(db, 'institutions', id);
-    await updateDoc(instRef, { name });
-}
-
-export async function deleteInstitution(id: string) {
-    await deleteDoc(doc(db, 'institutions', id));
-}
-
-
-// Division Functions
-export async function getDivisions(): Promise<Division[]> {
-    const q = query(collection(db, 'divisions'), orderBy('name', 'asc'));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Division));
-}
-
-export async function addDivision(name: string) {
-    await addDoc(collection(db, 'divisions'), { name });
-}
-
-export async function updateDivision(id: string, name: string) {
-    const divRef = doc(db, 'divisions', id);
-    await updateDoc(divRef, { name });
-}
-
-export async function deleteDivision(id: string) {
-    await deleteDoc(doc(db, 'divisions', id));
 }

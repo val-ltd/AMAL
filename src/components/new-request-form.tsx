@@ -11,7 +11,7 @@ import { Loader2, Sparkles, Wand2, Terminal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import type { User } from '@/lib/types';
+import type { User, Department } from '@/lib/types';
 import { getManagers, getUser } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -19,6 +19,7 @@ import { budgetCategories } from '@/lib/categories';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { formatDepartment } from '@/lib/utils';
 
 export function NewRequestForm() {
   const { user: authUser, loading: authLoading } = useAuth();
@@ -26,6 +27,7 @@ export function NewRequestForm() {
   const { toast } = useToast();
 
   const [profileData, setProfileData] = useState<User | null>(null);
+  const [department, setDepartment] = useState<Department | null>(null);
   const [managers, setManagers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,8 +50,16 @@ export function NewRequestForm() {
             setLoading(true);
             try {
                 const userProfile = await getUser(authUser.uid);
-                const managerList = await getManagers();
                 setProfileData(userProfile);
+
+                if(userProfile?.departmentId) {
+                  const dept = await getDoc(doc(db, 'departments', userProfile.departmentId));
+                  if(dept.exists()) {
+                    setDepartment({id: dept.id, ...dept.data()} as Department);
+                  }
+                }
+
+                const managerList = await getManagers();
                 setManagers(managerList);
             } catch (error) {
                 console.error("Failed to fetch initial data:", error);
@@ -79,6 +89,10 @@ export function NewRequestForm() {
         setFormError("Data pengguna tidak ditemukan. Silakan login kembali.");
         return;
     }
+     if (!profileData.institution || !profileData.division) {
+      setFormError('Profil pengguna Anda tidak lengkap. Harap perbarui lembaga dan divisi Anda.');
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -93,8 +107,14 @@ export function NewRequestForm() {
             category,
             amount: Number(amount),
             description,
-            institution: profileData.institution ?? '', // Fix: Provide default empty string
-            division: profileData.division ?? '', // Fix: Provide default empty string
+            institution: profileData.institution ?? '',
+            division: profileData.division ?? '',
+            department: department ? {
+                lembaga: department.lembaga,
+                divisi: department.divisi,
+                bagian: department.bagian ?? '',
+                unit: department.unit ?? '',
+            } : {},
             requester: {
                 id: authUser.uid,
                 name: profileData.name || 'Unknown User',
@@ -149,7 +169,7 @@ export function NewRequestForm() {
     }
   };
 
-  const isFormReady = !loading && !authLoading && profileData;
+  const isFormReady = !loading && !authLoading && profileData && profileData.institution && profileData.division;
 
   if (authLoading || loading) {
       return (
@@ -177,12 +197,10 @@ export function NewRequestForm() {
                       <span className="font-medium">{profileData.name}</span>
                   </div>
                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Lembaga</span>
-                      <span className="font-medium">{profileData.institution || 'N/A'}</span>
-                  </div>
-                   <div className="flex justify-between">
-                      <span className="text-muted-foreground">Divisi</span>
-                      <span className="font-medium">{profileData.division || 'N/A'}</span>
+                      <span className="text-muted-foreground">Departemen</span>
+                      <span className="font-medium text-right">
+                        {department ? formatDepartment(department) : (profileData.institution && profileData.division) ? `${profileData.institution} / ${profileData.division}`: 'N/A'}
+                      </span>
                   </div>
               </CardContent>
           </Card>
