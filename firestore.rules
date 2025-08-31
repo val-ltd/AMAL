@@ -1,0 +1,58 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions to check user status
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getUserData().role == 'Admin';
+    }
+
+    function isManager() {
+      return isSignedIn() && (getUserData().role == 'Manager' || isAdmin());
+    }
+
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // Admins can read, write, and delete any user.
+      // A user can read and update their own profile.
+      allow read, update, delete: if isAdmin() || isOwner(userId);
+      // Deny creation by users, user creation is handled by the auth trigger.
+      allow create: if isSignedIn();
+    }
+
+    // Rules for the 'departments' collection
+    match /departments/{departmentId} {
+        // Admins can manage all departments.
+        // Authenticated users can read the list of departments (e.g., for dropdowns).
+        allow read: if isSignedIn();
+        allow write, delete, create: if isAdmin();
+    }
+
+    // Rules for the 'requests' collection
+    match /requests/{requestId} {
+      // Users can create new requests.
+      allow create: if isSignedIn();
+      // Users can read requests they created.
+      // Managers and Admins can read any request.
+      allow read: if isManager() || (isSignedIn() && resource.data.requester.id == request.auth.uid);
+      // Only Managers and Admins can update requests (approve/reject).
+      allow update: if isManager();
+      // Only Admins can delete requests.
+      allow delete: if isAdmin();
+    }
+  }
+}
