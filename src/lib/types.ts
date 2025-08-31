@@ -35,3 +35,13 @@ export interface BudgetRequest {
     name: string;
   };
 }
+
+export interface Institution {
+    id: string;
+    name: string;
+}
+
+export interface Division {
+    id: string;
+    name: string;
+}

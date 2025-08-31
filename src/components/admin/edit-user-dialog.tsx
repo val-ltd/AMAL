@@ -17,15 +17,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import type { User } from '@/lib/types';
+import type { User, Institution, Division } from '@/lib/types';
 import { Edit, Loader2 } from 'lucide-react';
 import { updateUserAction } from '@/app/admin/actions';
 
 interface EditUserDialogProps {
   user: User;
+  institutions: Institution[];
+  divisions: Division[];
 }
 
-export function EditUserDialog({ user }: EditUserDialogProps) {
+export function EditUserDialog({ user, institutions, divisions }: EditUserDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -100,13 +102,31 @@ export function EditUserDialog({ user }: EditUserDialogProps) {
             <Label htmlFor="institution" className="text-right">
               Lembaga
             </Label>
-            <Input id="institution" name="institution" defaultValue={user.institution} className="col-span-3" placeholder="cth. YAYASAN..." />
+            <Select name="institution" defaultValue={user.institution}>
+                <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Pilih Lembaga" />
+                </SelectTrigger>
+                <SelectContent>
+                    {institutions.map(inst => (
+                        <SelectItem key={inst.id} value={inst.name}>{inst.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
           </div>
            <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="division" className="text-right">
               Divisi
             </Label>
-            <Input id="division" name="division" defaultValue={user.division} className="col-span-3" placeholder="cth. Divisi Dakwah" />
+            <Select name="division" defaultValue={user.division}>
+                <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Pilih Divisi" />
+                </SelectTrigger>
+                <SelectContent>
+                    {divisions.map(div => (
+                        <SelectItem key={div.id} value={div.name}>{div.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
           </div>
           <DialogFooter>
             <DialogClose asChild>
