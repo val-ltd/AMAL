@@ -179,6 +179,13 @@ export function NewRequestForm() {
     }
   };
 
+  const primaryDepartment = useMemo(() => {
+    if (userDepartments.length === 0) return 'N/A';
+    if (userDepartments.length === 1) return formatDepartment(userDepartments[0]);
+    // If multiple departments, let them select. The info card will show a generic message.
+    return `${userDepartments.length} departemen ditugaskan`;
+  }, [userDepartments]);
+
   const isFormReady = !loading && !authLoading && profileData && userDepartments.length > 0;
 
   if (authLoading || loading) {
@@ -193,13 +200,6 @@ export function NewRequestForm() {
           </div>
       )
   }
-
-  const primaryDepartment = useMemo(() => {
-    if (userDepartments.length === 0) return 'N/A';
-    if (userDepartments.length === 1) return formatDepartment(userDepartments[0]);
-    // If multiple departments, let them select. The info card will show a generic message.
-    return `${userDepartments.length} departemen ditugaskan`;
-  }, [userDepartments]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
