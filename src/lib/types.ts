@@ -28,8 +28,8 @@ export interface BudgetRequest {
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
   managerComment?: string;
-  institution?: string;
-  division?: string;
+  institution: string;
+  division: string;
   supervisor?: {
     id: string;
     name: string;

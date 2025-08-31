@@ -19,7 +19,6 @@ import { budgetCategories } from '@/lib/categories';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { appendRequestToSheet } from '@/lib/sheets.ts.bak'; // Note: This will be handled server-side later if needed
 
 export function NewRequestForm() {
   const { user: authUser, loading: authLoading } = useAuth();
@@ -94,8 +93,8 @@ export function NewRequestForm() {
             category,
             amount: Number(amount),
             description,
-            institution: profileData.institution,
-            division: profileData.division,
+            institution: profileData.institution ?? '', // Fix: Provide default empty string
+            division: profileData.division ?? '', // Fix: Provide default empty string
             requester: {
                 id: authUser.uid,
                 name: profileData.name || 'Unknown User',
@@ -150,9 +149,9 @@ export function NewRequestForm() {
     }
   };
 
-  const isFormReady = !loading && !authLoading;
+  const isFormReady = !loading && !authLoading && profileData;
 
-  if (!isFormReady) {
+  if (authLoading || loading) {
       return (
           <div className="space-y-8">
               <Skeleton className="h-24 w-full" />
@@ -179,11 +178,11 @@ export function NewRequestForm() {
                   </div>
                    <div className="flex justify-between">
                       <span className="text-muted-foreground">Lembaga</span>
-                      <span className="font-medium">{profileData.institution}</span>
+                      <span className="font-medium">{profileData.institution || 'N/A'}</span>
                   </div>
                    <div className="flex justify-between">
                       <span className="text-muted-foreground">Divisi</span>
-                      <span className="font-medium">{profileData.division}</span>
+                      <span className="font-medium">{profileData.division || 'N/A'}</span>
                   </div>
               </CardContent>
           </Card>
@@ -242,7 +241,7 @@ export function NewRequestForm() {
       </div>
       
       <div className="space-y-4">
-          <Button type="button" variant="outline" onClick={handleGetSuggestions} disabled={isSuggesting || !description}>
+          <Button type="button" variant="outline" onClick={handleGetSuggestions} disabled={isSuggesting || !description || !isFormReady}>
           {isSuggesting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
