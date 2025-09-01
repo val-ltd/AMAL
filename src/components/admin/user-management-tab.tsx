@@ -6,13 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Info } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { EditUserDialog } from "@/components/admin/edit-user-dialog";
 import { DeleteUserAlert } from "@/components/admin/delete-user-alert";
-import { formatDepartment } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface UserManagementTabProps {
     users: User[];
@@ -23,18 +21,20 @@ interface UserManagementTabProps {
 
 export function UserManagementTab({ users, loading, departments, onDepartmentAdded }: UserManagementTabProps) {
 
-    const getPrimaryDepartmentForUser = (user: User): Department | undefined => {
-        if (!user.departmentIds || user.departmentIds.length === 0) return undefined;
-        return departments.find(d => d.id === user.departmentIds![0]);
-    }
-    
-    const getAllDepartmentsForUser = (user: User): string => {
-        if (!user.departmentIds || user.departmentIds.length === 0) return "N/A";
-        return user.departmentIds.map(id => {
-            const dept = departments.find(d => d.id === id);
-            return dept ? formatDepartment(dept) : "Departemen Dihapus";
-        }).join('\n');
-    }
+    const userRows = users.flatMap(user => {
+        if (!user.departmentIds || user.departmentIds.length === 0) {
+            return [{ user, department: null, isFirst: true, rowSpan: 1 }];
+        }
+        return user.departmentIds.map((deptId, index) => {
+            const department = departments.find(d => d.id === deptId);
+            return { 
+                user, 
+                department: department || null,
+                isFirst: index === 0,
+                rowSpan: user.departmentIds?.length ?? 1,
+            };
+        });
+    });
 
 
     return (
@@ -62,71 +62,57 @@ export function UserManagementTab({ users, loading, departments, onDepartmentAdd
                                 <TableCell colSpan={7} className="text-center">Memuat data pengguna...</TableCell>
                             </TableRow>
                         ) : (
-                            users.map((user) => {
-                                const primaryDept = getPrimaryDepartmentForUser(user);
-                                const hasMultipleDepts = user.departmentIds && user.departmentIds.length > 1;
-
-                                return (
-                                <TableRow key={user.id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar>
-                                                <AvatarImage src={user.avatarUrl} alt={user.name} />
-                                                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <div className="font-medium">{user.name}</div>
-                                                <div className="text-sm text-muted-foreground">{user.email}</div>
+                            userRows.map(({ user, department, isFirst, rowSpan }, index) => (
+                                <TableRow key={`${user.id}-${department?.id || index}`}>
+                                    {isFirst && (
+                                        <TableCell rowSpan={rowSpan} className="align-top">
+                                            <div className="flex items-center gap-3">
+                                                <Avatar>
+                                                    <AvatarImage src={user.avatarUrl} alt={user.name} />
+                                                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <div className="font-medium">{user.name}</div>
+                                                    <div className="text-sm text-muted-foreground">{user.email}</div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{primaryDept?.lembaga || 'N/A'}</TableCell>
-                                    <TableCell>
-                                      <div className="flex items-center gap-2">
-                                        <span>{primaryDept?.divisi || 'N/A'}</span>
-                                        {hasMultipleDepts && (
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger>
-                                                        <Info className="h-4 w-4 text-muted-foreground" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p className="whitespace-pre-line text-xs">{getAllDepartmentsForUser(user)}</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                        )}
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>{primaryDept?.bagian || '-'}</TableCell>
-                                    <TableCell>{primaryDept?.unit || '-'}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={user.role === 'Admin' ? 'destructive' : user.role === 'Manager' ? 'secondary' : 'outline'}>
-                                            {user.role}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                    <span className="sr-only">Menu</span>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Aksi</DropdownMenuLabel>
-                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                                    <EditUserDialog user={user} departments={departments} onDepartmentAdded={onDepartmentAdded} />
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
-                                                    <DeleteUserAlert userId={user.id} />
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
+                                        </TableCell>
+                                    )}
+                                    <TableCell>{department?.lembaga || 'N/A'}</TableCell>
+                                    <TableCell>{department?.divisi || 'N/A'}</TableCell>
+                                    <TableCell>{department?.bagian || '-'}</TableCell>
+                                    <TableCell>{department?.unit || '-'}</TableCell>
+                                    {isFirst && (
+                                        <TableCell rowSpan={rowSpan} className="align-top">
+                                            <Badge variant={user.role === 'Admin' ? 'destructive' : user.role === 'Manager' ? 'secondary' : 'outline'}>
+                                                {user.role}
+                                            </Badge>
+                                        </TableCell>
+                                    )}
+                                    {isFirst && (
+                                        <TableCell rowSpan={rowSpan} className="text-right align-top">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                        <span className="sr-only">Menu</span>
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuLabel>Aksi</DropdownMenuLabel>
+                                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                                        <EditUserDialog user={user} departments={departments} onDepartmentAdded={onDepartmentAdded} />
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
+                                                        <DeleteUserAlert userId={user.id} />
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    )}
                                 </TableRow>
-                            )})
+                            ))
                         )}
                     </TableBody>
                 </Table>
