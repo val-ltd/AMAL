@@ -28,7 +28,8 @@ export default function AdminPage() {
         setLoading(false);
     });
     const unsubDepartments = onSnapshot(departmentsQuery, (snapshot) => {
-        setDepartments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Department)));
+        const depts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Department));
+        setDepartments(depts);
     });
 
     return () => {
@@ -38,7 +39,8 @@ export default function AdminPage() {
   }, []);
 
   const handleDepartmentAdded = useCallback((newDepartment: Department) => {
-    setDepartments(prev => [...prev, newDepartment]);
+    // This optimistic update is no longer needed, Firestore's onSnapshot will handle it.
+    // setDepartments(prev => [...prev, newDepartment]);
   }, []);
 
   const renderAddButton = () => {
