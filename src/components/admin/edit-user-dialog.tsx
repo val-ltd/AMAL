@@ -185,9 +185,9 @@ export function EditUserDialog({ user, departments, onDepartmentAdded }: EditUse
                     <PopoverContent className="w-[385px] p-0" align="start">
                         <Command>
                             <CommandInput placeholder="Cari departemen..." />
-                            <CommandList className='max-h-52 overflow-y-auto'>
+                            <CommandList>
                                 <CommandEmpty>Departemen tidak ditemukan.</CommandEmpty>
-                                <CommandGroup>
+                                <CommandGroup className='max-h-52 overflow-y-auto'>
                                     {departments.map((dept) => (
                                         <CommandItem
                                             key={dept.id}
@@ -201,17 +201,28 @@ export function EditUserDialog({ user, departments, onDepartmentAdded }: EditUse
                                         </CommandItem>
                                     ))}
                                 </CommandGroup>
-                                 <CommandGroup className="border-t">
-                                     <SaveDepartmentDialog onDepartmentAdded={handleDepartmentAddedOptimistic} triggerButton={
-                                        <div className="p-1">
-                                            <Button type="button" variant="ghost" size="sm" className="text-sm w-full justify-start">
-                                                <PlusCircle className="mr-2 h-4 w-4" />
-                                                Tambah Departemen Baru
-                                            </Button>
-                                        </div>
-                                    } />
-                                 </CommandGroup>
                             </CommandList>
+                            <CommandGroup className="border-t">
+                                <SaveDepartmentDialog onDepartmentAdded={handleDepartmentAddedOptimistic} triggerButton={
+                                <div className="p-1 w-full"
+                                     // This onClick is a workaround to make the DialogTrigger work inside Command
+                                     onClick={(e) => {
+                                        const target = e.target as HTMLElement;
+                                        if (target.closest('button[role="combobox"]')) return;
+                                        const button = target.closest('div[cmdk-item]')?.querySelector('button');
+                                        button?.click();
+                                     }}
+                                >
+                                    <CommandItem 
+                                        className="w-full"
+                                        onSelect={(e) => { e.preventDefault(); }}
+                                     >
+                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                        Tambah Departemen Baru
+                                    </CommandItem>
+                                </div>
+                                } />
+                            </CommandGroup>
                         </Command>
                     </PopoverContent>
                 </Popover>
