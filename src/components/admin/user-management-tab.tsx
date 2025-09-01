@@ -20,6 +20,18 @@ import { useToast } from "@/hooks/use-toast";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
 
+// Helper to ensure roles is always an array
+const getRolesArray = (roles: any) => {
+    if (Array.isArray(roles)) {
+      return roles;
+    }
+    if (typeof roles === 'string') {
+      return [roles];
+    }
+    return [];
+};
+
+
 function UserRow({ user, departments }: { user: User, departments: Department[]}) {
     const { toast } = useToast();
     const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
@@ -32,6 +44,8 @@ function UserRow({ user, departments }: { user: User, departments: Department[]}
     if (userDepartmentRows.length === 0) userDepartmentRows.push(null);
 
     const rowSpan = userDepartmentRows.length;
+    
+    const userRoles = getRolesArray(user.roles);
 
     const handleVerificationToggle = async (isVerified: boolean) => {
         try {
@@ -84,7 +98,7 @@ function UserRow({ user, departments }: { user: User, departments: Department[]}
                     {index === 0 && (
                         <TableCell rowSpan={rowSpan} className="align-top">
                            <div className="flex flex-col gap-1 items-start">
-                             {user.roles?.map(role => (
+                             {userRoles.map(role => (
                                 <Badge key={role} variant={role === 'Admin' || role === 'Super Admin' ? 'destructive' : role === 'Manager' ? 'secondary' : 'outline'}>
                                     {role}
                                 </Badge>
@@ -158,6 +172,8 @@ function UserCard({ user, departments }: { user: User, departments: Department[]
     const userDepartments = user.departmentIds && user.departmentIds.length > 0 
       ? user.departmentIds.map(deptId => departments.find(d => d.id === deptId) || null).filter(d => d !== null)
       : [];
+      
+    const userRoles = getRolesArray(user.roles);
 
     const handleVerificationToggle = async (isVerified: boolean) => {
         try {
@@ -229,7 +245,7 @@ function UserCard({ user, departments }: { user: User, departments: Department[]
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex flex-wrap gap-2 items-center">
-                    {user.roles?.map(role => (
+                    {userRoles.map(role => (
                         <Badge key={role} variant={role === 'Admin' || role === 'Super Admin' ? 'destructive' : role === 'Manager' ? 'secondary' : 'outline'}>
                             {role}
                         </Badge>

@@ -36,11 +36,21 @@ export function EditUserDialog({ user, departments: initialDepartments, open, on
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   
+  const getRolesArray = (roles: any): Role[] => {
+    if (Array.isArray(roles)) {
+      return roles;
+    }
+    if (typeof roles === 'string') {
+      return [roles] as Role[];
+    }
+    return [];
+  };
+
   const [formData, setFormData] = useState({
       name: user.name,
       email: user.email,
   });
-  const [selectedRoles, setSelectedRoles] = useState<Role[]>(user.roles || []);
+  const [selectedRoles, setSelectedRoles] = useState<Role[]>(getRolesArray(user.roles));
   const [allDepartments, setAllDepartments] = useState(initialDepartments);
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>(user.departmentIds || []);
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,7 +72,7 @@ export function EditUserDialog({ user, departments: initialDepartments, open, on
         name: user.name,
         email: user.email,
       });
-      setSelectedRoles(user.roles || []);
+      setSelectedRoles(getRolesArray(user.roles));
       setSelectedDepartmentIds(user.departmentIds || []);
       setAllDepartments(initialDepartments);
       setSearchTerm('');

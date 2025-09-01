@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -37,7 +38,17 @@ export function EditUserForm({ user, departments: initialDepartments }: EditUser
   const [departments, setDepartments] = useState(initialDepartments);
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>(user.departmentIds || []);
   const [openDepartmentSelector, setOpenDepartmentSelector] = useState(false);
-  const [selectedRoles, setSelectedRoles] = useState<Role[]>(user.roles || []);
+  
+  const getRolesArray = (roles: any): Role[] => {
+    if (Array.isArray(roles)) {
+      return roles;
+    }
+    if (typeof roles === 'string') {
+      return [roles] as Role[];
+    }
+    return [];
+  };
+  const [selectedRoles, setSelectedRoles] = useState<Role[]>(getRolesArray(user.roles));
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

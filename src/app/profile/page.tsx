@@ -41,6 +41,8 @@ export default function ProfilePage() {
         );
     }
     
+    const roles = Array.isArray(profileData.roles) ? profileData.roles : [profileData.roles].filter(Boolean);
+
     return (
       <div className="flex justify-center items-start pt-8">
         <Card className="w-full max-w-lg">
@@ -70,7 +72,7 @@ export default function ProfilePage() {
                      <div className="flex justify-between items-center">
                         <p className="text-muted-foreground">Peran</p>
                         <div className="flex flex-wrap gap-1 justify-end">
-                            {profileData.roles?.map(role => (
+                            {roles.map(role => (
                                 <Badge key={role} variant="secondary">{role}</Badge>
                             )) || <p className="font-medium">N/A</p>}
                         </div>
