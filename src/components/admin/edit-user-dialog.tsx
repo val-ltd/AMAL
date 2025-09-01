@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -60,7 +60,6 @@ export function EditUserDialog({ user, departments, onDepartmentAdded }: EditUse
         departmentIds: selectedDepartments,
     };
     
-    // For compatibility with old structure, we can set institution/division from the first department
     if (selectedDepartments.length > 0) {
         const firstDept = departments.find(d => d.id === selectedDepartments[0]);
         if (firstDept) {
@@ -93,6 +92,17 @@ export function EditUserDialog({ user, departments, onDepartmentAdded }: EditUse
   const selectedDepartmentDetails = useMemo(() => {
     return departments.filter(d => selectedDepartments.includes(d.id));
   }, [selectedDepartments, departments]);
+
+  const handleDepartmentAddedOptimistic = useCallback((newDepartment: Department) => {
+      // Check if the department already exists in the local state to prevent duplicates
+      if (!departments.some(d => d.id === newDepartment.id)) {
+        onDepartmentAdded(newDepartment);
+      }
+      // Also add it to the selected departments for the current user
+      if (!selectedDepartments.includes(newDepartment.id)) {
+        setSelectedDepartments(prev => [...prev, newDepartment.id]);
+      }
+  }, [departments, onDepartmentAdded, selectedDepartments]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -184,7 +194,7 @@ export function EditUserDialog({ user, departments, onDepartmentAdded }: EditUse
                         </Command>
                     </PopoverContent>
                 </Popover>
-                <SaveDepartmentDialog onDepartmentAdded={onDepartmentAdded} triggerButton={
+                <SaveDepartmentDialog onDepartmentAdded={handleDepartmentAddedOptimistic} triggerButton={
                     <Button type="button" variant="ghost" size="sm" className="text-sm">
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Tambah Departemen Baru
