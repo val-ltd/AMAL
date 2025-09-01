@@ -19,10 +19,9 @@ interface UserManagementTabProps {
     users: User[];
     loading: boolean;
     departments: Department[];
-    onDepartmentAdded: (newDepartment: Department) => void;
 }
 
-function UserRow({ user, departments, onDepartmentAdded }: { user: User, departments: Department[], onDepartmentAdded: (newDepartment: Department) => void }) {
+function UserRow({ user, departments }: { user: User, departments: Department[]}) {
     const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
     const [deleteUserAlertOpen, setDeleteUserAlertOpen] = useState(false);
 
@@ -95,7 +94,6 @@ function UserRow({ user, departments, onDepartmentAdded }: { user: User, departm
                     onOpenChange={setEditUserDialogOpen} 
                     user={user} 
                     departments={departments} 
-                    onDepartmentAdded={onDepartmentAdded} 
                 />
             )}
             {deleteUserAlertOpen && (
@@ -109,7 +107,7 @@ function UserRow({ user, departments, onDepartmentAdded }: { user: User, departm
     );
 }
 
-function UserCard({ user, departments, onDepartmentAdded }: { user: User, departments: Department[], onDepartmentAdded: (newDepartment: Department) => void }) {
+function UserCard({ user, departments }: { user: User, departments: Department[]}) {
     const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
     const [deleteUserAlertOpen, setDeleteUserAlertOpen] = useState(false);
     
@@ -181,7 +179,6 @@ function UserCard({ user, departments, onDepartmentAdded }: { user: User, depart
                     onOpenChange={setEditUserDialogOpen} 
                     user={user} 
                     departments={departments} 
-                    onDepartmentAdded={onDepartmentAdded} 
                 />
             )}
             {deleteUserAlertOpen && (
@@ -195,7 +192,7 @@ function UserCard({ user, departments, onDepartmentAdded }: { user: User, depart
     );
 }
 
-export function UserManagementTab({ users, loading, departments, onDepartmentAdded }: UserManagementTabProps) {
+export function UserManagementTab({ users, loading, departments }: UserManagementTabProps) {
     const isMobile = useIsMobile();
 
     if (isMobile) {
@@ -216,7 +213,6 @@ export function UserManagementTab({ users, loading, departments, onDepartmentAdd
                                 key={user.id} 
                                 user={user} 
                                 departments={departments} 
-                                onDepartmentAdded={onDepartmentAdded} 
                             />
                         ))
                     )}
@@ -259,7 +255,6 @@ export function UserManagementTab({ users, loading, departments, onDepartmentAdd
                                     key={user.id} 
                                     user={user} 
                                     departments={departments} 
-                                    onDepartmentAdded={onDepartmentAdded} 
                                 />
                             ))
                         )}

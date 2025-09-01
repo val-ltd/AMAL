@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import type { User, Department } from '@/lib/types';
 import { Loader2, PlusCircle, X, Search } from 'lucide-react';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatDepartment } from '@/lib/utils';
 import { SaveDepartmentDialog } from './save-department-dialog';
@@ -20,12 +20,11 @@ import { Checkbox } from '../ui/checkbox';
 interface EditUserDialogProps {
   user: User;
   departments: Department[];
-  onDepartmentAdded: (newDepartment: Department) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function EditUserDialog({ user, departments: initialDepartments, onDepartmentAdded, open, onOpenChange }: EditUserDialogProps) {
+export function EditUserDialog({ user, departments: initialDepartments, open, onOpenChange }: EditUserDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   
@@ -34,9 +33,19 @@ export function EditUserDialog({ user, departments: initialDepartments, onDepart
       email: user.email,
       role: user.role,
   });
-  const [departments, setDepartments] = useState(initialDepartments);
+  const [allDepartments, setAllDepartments] = useState(initialDepartments);
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>(user.departmentIds || []);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Use a snapshot listener to keep allDepartments up to date
+  useEffect(() => {
+    const q = collection(db, "departments");
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const depts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Department));
+        setAllDepartments(depts);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -47,7 +56,7 @@ export function EditUserDialog({ user, departments: initialDepartments, onDepart
         role: user.role,
       });
       setSelectedDepartmentIds(user.departmentIds || []);
-      setDepartments(initialDepartments);
+      setAllDepartments(initialDepartments);
       setSearchTerm('');
     }
   }, [open, user, initialDepartments]);
@@ -82,7 +91,7 @@ export function EditUserDialog({ user, departments: initialDepartments, onDepart
     
     // Legacy support: also update institution/division on the user object
     if (selectedDepartmentIds.length > 0) {
-        const firstDept = departments.find(d => d.id === selectedDepartmentIds[0]);
+        const firstDept = allDepartments.find(d => d.id === selectedDepartmentIds[0]);
         if (firstDept) {
             updatedData.institution = firstDept.lembaga;
             updatedData.division = firstDept.divisi;
@@ -110,19 +119,15 @@ export function EditUserDialog({ user, departments: initialDepartments, onDepart
   };
 
   const filteredDepartments = useMemo(() => {
-    return departments.filter(d => formatDepartment(d).toLowerCase().includes(searchTerm.toLowerCase()));
-  }, [departments, searchTerm]);
+    return allDepartments.filter(d => formatDepartment(d).toLowerCase().includes(searchTerm.toLowerCase()));
+  }, [allDepartments, searchTerm]);
 
   const handleDepartmentAdded = useCallback((newDepartment: Department) => {
-      setDepartments(prev => {
-        if (prev.some(d => d.id === newDepartment.id)) {
-            return prev;
-        }
-        return [...prev, newDepartment];
-      });
-      setSelectedDepartmentIds(prev => [...prev, newDepartment.id]);
-      onDepartmentAdded(newDepartment);
-  }, [onDepartmentAdded]);
+      // The listener will update allDepartments, we just need to select the new one
+      if (!selectedDepartmentIds.includes(newDepartment.id)) {
+        setSelectedDepartmentIds(prev => [...prev, newDepartment.id]);
+      }
+  }, [selectedDepartmentIds]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -163,7 +168,7 @@ export function EditUserDialog({ user, departments: initialDepartments, onDepart
                         <div className="space-y-2">
                         {selectedDepartmentIds.length > 0 ? (
                             selectedDepartmentIds.map(id => {
-                                const dept = departments.find(d => d.id === id);
+                                const dept = allDepartments.find(d => d.id === id);
                                 if (!dept) return null;
                                 return (
                                      <div key={dept.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
@@ -226,7 +231,6 @@ export function EditUserDialog({ user, departments: initialDepartments, onDepart
                 </SaveDepartmentDialog>
             </div>
             
-            {/* Footer needs to be outside the scrollable area */}
             <DialogFooter className="md:col-span-2 pt-4">
                 <DialogClose asChild>
                     <Button type="button" variant="outline">Batal</Button>

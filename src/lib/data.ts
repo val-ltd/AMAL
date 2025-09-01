@@ -15,7 +15,7 @@ import {
   getDocs,
   deleteDoc,
 } from 'firebase/firestore';
-import type { BudgetRequest, User, Department } from './types';
+import type { BudgetRequest, User, Department, BudgetCategory } from './types';
 import { auth, db } from './firebase';
 
 // This function now returns an unsubscribe function for the real-time listener
@@ -186,4 +186,14 @@ export async function getDepartments(): Promise<Department[]> {
         departments.push({ id: doc.id, ...doc.data() } as Department);
     });
     return departments;
+}
+
+export async function getBudgetCategories(): Promise<BudgetCategory[]> {
+    const q = query(collection(db, 'budgetCategories'), orderBy('name'));
+    const querySnapshot = await getDocs(q);
+    const categories: BudgetCategory[] = [];
+    querySnapshot.forEach((doc) => {
+        categories.push({ id: doc.id, ...doc.data() } as BudgetCategory);
+    });
+    return categories;
 }

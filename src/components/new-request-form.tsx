@@ -11,11 +11,10 @@ import { Loader2, Sparkles, Wand2, Terminal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import type { User, Department } from '@/lib/types';
-import { getManagers, getUser } from '@/lib/data';
+import type { User, Department, BudgetCategory } from '@/lib/types';
+import { getManagers, getUser, getBudgetCategories } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { budgetCategories } from '@/lib/categories';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { addDoc, collection, serverTimestamp, getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -29,6 +28,7 @@ export function NewRequestForm() {
   const [profileData, setProfileData] = useState<User | null>(null);
   const [managers, setManagers] = useState<User[]>([]);
   const [userDepartments, setUserDepartments] = useState<Department[]>([]);
+  const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Form State
@@ -50,8 +50,15 @@ export function NewRequestForm() {
         if (authUser) {
             setLoading(true);
             try {
-                const userProfile = await getUser(authUser.uid);
+                const [userProfile, managerList, categoryList] = await Promise.all([
+                  getUser(authUser.uid),
+                  getManagers(),
+                  getBudgetCategories()
+                ]);
+
                 setProfileData(userProfile);
+                setManagers(managerList);
+                setBudgetCategories(categoryList);
 
                 if(userProfile?.departmentIds && userProfile.departmentIds.length > 0) {
                   const deptPromises = userProfile.departmentIds.map(id => getDoc(doc(db, 'departments', id)));
@@ -63,9 +70,6 @@ export function NewRequestForm() {
                       setSelectedDepartmentId(depts[0].id);
                   }
                 }
-
-                const managerList = await getManagers();
-                setManagers(managerList);
             } catch (error) {
                 console.error("Failed to fetch initial data:", error);
                 setFormError("Gagal memuat data pengguna. Silakan muat ulang halaman.");
@@ -247,7 +251,7 @@ export function NewRequestForm() {
             </SelectTrigger>
             <SelectContent>
                 {budgetCategories.map(cat => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                 ))}
             </SelectContent>
         </Select>

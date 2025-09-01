@@ -45,3 +45,8 @@ export interface Department {
     bagian?: string;
     unit?: string;
 }
+
+export interface BudgetCategory {
+    id: string;
+    name: string;
+}

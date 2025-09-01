@@ -1,8 +1,8 @@
 
 'use client'
 
-import { useEffect, useState, useCallback } from "react";
-import { User, Department } from "@/lib/types";
+import { useEffect, useState } from "react";
+import { User, Department, BudgetCategory } from "@/lib/types";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,10 +11,13 @@ import { DepartmentManagementTab } from "@/components/admin/department-managemen
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { SaveDepartmentDialog } from "@/components/admin/save-department-dialog";
+import { CategoryManagementTab } from "@/components/admin/category-management-tab";
+import { SaveCategoryDialog } from "@/components/admin/save-category-dialog";
 
 export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [categories, setCategories] = useState<BudgetCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("users");
   
@@ -22,28 +25,28 @@ export default function AdminPage() {
     setLoading(true);
     const usersQuery = query(collection(db, 'users'), orderBy('name', 'asc'));
     const departmentsQuery = query(collection(db, 'departments'), orderBy('lembaga', 'asc'), orderBy('divisi', 'asc'));
+    const categoriesQuery = query(collection(db, 'budgetCategories'), orderBy('name', 'asc'));
 
     const unsubUsers = onSnapshot(usersQuery, (snapshot) => {
         setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)));
-        setLoading(false);
+        if(activeTab === 'users') setLoading(false);
     });
     const unsubDepartments = onSnapshot(departmentsQuery, (snapshot) => {
-        const depts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Department));
-        setDepartments(depts);
+        setDepartments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Department)));
+        if(activeTab === 'departments') setLoading(false);
+    });
+    const unsubCategories = onSnapshot(categoriesQuery, (snapshot) => {
+        setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BudgetCategory)));
+        if(activeTab === 'categories') setLoading(false);
     });
 
     return () => {
         unsubUsers();
         unsubDepartments();
+        unsubCategories();
     };
-  }, []);
+  }, [activeTab]);
 
-  const handleDepartmentAdded = useCallback((newDepartment: Department) => {
-    // We let onSnapshot handle the update, but if we want to see it instantly 
-    // without waiting for the snapshot, we could add it here.
-    // However, it's safer to rely on the snapshot to avoid duplicates.
-    // For now, this can be empty as the listener will catch the change.
-  }, []);
 
   const renderAddButton = () => {
     switch (activeTab) {
@@ -55,7 +58,9 @@ export default function AdminPage() {
             </Button>
         );
       case 'departments':
-        return <SaveDepartmentDialog onDepartmentAdded={handleDepartmentAdded} />;
+        return <SaveDepartmentDialog />;
+      case 'categories':
+        return <SaveCategoryDialog />;
       default:
         return null;
     }
@@ -68,16 +73,20 @@ export default function AdminPage() {
         {renderAddButton()}
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs value={activeTab} onValueChange={(value) => { setLoading(true); setActiveTab(value); }}>
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="users">Pengguna</TabsTrigger>
           <TabsTrigger value="departments">Departemen</TabsTrigger>
+          <TabsTrigger value="categories">Kategori Anggaran</TabsTrigger>
         </TabsList>
         <TabsContent value="users">
-            <UserManagementTab users={users} loading={loading} departments={departments} onDepartmentAdded={handleDepartmentAdded} />
+            <UserManagementTab users={users} loading={loading} departments={departments} />
         </TabsContent>
         <TabsContent value="departments">
             <DepartmentManagementTab departments={departments} loading={loading} />
+        </TabsContent>
+        <TabsContent value="categories">
+            <CategoryManagementTab categories={categories} loading={loading} />
         </TabsContent>
       </Tabs>
     </div>

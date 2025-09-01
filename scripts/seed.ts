@@ -141,6 +141,30 @@ const departments = [
     { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Pelaksana Harian ICWM", bagian: "Manajemen SDM (Personalia dan PSMB)" },
 ];
 
+const budgetCategories = [
+  { name: "01. ATK & Barang Cetakan" },
+  { name: "02. BBM Mobil" },
+  { name: "03. BBM Motor" },
+  { name: "04. Peralatan & Perlengkapan Kebersihan" },
+  { name: "05. Konsumsi Jamuan Tamu" },
+  { name: "06. Konsumsi Santri & Asatidz" },
+  { name: "07. Mukafaah Pengurus Pondok (W.M)" },
+  { name: "08. Rekening Telepon Dan Internet" },
+  { name: "09. Rekening Listrik" },
+  { name: "10. Tol Dan Parkir" },
+  { name: "11. Biaya Pajak Tanah" },
+  { name: "12. Biaya Pajak Mobil" },
+  { name: "13. Biaya Pajak Motor" },
+  { name: "14. Konsumsi Rapat & Kajian" },
+  { name: "15. Perkebunan" },
+  { name: "16. Perawatan Kendaraan" },
+  { name: "17. Biaya Administrasi Bank" },
+  { name: "18. Biaya Lainnya" },
+  { name: "19. Peralatan & Perlengkapan Pondok" },
+  { name: "20. Perbaikan Gedung" },
+  { name: "21. Perjalanan Dinas" },
+  { name: "22. Tunjangan Hari Raya (THR)" },
+];
 
 // --- Seeding logic ---
 
@@ -217,6 +241,20 @@ async function seed() {
       console.log(`Department for ${department.lembaga} / ${department.divisi} already exists. Skipping.`);
     }
   }
+
+  // Seed budget categories
+  console.log('\nSeeding budget categories...');
+  const categoriesCollection = db.collection('budgetCategories');
+  for (const category of budgetCategories) {
+    const querySnapshot = await categoriesCollection.where('name', '==', category.name).get();
+    if (querySnapshot.empty) {
+      await categoriesCollection.add(category);
+      console.log(`Added category: ${category.name}`);
+    } else {
+      console.log(`Category "${category.name}" already exists. Skipping.`);
+    }
+  }
+
 
   console.log('\n--- Database Seed Complete ---');
 }
