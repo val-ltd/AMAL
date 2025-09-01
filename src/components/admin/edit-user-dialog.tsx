@@ -18,13 +18,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { User, Department } from '@/lib/types';
-import { Edit, Loader2, PlusCircle, Check, ChevronsUpDown, X } from 'lucide-react';
+import { Edit, Loader2, PlusCircle, Check, X } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatDepartment } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Badge } from '@/components/ui/badge';
 import { SaveDepartmentDialog } from './save-department-dialog';
 
 interface EditUserDialogProps {
@@ -186,7 +185,7 @@ export function EditUserDialog({ user, departments, onDepartmentAdded }: EditUse
                     <PopoverContent className="w-[385px] p-0" align="start">
                         <Command>
                             <CommandInput placeholder="Cari departemen..." />
-                            <CommandList>
+                            <CommandList className='max-h-52 overflow-y-auto'>
                                 <CommandEmpty>Departemen tidak ditemukan.</CommandEmpty>
                                 <CommandGroup>
                                     {departments.map((dept) => (
