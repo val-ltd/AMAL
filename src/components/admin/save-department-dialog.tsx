@@ -21,6 +21,7 @@ import { Edit, Loader2, PlusCircle } from 'lucide-react';
 import { collection, addDoc, updateDoc, doc, getDocs, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Combobox } from './combobox';
 
 interface SaveDepartmentDialogProps {
   department?: Department;
@@ -104,7 +105,8 @@ export function SaveDepartmentDialog({ department, onDepartmentAdded, triggerBut
 
   const Trigger = () => {
     if (triggerButton) {
-        return <DialogTrigger asChild>{triggerButton}</DialogTrigger>;
+        // This is a workaround to make the DialogTrigger work inside CommandItem
+        return <div onClick={() => setOpen(true)}>{triggerButton}</div>
     }
     if (isEditing) {
         return (
@@ -141,25 +143,52 @@ export function SaveDepartmentDialog({ department, onDepartmentAdded, triggerBut
             <Label htmlFor="lembaga" className="text-right">
               Lembaga*
             </Label>
-             <Input id="lembaga" name="lembaga" value={lembaga} onChange={(e) => setLembaga(e.target.value)} className="col-span-3" required />
+             <Combobox
+                options={uniqueLembaga.map(l => ({value: l, label: l}))}
+                value={lembaga}
+                onChange={(v) => { setLembaga(v); setDivisi(''); setBagian(''); setUnit(''); }}
+                placeholder="Pilih atau buat baru..."
+                className="col-span-3"
+              />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="divisi" className="text-right">
               Divisi*
             </Label>
-            <Input id="divisi" name="divisi" value={divisi} onChange={(e) => setDivisi(e.target.value)} className="col-span-3" required/>
+             <Combobox
+                options={uniqueDivisi.map(d => ({value: d, label: d}))}
+                value={divisi}
+                onChange={(v) => { setDivisi(v); setBagian(''); setUnit(''); }}
+                placeholder="Pilih atau buat baru..."
+                className="col-span-3"
+                disabled={!lembaga}
+              />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="bagian" className="text-right">
               Bagian
             </Label>
-            <Input id="bagian" name="bagian" value={bagian} onChange={(e) => setBagian(e.target.value)} className="col-span-3" />
+             <Combobox
+                options={uniqueBagian.map(b => ({value: b, label: b}))}
+                value={bagian}
+                onChange={(v) => { setBagian(v); setUnit(''); }}
+                placeholder="Pilih atau buat baru..."
+                className="col-span-3"
+                disabled={!divisi}
+              />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="unit" className="text-right">
               Unit
             </Label>
-            <Input id="unit" name="unit" value={unit} onChange={(e) => setUnit(e.target.value)} className="col-span-3" />
+             <Combobox
+                options={uniqueUnit.map(u => ({value: u, label: u}))}
+                value={unit}
+                onChange={setUnit}
+                placeholder="Pilih atau buat baru..."
+                className="col-span-3"
+                disabled={!bagian}
+              />
           </div>
           <DialogFooter>
             <DialogClose asChild>

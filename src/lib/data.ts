@@ -1,4 +1,5 @@
 
+
 import {
   collection,
   query,
@@ -161,7 +162,7 @@ export async function getUser(uid: string): Promise<User | null> {
 export async function getManagers(): Promise<User[]> {
     const q = query(
         collection(db, 'users'),
-        where('role', '==', 'Manager')
+        where('role', 'in', ['Manager', 'Admin'])
     );
     const querySnapshot = await getDocs(q);
     const managers: User[] = [];
@@ -169,4 +170,20 @@ export async function getManagers(): Promise<User[]> {
         managers.push({ id: doc.id, ...doc.data() } as User);
     });
     return managers;
+}
+
+export async function getDepartments(): Promise<Department[]> {
+    const q = query(
+        collection(db, 'departments'),
+        orderBy('lembaga'),
+        orderBy('divisi'),
+        orderBy('bagian'),
+        orderBy('unit')
+    );
+    const querySnapshot = await getDocs(q);
+    const departments: Department[] = [];
+    querySnapshot.forEach((doc) => {
+        departments.push({ id: doc.id, ...doc.data() } as Department);
+    });
+    return departments;
 }
