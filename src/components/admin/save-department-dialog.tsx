@@ -59,10 +59,10 @@ export function SaveDepartmentDialog({ department, onDepartmentAdded, triggerBut
     }
   }, [open, department]);
 
-  const uniqueLembagas = useMemo(() => [...new Set(allDepartments.map(d => d.lembaga))], [allDepartments]);
-  const uniqueDivisis = useMemo(() => [...new Set(allDepartments.filter(d => d.lembaga === lembaga).map(d => d.divisi))], [allDepartments, lembaga]);
-  const uniqueBagians = useMemo(() => [...new Set(allDepartments.filter(d => d.lembaga === lembaga && d.divisi === divisi && d.bagian).map(d => d.bagian!))], [allDepartments, lembaga, divisi]);
-  const uniqueUnits = useMemo(() => [...new Set(allDepartments.filter(d => d.lembaga === lembaga && d.divisi === divisi && d.bagian === bagian && d.unit).map(d => d.unit!))], [allDepartments, lembaga, divisi, bagian]);
+  const uniqueLembaga = useMemo(() => [...new Set(allDepartments.map(d => d.lembaga))], [allDepartments]);
+  const uniqueDivisi = useMemo(() => [...new Set(allDepartments.filter(d => d.lembaga === lembaga).map(d => d.divisi))], [allDepartments, lembaga]);
+  const uniqueBagian = useMemo(() => [...new Set(allDepartments.filter(d => d.lembaga === lembaga && d.divisi === divisi && d.bagian).map(d => d.bagian!))], [allDepartments, lembaga, divisi]);
+  const uniqueUnit = useMemo(() => [...new Set(allDepartments.filter(d => d.lembaga === lembaga && d.divisi === divisi && d.bagian === bagian && d.unit).map(d => d.unit!))], [allDepartments, lembaga, divisi, bagian]);
 
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
