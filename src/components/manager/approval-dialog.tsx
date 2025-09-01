@@ -36,9 +36,11 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const userRole = user?.profile?.role;
+  const userRoles = user?.profile?.roles;
   // A designated supervisor (Manager or Admin) can approve. A Super Admin cannot.
-  const canApprove = (userRole === 'Manager' || userRole === 'Admin') && user?.uid === request.supervisor?.id;
+  const canApprove = (userRoles?.includes('Manager') || userRoles?.includes('Admin')) && 
+                     !userRoles?.includes('Super Admin') && 
+                     user?.uid === request.supervisor?.id;
 
 
   const formatRupiah = (amount: number) => {
@@ -54,7 +56,7 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
     if (!canApprove) {
       toast({
         title: 'Aksi Tidak Diizinkan',
-        description: 'Anda bukan penyetuju yang ditunjuk untuk permintaan ini.',
+        description: 'Anda tidak memiliki izin untuk menyetujui/menolak permintaan ini.',
         variant: 'destructive',
       });
       return;

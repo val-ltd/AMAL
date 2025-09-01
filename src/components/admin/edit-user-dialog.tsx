@@ -5,7 +5,6 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { User, Department } from '@/lib/types';
 import { Loader2, PlusCircle, X, Search } from 'lucide-react';
@@ -16,6 +15,15 @@ import { SaveDepartmentDialog } from './save-department-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '../ui/dialog';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
+
+type Role = 'Admin' | 'Manager' | 'Employee' | 'Super Admin';
+const ALL_ROLES: Role[] = ['Employee', 'Manager', 'Admin', 'Super Admin'];
+const ROLE_HIERARCHY: Record<Role, Role[]> = {
+    'Super Admin': ['Super Admin', 'Admin', 'Manager', 'Employee'],
+    'Admin': ['Admin', 'Manager', 'Employee'],
+    'Manager': ['Manager', 'Employee'],
+    'Employee': ['Employee'],
+};
 
 interface EditUserDialogProps {
   user: User;
@@ -31,8 +39,8 @@ export function EditUserDialog({ user, departments: initialDepartments, open, on
   const [formData, setFormData] = useState({
       name: user.name,
       email: user.email,
-      role: user.role,
   });
+  const [selectedRoles, setSelectedRoles] = useState<Role[]>(user.roles || []);
   const [allDepartments, setAllDepartments] = useState(initialDepartments);
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>(user.departmentIds || []);
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,8 +61,8 @@ export function EditUserDialog({ user, departments: initialDepartments, open, on
       setFormData({
         name: user.name,
         email: user.email,
-        role: user.role,
       });
+      setSelectedRoles(user.roles || []);
       setSelectedDepartmentIds(user.departmentIds || []);
       setAllDepartments(initialDepartments);
       setSearchTerm('');
@@ -66,8 +74,22 @@ export function EditUserDialog({ user, departments: initialDepartments, open, on
     setFormData(prev => ({...prev, [name]: value}));
   };
 
-  const handleRoleChange = (value: 'Admin' | 'Manager' | 'Employee' | 'Super Admin') => {
-      setFormData(prev => ({...prev, role: value}));
+  const handleRoleChange = (role: Role, checked: boolean) => {
+    let newRoles: Role[];
+    if (checked) {
+      // Add the role and its implied lower roles
+      newRoles = [...new Set([...selectedRoles, ...ROLE_HIERARCHY[role]])];
+    } else {
+      // Remove the role and its implied higher roles
+      const rolesToRemove: Role[] = [];
+      for (const r of ALL_ROLES) {
+        if (ROLE_HIERARCHY[r].includes(role)) {
+          rolesToRemove.push(r);
+        }
+      }
+      newRoles = selectedRoles.filter(r => !rolesToRemove.includes(r));
+    }
+    setSelectedRoles(newRoles);
   };
 
   const handleToggleDepartment = (departmentId: string) => {
@@ -85,7 +107,7 @@ export function EditUserDialog({ user, departments: initialDepartments, open, on
     const updatedData: Partial<User> = {
         name: formData.name,
         email: formData.email,
-        role: formData.role,
+        roles: selectedRoles.length > 0 ? selectedRoles : ['Employee'], // Default to Employee if none selected
         departmentIds: selectedDepartmentIds,
     };
     
@@ -138,7 +160,7 @@ export function EditUserDialog({ user, departments: initialDepartments, open, on
             Perbarui detail untuk pengguna ini. Klik simpan jika sudah selesai.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-6 flex-1 overflow-y-auto pr-4">
+        <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-8 flex-1 overflow-y-auto pr-4">
             {/* Left Column: User Details */}
             <div className="space-y-4 pt-2">
                 <div className="grid gap-2">
@@ -150,22 +172,23 @@ export function EditUserDialog({ user, departments: initialDepartments, open, on
                     <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} />
                 </div>
                 <div className="grid gap-2">
-                    <Label htmlFor="role">Peran</Label>
-                    <Select name="role" value={formData.role} onValueChange={handleRoleChange}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Pilih peran" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="Employee">Employee</SelectItem>
-                        <SelectItem value="Manager">Manager</SelectItem>
-                        <SelectItem value="Admin">Admin</SelectItem>
-                        <SelectItem value="Super Admin">Super Admin</SelectItem>
-                    </SelectContent>
-                    </Select>
+                    <Label>Peran</Label>
+                    <div className="space-y-2 rounded-md border p-4">
+                        {ALL_ROLES.map(role => (
+                            <div key={role} className="flex items-center space-x-2">
+                                <Checkbox
+                                    id={`role-${role}`}
+                                    checked={selectedRoles.includes(role)}
+                                    onCheckedChange={(checked) => handleRoleChange(role, !!checked)}
+                                />
+                                <Label htmlFor={`role-${role}`} className="font-normal">{role}</Label>
+                            </div>
+                        ))}
+                    </div>
                 </div>
                  <div className="grid gap-2">
                     <Label>Departemen Terpilih</Label>
-                    <ScrollArea className="h-64 w-full rounded-md border p-2">
+                    <ScrollArea className="h-52 w-full rounded-md border p-2">
                         <div className="space-y-2">
                         {selectedDepartmentIds.length > 0 ? (
                             selectedDepartmentIds.map(id => {

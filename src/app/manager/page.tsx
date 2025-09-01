@@ -15,8 +15,8 @@ export default function ManagerPage() {
   const [requests, setRequests] = useState<BudgetRequest[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const userRole = user?.profile?.role;
-  const isAuthorized = userRole === 'Manager' || userRole === 'Admin' || userRole === 'Super Admin';
+  const userRoles = user?.profile?.roles;
+  const isAuthorized = userRoles?.includes('Manager') || userRoles?.includes('Admin') || userRoles?.includes('Super Admin');
 
   useEffect(() => {
     if (!authLoading && user && isAuthorized) {

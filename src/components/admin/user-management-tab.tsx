@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState } from "react";
@@ -82,9 +83,13 @@ function UserRow({ user, departments }: { user: User, departments: Department[]}
                     <TableCell>{department?.unit || '-'}</TableCell>
                     {index === 0 && (
                         <TableCell rowSpan={rowSpan} className="align-top">
-                            <Badge variant={user.role === 'Admin' ? 'destructive' : user.role === 'Manager' ? 'secondary' : 'outline'}>
-                                {user.role}
-                            </Badge>
+                           <div className="flex flex-col gap-1 items-start">
+                             {user.roles?.map(role => (
+                                <Badge key={role} variant={role === 'Admin' || role === 'Super Admin' ? 'destructive' : role === 'Manager' ? 'secondary' : 'outline'}>
+                                    {role}
+                                </Badge>
+                             ))}
+                           </div>
                         </TableCell>
                     )}
                     {index === 0 && (
@@ -224,9 +229,11 @@ function UserCard({ user, departments }: { user: User, departments: Department[]
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex flex-wrap gap-2 items-center">
-                    <Badge variant={user.role === 'Admin' ? 'destructive' : user.role === 'Manager' ? 'secondary' : 'outline'}>
-                        {user.role}
-                    </Badge>
+                    {user.roles?.map(role => (
+                        <Badge key={role} variant={role === 'Admin' || role === 'Super Admin' ? 'destructive' : role === 'Manager' ? 'secondary' : 'outline'}>
+                            {role}
+                        </Badge>
+                    ))}
                     {user.isVerified ? (
                         <Badge variant="outline" className="text-green-600 border-green-500">
                             <ShieldCheck className="mr-1 h-3 w-3" />
@@ -274,6 +281,12 @@ function UserCard({ user, departments }: { user: User, departments: Department[]
             )}
         </Card>
     );
+}
+
+interface UserManagementTabProps {
+    users: User[];
+    loading: boolean;
+    departments: Department[];
 }
 
 export function UserManagementTab({ users, loading, departments }: UserManagementTabProps) {

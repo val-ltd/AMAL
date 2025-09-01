@@ -2,7 +2,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'Admin' | 'Manager' | 'Employee' | 'Super Admin';
+  roles: ('Admin' | 'Manager' | 'Employee' | 'Super Admin')[]; // Changed from role to roles
   avatarUrl: string;
   position?: string;
   institution?: string;
@@ -11,7 +11,7 @@ export interface User {
   deciderId?: string;
   supervisor?: User;
   decider?: User;
-  departmentIds?: string[]; // Changed from departmentId to departmentIds
+  departmentIds?: string[];
   isVerified?: boolean;
 }
 

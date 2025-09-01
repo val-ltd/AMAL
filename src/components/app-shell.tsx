@@ -60,7 +60,7 @@ function Header() {
     <header className="sticky top-0 z-10 hidden items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:flex h-16">
       <div className="flex items-center gap-6">
         <Logo />
-        {showFullHeader && <DesktopNav userRole={authUser.profile?.role} />}
+        {showFullHeader && <DesktopNav userRoles={authUser.profile?.roles} />}
       </div>
       <div className="flex items-center gap-4">
         {showFullHeader && (
@@ -77,16 +77,18 @@ function Header() {
   );
 }
 
-function DesktopNav({ userRole }: { userRole: AppUser['role'] | undefined }) {
+function DesktopNav({ userRoles }: { userRoles: AppUser['roles'] | undefined }) {
   const pathname = usePathname();
   
   const navItems = [
-    { href: '/', label: 'Permintaan Saya', icon: Home, roles: ['Employee', 'Manager', 'Admin', 'Super Admin'] },
-    { href: '/manager', label: 'Tampilan Manajer', icon: Shield, roles: ['Manager', 'Admin', 'Super Admin'] },
-    { href: '/admin', label: 'Manajemen Admin', icon: Users, roles: ['Admin', 'Super Admin'] },
+    { href: '/', label: 'Permintaan Saya', icon: Home, requiredRoles: ['Employee'] },
+    { href: '/manager', label: 'Tampilan Manajer', icon: Shield, requiredRoles: ['Manager'] },
+    { href: '/admin', label: 'Manajemen Admin', icon: Users, requiredRoles: ['Admin'] },
   ];
 
-  const availableNavItems = navItems.filter(item => userRole && item.roles.includes(userRole));
+  const availableNavItems = navItems.filter(item => 
+    userRoles && item.requiredRoles.some(role => userRoles.includes(role))
+  );
 
   return (
     <nav className="flex items-center gap-4">
@@ -111,17 +113,19 @@ function DesktopNav({ userRole }: { userRole: AppUser['role'] | undefined }) {
 function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const userRole = user?.profile?.role;
+  const userRoles = user?.profile?.roles;
 
   const navItems = [
-    { href: '/', label: 'Permintaan', icon: Home, roles: ['Employee', 'Manager', 'Admin', 'Super Admin'] },
-    { href: '/request/new', label: 'Baru', icon: PlusCircle, roles: ['Employee', 'Manager', 'Admin', 'Super Admin'] },
-    { href: '/manager', label: 'Manajer', icon: Shield, roles: ['Manager', 'Admin', 'Super Admin'] },
-    { href: '/admin', label: 'Admin', icon: Users, roles: ['Admin', 'Super Admin'] },
-    { href: '/profile', label: 'Profil', icon: User, roles: ['Employee', 'Manager', 'Admin', 'Super Admin'] },
+    { href: '/', label: 'Permintaan', icon: Home, requiredRoles: ['Employee'] },
+    { href: '/request/new', label: 'Baru', icon: PlusCircle, requiredRoles: ['Employee'] },
+    { href: '/manager', label: 'Manajer', icon: Shield, requiredRoles: ['Manager'] },
+    { href: '/admin', label: 'Admin', icon: Users, requiredRoles: ['Admin'] },
+    { href: '/profile', label: 'Profil', icon: User, requiredRoles: ['Employee'] },
   ];
 
-  const availableNavItems = navItems.filter(item => userRole && item.roles.includes(userRole));
+  const availableNavItems = navItems.filter(item => 
+    userRoles && item.requiredRoles.some(role => userRoles.includes(role))
+  );
 
   return (
     <div className="fixed bottom-0 z-10 w-full border-t bg-background/95 backdrop-blur-sm sm:hidden">

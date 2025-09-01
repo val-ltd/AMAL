@@ -170,7 +170,7 @@ export async function getUser(uid: string): Promise<User | null> {
 export async function getManagers(): Promise<User[]> {
     const q = query(
         collection(db, 'users'),
-        where('role', 'in', ['Manager', 'Admin'])
+        where('roles', 'array-contains-any', ['Manager', 'Admin'])
     );
     const querySnapshot = await getDocs(q);
     const managers: User[] = [];

@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 name: firebaseUser.displayName || 'Anonymous User',
                 email: firebaseUser.email!,
                 avatarUrl: firebaseUser.photoURL || '',
-                role: 'Employee',
+                roles: ['Employee'],
                 position: 'Staff',
                 institution: 'YAYASAN SAHABAT QURAN',
                 division: 'Divisi Dakwah',

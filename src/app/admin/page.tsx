@@ -24,8 +24,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("users");
   
-  const userRole = authUser?.profile?.role;
-  const isAuthorized = userRole === 'Admin' || userRole === 'Super Admin';
+  const userRoles = authUser?.profile?.roles;
+  const isAuthorized = userRoles?.includes('Admin');
   
   useEffect(() => {
     if (isAuthorized) {

@@ -15,6 +15,10 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { SaveDepartmentDialog } from './save-department-dialog';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Checkbox } from '../ui/checkbox';
+
+type Role = 'Admin' | 'Manager' | 'Employee' | 'Super Admin';
+const ALL_ROLES: Role[] = ['Employee', 'Manager', 'Admin', 'Super Admin'];
 
 interface EditUserFormProps {
   user: User;
@@ -29,19 +33,23 @@ export function EditUserForm({ user, departments: initialDepartments }: EditUser
   const [formData, setFormData] = useState({
       name: user.name,
       email: user.email,
-      role: user.role,
   });
   const [departments, setDepartments] = useState(initialDepartments);
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>(user.departmentIds || []);
   const [openDepartmentSelector, setOpenDepartmentSelector] = useState(false);
+  const [selectedRoles, setSelectedRoles] = useState<Role[]>(user.roles || []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({...prev, [name]: value}));
   };
 
-  const handleRoleChange = (value: 'Admin' | 'Manager' | 'Employee') => {
-      setFormData(prev => ({...prev, role: value}));
+  const handleRoleChange = (role: Role) => {
+    setSelectedRoles(prev => 
+      prev.includes(role) 
+        ? prev.filter(r => r !== role) 
+        : [...prev, role]
+    );
   };
 
   const handleToggleDepartment = (departmentId: string) => {
@@ -59,7 +67,7 @@ export function EditUserForm({ user, departments: initialDepartments }: EditUser
     const updatedData: Partial<User> = {
         name: formData.name,
         email: formData.email,
-        role: formData.role,
+        roles: selectedRoles,
         departmentIds: selectedDepartments,
     };
     
@@ -117,17 +125,19 @@ export function EditUserForm({ user, departments: initialDepartments }: EditUser
         <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="role">Peran</Label>
-        <Select name="role" value={formData.role} onValueChange={handleRoleChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="Pilih peran" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Employee">Employee</SelectItem>
-            <SelectItem value="Manager">Manager</SelectItem>
-            <SelectItem value="Admin">Admin</SelectItem>
-          </SelectContent>
-        </Select>
+        <Label>Peran</Label>
+        <div className="space-y-2 rounded-md border p-4">
+            {ALL_ROLES.map(role => (
+                <div key={role} className="flex items-center space-x-2">
+                    <Checkbox
+                        id={`role-${role}`}
+                        checked={selectedRoles.includes(role)}
+                        onCheckedChange={() => handleRoleChange(role)}
+                    />
+                    <Label htmlFor={`role-${role}`} className="font-normal">{role}</Label>
+                </div>
+            ))}
+        </div>
       </div>
       <div className="grid gap-3">
         <Label>Departemen</Label>

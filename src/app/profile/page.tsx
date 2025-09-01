@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import type { User } from "@/lib/types";
 import { getUser } from "@/lib/data";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 export default function ProfilePage() {
     const { user: authUser, logout } = useAuth();
@@ -66,9 +67,13 @@ export default function ProfilePage() {
                         <p className="text-muted-foreground">Divisi</p>
                         <p className="font-medium">{profileData.division || 'N/A'}</p>
                     </div>
-                     <div className="flex justify-between">
+                     <div className="flex justify-between items-center">
                         <p className="text-muted-foreground">Peran</p>
-                        <p className="font-medium">{profileData.role || 'N/A'}</p>
+                        <div className="flex flex-wrap gap-1 justify-end">
+                            {profileData.roles?.map(role => (
+                                <Badge key={role} variant="secondary">{role}</Badge>
+                            )) || <p className="font-medium">N/A</p>}
+                        </div>
                     </div>
                 </div>
                 <div className="flex flex-col space-y-2">

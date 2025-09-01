@@ -21,7 +21,7 @@ const users = [
     id: 'employee1_uid',
     name: 'Aisha Lestari',
     email: 'aisha.lestari@example.com',
-    role: 'Employee',
+    roles: ['Employee'],
     avatarUrl: 'https://i.pravatar.cc/150?u=aisha',
     position: 'Staff',
     institution: 'YAYASAN SAHABAT QURAN',
@@ -31,7 +31,7 @@ const users = [
     id: 'manager1_uid',
     name: 'Budi Santoso',
     email: 'budi.santoso@example.com',
-    role: 'Manager',
+    roles: ['Manager', 'Employee'],
     avatarUrl: 'https://i.pravatar.cc/150?u=budi',
     position: 'Kepala Divisi',
     institution: 'YAYASAN SAHABAT QURAN',
@@ -41,7 +41,7 @@ const users = [
     id: 'admin1_uid',
     name: 'Citra Dewi',
     email: 'citra.dewi@example.com',
-    role: 'Admin',
+    roles: ['Admin', 'Manager', 'Employee'],
     avatarUrl: 'https://i.pravatar.cc/150?u=citra',
     position: 'System Administrator',
     institution: 'YAYASAN SAHABAT QURAN',
@@ -188,7 +188,8 @@ async function seed() {
     const docRef = usersCollection.doc(user.id);
     const doc = await docRef.get();
     if (doc.exists) {
-      console.log(`User ${user.name} already exists. Skipping.`);
+      console.log(`User ${user.name} already exists. Updating roles.`);
+      await docRef.update({ roles: user.roles });
     } else {
       await docRef.set(user);
       console.log(`Added user: ${user.name}`);
