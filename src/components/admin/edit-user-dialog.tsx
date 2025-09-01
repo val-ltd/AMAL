@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import type { User, Department } from '@/lib/types';
 import { Loader2, PlusCircle, X, Search } from 'lucide-react';
-import { doc, updateDoc, collection, getDocs, onSnapshot } from 'firebase/firestore';
+import { doc, updateDoc, collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatDepartment } from '@/lib/utils';
 import { SaveDepartmentDialog } from './save-department-dialog';
@@ -66,7 +66,7 @@ export function EditUserDialog({ user, departments: initialDepartments, open, on
     setFormData(prev => ({...prev, [name]: value}));
   };
 
-  const handleRoleChange = (value: 'Admin' | 'Manager' | 'Employee') => {
+  const handleRoleChange = (value: 'Admin' | 'Manager' | 'Employee' | 'Super Admin') => {
       setFormData(prev => ({...prev, role: value}));
   };
 
@@ -159,6 +159,7 @@ export function EditUserDialog({ user, departments: initialDepartments, open, on
                         <SelectItem value="Employee">Employee</SelectItem>
                         <SelectItem value="Manager">Manager</SelectItem>
                         <SelectItem value="Admin">Admin</SelectItem>
+                        <SelectItem value="Super Admin">Super Admin</SelectItem>
                     </SelectContent>
                     </Select>
                 </div>

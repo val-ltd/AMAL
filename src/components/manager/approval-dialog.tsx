@@ -23,6 +23,7 @@ import { formatDepartment } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useAuth } from '@/hooks/use-auth';
 
 interface ApprovalDialogProps {
   request: BudgetRequest;
@@ -33,6 +34,12 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  const userRole = user?.profile?.role;
+  // A designated supervisor (Manager or Admin) can approve. A Super Admin cannot.
+  const canApprove = (userRole === 'Manager' || userRole === 'Admin') && user?.uid === request.supervisor?.id;
+
 
   const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -44,6 +51,15 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
   };
 
   const handleSubmit = async (status: 'approved' | 'rejected') => {
+    if (!canApprove) {
+      toast({
+        title: 'Aksi Tidak Diizinkan',
+        description: 'Anda bukan penyetuju yang ditunjuk untuk permintaan ini.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
         const requestRef = doc(db, 'requests', request.id);
@@ -135,7 +151,7 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
               placeholder="Berikan alasan untuk keputusan Anda..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !canApprove}
             />
           </div>
         </div>
@@ -146,13 +162,13 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
           <Button
             variant="destructive"
             onClick={() => handleSubmit('rejected')}
-            disabled={isSubmitting}
+            disabled={isSubmitting || !canApprove}
             className="bg-red-600 hover:bg-red-700"
           >
             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsDown className="mr-2 h-4 w-4" />}
             Tolak
           </Button>
-          <Button onClick={() => handleSubmit('approved')} disabled={isSubmitting} className="bg-green-600 hover:bg-green-700">
+          <Button onClick={() => handleSubmit('approved')} disabled={isSubmitting || !canApprove} className="bg-green-600 hover:bg-green-700">
              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsUp className="mr-2 h-4 w-4" />}
             Setujui
           </Button>

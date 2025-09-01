@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Shield, PlusCircle, User, LogOut, ChevronDown, Wallet, Users } from 'lucide-react';
+import { Home, Shield, PlusCircle, User, LogOut, ChevronDown, Wallet, Users, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from './logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -16,6 +16,7 @@ import {
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import type { User as AppUser } from '@/lib/types';
 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -50,16 +51,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 function Header() {
-  const { user, isVerified } = useAuth();
+  const { user: authUser, isVerified } = useAuth();
 
   // Hide main nav and new request button if not verified.
-  const showFullHeader = user && isVerified;
+  const showFullHeader = authUser && isVerified;
 
   return (
     <header className="sticky top-0 z-10 hidden items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:flex h-16">
       <div className="flex items-center gap-6">
         <Logo />
-        {showFullHeader && <DesktopNav />}
+        {showFullHeader && <DesktopNav userRole={authUser.profile?.role} />}
       </div>
       <div className="flex items-center gap-4">
         {showFullHeader && (
@@ -76,17 +77,20 @@ function Header() {
   );
 }
 
-function DesktopNav() {
+function DesktopNav({ userRole }: { userRole: AppUser['role'] | undefined }) {
   const pathname = usePathname();
+  
   const navItems = [
-    { href: '/', label: 'Permintaan Saya', icon: Home },
-    { href: '/manager', label: 'Tampilan Manajer', icon: Shield },
-    { href: '/admin', label: 'Manajemen Pengguna', icon: Users },
+    { href: '/', label: 'Permintaan Saya', icon: Home, roles: ['Employee', 'Manager', 'Admin', 'Super Admin'] },
+    { href: '/manager', label: 'Tampilan Manajer', icon: Shield, roles: ['Manager', 'Admin', 'Super Admin'] },
+    { href: '/admin', label: 'Manajemen Admin', icon: Users, roles: ['Admin', 'Super Admin'] },
   ];
+
+  const availableNavItems = navItems.filter(item => userRole && item.roles.includes(userRole));
 
   return (
     <nav className="flex items-center gap-4">
-      {navItems.map((item) => (
+      {availableNavItems.map((item) => (
         <Link
           key={item.href}
           href={item.href}
@@ -106,18 +110,23 @@ function DesktopNav() {
 
 function BottomNav() {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const userRole = user?.profile?.role;
+
   const navItems = [
-    { href: '/', label: 'Permintaan', icon: Home },
-    { href: '/request/new', label: 'Baru', icon: PlusCircle },
-    { href: '/manager', label: 'Manajer', icon: Shield },
-    { href: '/admin', label: 'Admin', icon: Users },
-    { href: '/profile', label: 'Profil', icon: User },
+    { href: '/', label: 'Permintaan', icon: Home, roles: ['Employee', 'Manager', 'Admin', 'Super Admin'] },
+    { href: '/request/new', label: 'Baru', icon: PlusCircle, roles: ['Employee', 'Manager', 'Admin', 'Super Admin'] },
+    { href: '/manager', label: 'Manajer', icon: Shield, roles: ['Manager', 'Admin', 'Super Admin'] },
+    { href: '/admin', label: 'Admin', icon: Users, roles: ['Admin', 'Super Admin'] },
+    { href: '/profile', label: 'Profil', icon: User, roles: ['Employee', 'Manager', 'Admin', 'Super Admin'] },
   ];
+
+  const availableNavItems = navItems.filter(item => userRole && item.roles.includes(userRole));
 
   return (
     <div className="fixed bottom-0 z-10 w-full border-t bg-background/95 backdrop-blur-sm sm:hidden">
-      <nav className="grid grid-cols-5 items-center justify-around p-2">
-        {navItems.map((item) => (
+      <nav className={`grid grid-cols-${availableNavItems.length} items-center justify-around p-2`}>
+        {availableNavItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}

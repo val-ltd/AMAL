@@ -2,7 +2,7 @@
 'use client'
 
 import RequestList from "@/components/request-list";
-import { getPendingRequests, getUser } from "@/lib/data";
+import { getPendingRequests } from "@/lib/data";
 import { BudgetRequest } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -14,30 +14,25 @@ export default function ManagerPage() {
   const { user, loading: authLoading } = useAuth();
   const [requests, setRequests] = useState<BudgetRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
   
-  useEffect(() => {
-    if (!authLoading && user) {
-        setLoading(true);
-        // Server-side security check
-        getUser(user.uid).then(userProfile => {
-            if (userProfile && (userProfile.role === 'Manager' || userProfile.role === 'Admin')) {
-                setIsAuthorized(true);
-                const unsubscribe = getPendingRequests((fetchedRequests) => {
-                    setRequests(fetchedRequests);
-                    setLoading(false);
-                });
-                // Cleanup subscription on component unmount
-                return () => unsubscribe();
-            } else {
-                setIsAuthorized(false);
-                setLoading(false);
-            }
-        });
-    }
-  }, [user, authLoading]);
+  const userRole = user?.profile?.role;
+  const isAuthorized = userRole === 'Manager' || userRole === 'Admin' || userRole === 'Super Admin';
 
-  if (loading) {
+  useEffect(() => {
+    if (!authLoading && user && isAuthorized) {
+        setLoading(true);
+        const unsubscribe = getPendingRequests((fetchedRequests) => {
+            setRequests(fetchedRequests);
+            setLoading(false);
+        });
+        // Cleanup subscription on component unmount
+        return () => unsubscribe();
+    } else if (!authLoading) {
+      setLoading(false);
+    }
+  }, [user, authLoading, isAuthorized]);
+
+  if (authLoading || loading) {
      return (
         <div className="flex flex-col gap-8">
             <h1 className="text-3xl font-bold tracking-tight">Persetujuan Tertunda</h1>
