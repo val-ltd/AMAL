@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { User, Department } from '@/lib/types';
-import { Edit, Loader2, PlusCircle, Check, ChevronsUpDown } from 'lucide-react';
+import { Edit, Loader2, PlusCircle, Check, ChevronsUpDown, X } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatDepartment } from '@/lib/utils';
@@ -38,6 +38,8 @@ export function EditUserDialog({ user, departments, onDepartmentAdded }: EditUse
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>(user.departmentIds || []);
+  const [openDepartmentSelector, setOpenDepartmentSelector] = useState(false);
+
 
   const handleToggleDepartment = (departmentId: string) => {
     setSelectedDepartments((prev) =>
@@ -94,11 +96,9 @@ export function EditUserDialog({ user, departments, onDepartmentAdded }: EditUse
   }, [selectedDepartments, departments]);
 
   const handleDepartmentAddedOptimistic = useCallback((newDepartment: Department) => {
-      // Check if the department already exists in the local state to prevent duplicates
       if (!departments.some(d => d.id === newDepartment.id)) {
         onDepartmentAdded(newDepartment);
       }
-      // Also add it to the selected departments for the current user
       if (!selectedDepartments.includes(newDepartment.id)) {
         setSelectedDepartments(prev => [...prev, newDepartment.id]);
       }
@@ -112,7 +112,7 @@ export function EditUserDialog({ user, departments, onDepartmentAdded }: EditUse
           Ubah Pengguna
         </button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Ubah Pengguna</DialogTitle>
           <DialogDescription>
@@ -152,28 +152,38 @@ export function EditUserDialog({ user, departments, onDepartmentAdded }: EditUse
               Departemen
             </Label>
             <div className="col-span-3 space-y-2">
-                <Popover>
+                <div className="rounded-md border min-h-24 p-2 space-y-2">
+                    {selectedDepartmentDetails.length > 0 ? (
+                        selectedDepartmentDetails.map(dept => (
+                            <div key={dept.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
+                                <span className="text-sm">{formatDepartment(dept)}</span>
+                                <Button 
+                                    type="button" 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6" 
+                                    onClick={() => handleToggleDepartment(dept.id)}
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-sm text-muted-foreground text-center py-8">Tidak ada departemen yang dipilih.</p>
+                    )}
+                </div>
+                 <Popover open={openDepartmentSelector} onOpenChange={setOpenDepartmentSelector}>
                     <PopoverTrigger asChild>
                         <Button
+                            type="button"
                             variant="outline"
-                            role="combobox"
-                            className="w-full justify-between font-normal h-auto"
+                            className="w-full justify-start font-normal"
                         >
-                            <div className="flex flex-wrap gap-1">
-                                {selectedDepartmentDetails.length > 0 ? (
-                                    selectedDepartmentDetails.map(dept => (
-                                        <Badge key={dept.id} variant="secondary" className="whitespace-normal text-left">
-                                          {formatDepartment(dept)}
-                                        </Badge>
-                                    ))
-                                ) : (
-                                    <span className="text-muted-foreground">Pilih departemen...</span>
-                                )}
-                            </div>
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Pilih Departemen
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[350px] p-0">
+                    <PopoverContent className="w-[385px] p-0" align="start">
                         <Command>
                             <CommandInput placeholder="Cari departemen..." />
                             <CommandList>
@@ -192,16 +202,20 @@ export function EditUserDialog({ user, departments, onDepartmentAdded }: EditUse
                                         </CommandItem>
                                     ))}
                                 </CommandGroup>
+                                 <CommandGroup className="border-t">
+                                     <SaveDepartmentDialog onDepartmentAdded={handleDepartmentAddedOptimistic} triggerButton={
+                                        <div className="p-1">
+                                            <Button type="button" variant="ghost" size="sm" className="text-sm w-full justify-start">
+                                                <PlusCircle className="mr-2 h-4 w-4" />
+                                                Tambah Departemen Baru
+                                            </Button>
+                                        </div>
+                                    } />
+                                 </CommandGroup>
                             </CommandList>
                         </Command>
                     </PopoverContent>
                 </Popover>
-                <SaveDepartmentDialog onDepartmentAdded={handleDepartmentAddedOptimistic} triggerButton={
-                    <Button type="button" variant="ghost" size="sm" className="text-sm">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Tambah Departemen Baru
-                    </Button>
-                } />
             </div>
           </div>
           <DialogFooter>
