@@ -162,7 +162,9 @@ export function EditUserDialog({ user, departments, onDepartmentAdded }: EditUse
                             <div className="flex flex-wrap gap-1">
                                 {selectedDepartmentDetails.length > 0 ? (
                                     selectedDepartmentDetails.map(dept => (
-                                        <Badge key={dept.id} variant="secondary">{formatDepartment(dept)}</Badge>
+                                        <Badge key={dept.id} variant="secondary" className="whitespace-normal text-left">
+                                          {formatDepartment(dept)}
+                                        </Badge>
                                     ))
                                 ) : (
                                     <span className="text-muted-foreground">Pilih departemen...</span>
