@@ -22,6 +22,7 @@ import { id } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Building, Loader2, ThumbsDown, ThumbsUp, UserCheck } from 'lucide-react';
 import { formatDepartment } from '@/lib/utils';
+import { Separator } from '../ui/separator';
 
 interface ApprovalDialogProps {
   request: BudgetRequest;
@@ -32,6 +33,15 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
+
+  const formatRupiah = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount).replace('IDR', 'Rp');
+  };
 
   const handleSubmit = async (status: 'approved' | 'rejected') => {
     setIsSubmitting(true);
@@ -80,17 +90,18 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
                 {request.description}
               </p>
               <div className="mt-4 text-2xl font-bold">
-                ${request.amount.toLocaleString()}
+                {formatRupiah(request.amount)}
               </div>
             </div>
-            <div className="border-t pt-4 space-y-3 text-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                    <Building className="w-4 h-4" />
-                    <span>{request.department ? formatDepartment(request.department) : `${request.institution} / ${request.division}`}</span>
+            <Separator />
+            <div className="space-y-3 text-sm">
+                <div className="flex items-start gap-3 text-muted-foreground">
+                    <Building className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span className='flex-1'>{request.department ? formatDepartment(request.department) : `${request.institution} / ${request.division}`}</span>
                 </div>
                 {request.supervisor && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <UserCheck className="w-4 h-4" />
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                        <UserCheck className="w-4 h-4 flex-shrink-0" />
                         <span>Penyetuju: {request.supervisor.name}</span>
                     </div>
                 )}

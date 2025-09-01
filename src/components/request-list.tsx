@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { ApprovalDialog } from './manager/approval-dialog';
 import { formatDepartment } from '@/lib/utils';
+import { Separator } from './ui/separator';
 
 interface RequestListProps {
   requests: BudgetRequest[];
@@ -31,40 +32,51 @@ export default function RequestList({ requests, isManagerView = false }: Request
       </div>
     );
   }
+  
+  const formatRupiah = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount).replace('IDR', 'Rp');
+  };
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {requests.map((request) => (
         <Card key={request.id} className="flex flex-col">
           <CardHeader>
-            <div className="flex items-start justify-between">
-                <CardTitle className="mb-1 text-lg">{request.category}</CardTitle>
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <Avatar className="h-9 w-9">
+                        <AvatarImage src={request.requester.avatarUrl} alt={request.requester.name} />
+                        <AvatarFallback>{request.requester.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <p className="font-semibold">{isManagerView ? request.requester.name : 'Anda'}</p>
+                        <p className="text-sm text-muted-foreground">
+                            {format(new Date(request.createdAt), 'PP', { locale: id })}
+                        </p>
+                    </div>
+                </div>
                 <StatusBadge status={request.status} />
             </div>
-            
-            <CardDescription className="flex items-center gap-2 pt-1">
-              {!isManagerView ? (
-                <span>Dikirim pada {format(new Date(request.createdAt), 'PP', { locale: id })}</span>
-              ) : (
-                <>
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src={request.requester.avatarUrl} alt={request.requester.name} />
-                    <AvatarFallback>{request.requester.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <span>{request.requester.name}</span>
-                </>
-              )}
-            </CardDescription>
           </CardHeader>
-          <CardContent className="flex-grow">
-            <p className="text-sm text-muted-foreground line-clamp-3">{request.description}</p>
-            <div className='mt-4'>
+          <CardContent className="flex-grow space-y-4">
+            <div>
+                <h3 className="font-semibold text-lg">{request.category}</h3>
+                <p className="text-sm text-muted-foreground line-clamp-3 mt-1">{request.description}</p>
+            </div>
+             <Separator />
+            <div>
+                <p className="text-sm font-medium">Departemen</p>
                 <p className="text-sm text-muted-foreground">{request.department ? formatDepartment(request.department) : `${request.institution} / ${request.division}`}</p>
             </div>
           </CardContent>
-          <CardFooter className="flex items-end justify-between">
-            <div className="text-2xl font-bold">
-              ${request.amount.toLocaleString()}
+          <CardFooter className="flex items-end justify-between bg-muted/50 p-4 rounded-b-lg">
+            <div className="text-xl font-bold">
+              {formatRupiah(request.amount)}
             </div>
             {isManagerView && <ApprovalDialog request={request} />}
           </CardFooter>
@@ -73,3 +85,4 @@ export default function RequestList({ requests, isManagerView = false }: Request
     </div>
   );
 }
+
