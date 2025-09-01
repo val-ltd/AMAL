@@ -2,7 +2,7 @@
 'use client'
 
 import { useState } from "react";
-import type { User, Department } from "@/lib/types";
+import type { User, Department, Role } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,15 +21,22 @@ import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
 
 // Helper to ensure roles is always an array
-const getRolesArray = (roles: any) => {
+const getRolesArray = (roles: any): Role[] => {
     if (Array.isArray(roles)) {
       return roles;
     }
     if (typeof roles === 'string') {
-      return [roles];
+      return [roles as Role];
     }
     return [];
 };
+
+const getHighestRole = (roles: Role[]): Role => {
+    if (roles.includes('Super Admin')) return 'Super Admin';
+    if (roles.includes('Admin')) return 'Admin';
+    if (roles.includes('Manager')) return 'Manager';
+    return 'Employee';
+}
 
 
 function UserRow({ user, departments }: { user: User, departments: Department[]}) {
@@ -46,6 +53,7 @@ function UserRow({ user, departments }: { user: User, departments: Department[]}
     const rowSpan = userDepartmentRows.length;
     
     const userRoles = getRolesArray(user.roles);
+    const highestRole = getHighestRole(userRoles);
 
     const handleVerificationToggle = async (isVerified: boolean) => {
         try {
@@ -97,13 +105,9 @@ function UserRow({ user, departments }: { user: User, departments: Department[]}
                     <TableCell>{department?.unit || '-'}</TableCell>
                     {index === 0 && (
                         <TableCell rowSpan={rowSpan} className="align-top">
-                           <div className="flex flex-col gap-1 items-start">
-                             {userRoles.map(role => (
-                                <Badge key={role} variant={role === 'Admin' || role === 'Super Admin' ? 'destructive' : role === 'Manager' ? 'secondary' : 'outline'}>
-                                    {role}
-                                </Badge>
-                             ))}
-                           </div>
+                           <Badge variant={highestRole === 'Admin' || highestRole === 'Super Admin' ? 'destructive' : highestRole === 'Manager' ? 'secondary' : 'outline'}>
+                                {highestRole}
+                            </Badge>
                         </TableCell>
                     )}
                     {index === 0 && (
@@ -174,6 +178,7 @@ function UserCard({ user, departments }: { user: User, departments: Department[]
       : [];
       
     const userRoles = getRolesArray(user.roles);
+    const highestRole = getHighestRole(userRoles);
 
     const handleVerificationToggle = async (isVerified: boolean) => {
         try {
@@ -245,11 +250,9 @@ function UserCard({ user, departments }: { user: User, departments: Department[]
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex flex-wrap gap-2 items-center">
-                    {userRoles.map(role => (
-                        <Badge key={role} variant={role === 'Admin' || role === 'Super Admin' ? 'destructive' : role === 'Manager' ? 'secondary' : 'outline'}>
-                            {role}
-                        </Badge>
-                    ))}
+                    <Badge variant={highestRole === 'Admin' || highestRole === 'Super Admin' ? 'destructive' : highestRole === 'Manager' ? 'secondary' : 'outline'}>
+                        {highestRole}
+                    </Badge>
                     {user.isVerified ? (
                         <Badge variant="outline" className="text-green-600 border-green-500">
                             <ShieldCheck className="mr-1 h-3 w-3" />

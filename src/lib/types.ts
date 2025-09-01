@@ -1,8 +1,10 @@
+export type Role = 'Admin' | 'Manager' | 'Employee' | 'Super Admin';
+
 export interface User {
   id: string;
   name: string;
   email: string;
-  roles: ('Admin' | 'Manager' | 'Employee' | 'Super Admin')[]; // Changed from role to roles
+  roles: Role[];
   avatarUrl: string;
   position?: string;
   institution?: string;
