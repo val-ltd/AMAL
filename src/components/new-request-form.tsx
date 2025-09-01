@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { getSuggestionsAction } from '@/app/actions';
+import { getSuggestionsAction, createRequestAction } from '@/app/actions';
 import { Loader2, Sparkles, Wand2, Terminal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -16,7 +16,7 @@ import { getManagers, getUser, getBudgetCategories } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { addDoc, collection, serverTimestamp, getDoc, doc } from 'firebase/firestore';
+import { getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatDepartment } from '@/lib/utils';
 
@@ -105,65 +105,61 @@ export function NewRequestForm() {
 
     setIsSubmitting(true);
 
-    try {
-        const supervisor = managers.find(m => m.id === supervisorId);
-        if (!supervisor) {
-            throw new Error("Supervisor yang dipilih tidak valid.");
-        }
-        
-        const selectedDepartment = userDepartments.find(d => d.id === selectedDepartmentId);
-        if(!selectedDepartment) {
-            throw new Error("Departemen yang dipilih tidak valid.");
-        }
+    const supervisor = managers.find(m => m.id === supervisorId);
+    if (!supervisor) {
+        setFormError("Supervisor yang dipilih tidak valid.");
+        setIsSubmitting(false);
+        return;
+    }
+    
+    const selectedDepartment = userDepartments.find(d => d.id === selectedDepartmentId);
+    if(!selectedDepartment) {
+        setFormError("Departemen yang dipilih tidak valid.");
+        setIsSubmitting(false);
+        return;
+    }
 
-        // 2. Prepare data object
-        const newRequestData = {
-            category,
-            amount: Number(amount),
-            description,
-            institution: selectedDepartment.lembaga,
-            division: selectedDepartment.divisi,
-            department: {
-                lembaga: selectedDepartment.lembaga,
-                divisi: selectedDepartment.divisi,
-                bagian: selectedDepartment.bagian || '',
-                unit: selectedDepartment.unit || '',
-            },
-            requester: {
-                id: authUser.uid,
-                name: profileData.name || 'Unknown User',
-                avatarUrl: profileData.avatarUrl || '',
-            },
-            supervisor: {
-                id: supervisor.id,
-                name: supervisor.name,
-            },
-            status: 'pending' as const,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-        };
+    // 2. Prepare data object
+    const newRequestData = {
+        category,
+        amount: Number(amount),
+        description,
+        institution: selectedDepartment.lembaga,
+        division: selectedDepartment.divisi,
+        department: {
+            lembaga: selectedDepartment.lembaga,
+            divisi: selectedDepartment.divisi,
+            bagian: selectedDepartment.bagian || '',
+            unit: selectedDepartment.unit || '',
+        },
+        requester: {
+            id: authUser.uid,
+            name: profileData.name || 'Unknown User',
+            avatarUrl: profileData.avatarUrl || '',
+        },
+        supervisor: {
+            id: supervisor.id,
+            name: supervisor.name,
+        },
+    };
 
-        // 3. Save to Firestore
-        await addDoc(collection(db, 'requests'), newRequestData);
+    const { request, error } = await createRequestAction(newRequestData);
 
-        // 4. Show success and redirect
+    setIsSubmitting(false);
+
+    if (error) {
+        setFormError(error);
+        toast({
+            variant: 'destructive',
+            title: 'Gagal Membuat Permintaan',
+            description: error,
+        });
+    } else {
         toast({
             title: "Permintaan Terkirim",
             description: "Permintaan anggaran Anda telah berhasil dibuat.",
         });
         router.push('/');
-
-    } catch (error) {
-        console.error("Error creating request:", error);
-        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tak terduga.';
-        setFormError(errorMessage);
-        toast({
-            variant: 'destructive',
-            title: 'Gagal Membuat Permintaan',
-            description: errorMessage,
-        });
-    } finally {
-        setIsSubmitting(false);
     }
   };
   
