@@ -6,12 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Info } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { EditUserDialog } from "@/components/admin/edit-user-dialog";
 import { DeleteUserAlert } from "@/components/admin/delete-user-alert";
 import { formatDepartment } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface UserManagementTabProps {
     users: User[];
@@ -22,13 +23,19 @@ interface UserManagementTabProps {
 
 export function UserManagementTab({ users, loading, departments, onDepartmentAdded }: UserManagementTabProps) {
 
-    const getDepartmentsForUser = (user: User) => {
+    const getPrimaryDepartmentForUser = (user: User): Department | undefined => {
+        if (!user.departmentIds || user.departmentIds.length === 0) return undefined;
+        return departments.find(d => d.id === user.departmentIds![0]);
+    }
+    
+    const getAllDepartmentsForUser = (user: User): string => {
         if (!user.departmentIds || user.departmentIds.length === 0) return "N/A";
         return user.departmentIds.map(id => {
             const dept = departments.find(d => d.id === id);
             return dept ? formatDepartment(dept) : "Departemen Dihapus";
-        }).join(', ');
+        }).join('\n');
     }
+
 
     return (
         <Card>
@@ -41,7 +48,10 @@ export function UserManagementTab({ users, loading, departments, onDepartmentAdd
                     <TableHeader>
                         <TableRow>
                             <TableHead>Pengguna</TableHead>
-                            <TableHead>Departemen</TableHead>
+                            <TableHead>Lembaga</TableHead>
+                            <TableHead>Divisi</TableHead>
+                            <TableHead>Bagian</TableHead>
+                            <TableHead>Unit</TableHead>
                             <TableHead>Peran</TableHead>
                             <TableHead className="text-right">Aksi</TableHead>
                         </TableRow>
@@ -49,10 +59,14 @@ export function UserManagementTab({ users, loading, departments, onDepartmentAdd
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-center">Memuat data pengguna...</TableCell>
+                                <TableCell colSpan={7} className="text-center">Memuat data pengguna...</TableCell>
                             </TableRow>
                         ) : (
-                            users.map((user) => (
+                            users.map((user) => {
+                                const primaryDept = getPrimaryDepartmentForUser(user);
+                                const hasMultipleDepts = user.departmentIds && user.departmentIds.length > 1;
+
+                                return (
                                 <TableRow key={user.id}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
@@ -66,9 +80,26 @@ export function UserManagementTab({ users, loading, departments, onDepartmentAdd
                                             </div>
                                         </div>
                                     </TableCell>
+                                    <TableCell>{primaryDept?.lembaga || 'N/A'}</TableCell>
                                     <TableCell>
-                                        <div className="font-medium max-w-xs whitespace-pre-wrap">{getDepartmentsForUser(user)}</div>
+                                      <div className="flex items-center gap-2">
+                                        <span>{primaryDept?.divisi || 'N/A'}</span>
+                                        {hasMultipleDepts && (
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger>
+                                                        <Info className="h-4 w-4 text-muted-foreground" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p className="whitespace-pre-line text-xs">{getAllDepartmentsForUser(user)}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        )}
+                                      </div>
                                     </TableCell>
+                                    <TableCell>{primaryDept?.bagian || '-'}</TableCell>
+                                    <TableCell>{primaryDept?.unit || '-'}</TableCell>
                                     <TableCell>
                                         <Badge variant={user.role === 'Admin' ? 'destructive' : user.role === 'Manager' ? 'secondary' : 'outline'}>
                                             {user.role}
@@ -95,7 +126,7 @@ export function UserManagementTab({ users, loading, departments, onDepartmentAdd
                                         </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
-                            ))
+                            )})
                         )}
                     </TableBody>
                 </Table>
