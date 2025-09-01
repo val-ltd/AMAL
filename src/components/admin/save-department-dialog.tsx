@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -18,8 +18,9 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Department } from '@/lib/types';
 import { Edit, Loader2, PlusCircle } from 'lucide-react';
-import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, getDocs, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface SaveDepartmentDialogProps {
   department?: Department;
@@ -33,17 +34,42 @@ export function SaveDepartmentDialog({ department, onDepartmentAdded, triggerBut
   const { toast } = useToast();
   const isEditing = !!department;
 
+  const [allDepartments, setAllDepartments] = useState<Department[]>([]);
+  
+  const [lembaga, setLembaga] = useState(department?.lembaga || '');
+  const [divisi, setDivisi] = useState(department?.divisi || '');
+  const [bagian, setBagian] = useState(department?.bagian || '');
+  const [unit, setUnit] = useState(department?.unit || '');
+  
+  useEffect(() => {
+    if (open) {
+      const fetchDepts = async () => {
+        const q = query(collection(db, "departments"));
+        const querySnapshot = await getDocs(q);
+        const depts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Department));
+        setAllDepartments(depts);
+      };
+      fetchDepts();
+      
+      // Reset form state when dialog opens for editing or creating
+      setLembaga(department?.lembaga || '');
+      setDivisi(department?.divisi || '');
+      setBagian(department?.bagian || '');
+      setUnit(department?.unit || '');
+    }
+  }, [open, department]);
+
+  const uniqueLembagas = useMemo(() => [...new Set(allDepartments.map(d => d.lembaga))], [allDepartments]);
+  const uniqueDivisis = useMemo(() => [...new Set(allDepartments.filter(d => d.lembaga === lembaga).map(d => d.divisi))], [allDepartments, lembaga]);
+  const uniqueBagians = useMemo(() => [...new Set(allDepartments.filter(d => d.lembaga === lembaga && d.divisi === divisi && d.bagian).map(d => d.bagian!))], [allDepartments, lembaga, divisi]);
+  const uniqueUnits = useMemo(() => [...new Set(allDepartments.filter(d => d.lembaga === lembaga && d.divisi === divisi && d.bagian === bagian && d.unit).map(d => d.unit!))], [allDepartments, lembaga, divisi, bagian]);
+
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     
-    const formData = new FormData(event.currentTarget);
-    const data = {
-        lembaga: formData.get('lembaga') as string,
-        divisi: formData.get('divisi') as string,
-        bagian: formData.get('bagian') as string || '',
-        unit: formData.get('unit') as string || '',
-    };
+    const data = { lembaga, divisi, bagian, unit };
 
     if (!data.lembaga || !data.divisi) {
       toast({ title: 'Lembaga dan Divisi harus diisi', variant: 'destructive'});
@@ -115,25 +141,25 @@ export function SaveDepartmentDialog({ department, onDepartmentAdded, triggerBut
             <Label htmlFor="lembaga" className="text-right">
               Lembaga*
             </Label>
-            <Input id="lembaga" name="lembaga" defaultValue={department?.lembaga} className="col-span-3" required />
+             <Input id="lembaga" name="lembaga" value={lembaga} onChange={(e) => setLembaga(e.target.value)} className="col-span-3" required />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="divisi" className="text-right">
               Divisi*
             </Label>
-            <Input id="divisi" name="divisi" defaultValue={department?.divisi} className="col-span-3" required/>
+            <Input id="divisi" name="divisi" value={divisi} onChange={(e) => setDivisi(e.target.value)} className="col-span-3" required/>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="bagian" className="text-right">
               Bagian
             </Label>
-            <Input id="bagian" name="bagian" defaultValue={department?.bagian} className="col-span-3" />
+            <Input id="bagian" name="bagian" value={bagian} onChange={(e) => setBagian(e.target.value)} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="unit" className="text-right">
               Unit
             </Label>
-            <Input id="unit" name="unit" defaultValue={department?.unit} className="col-span-3" />
+            <Input id="unit" name="unit" value={unit} onChange={(e) => setUnit(e.target.value)} className="col-span-3" />
           </div>
           <DialogFooter>
             <DialogClose asChild>
