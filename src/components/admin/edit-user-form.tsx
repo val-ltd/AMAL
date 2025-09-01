@@ -10,12 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import type { User, Department } from '@/lib/types';
 import { Loader2, PlusCircle, Check, X } from 'lucide-react';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { formatDepartment } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { SaveDepartmentDialog } from './save-department-dialog';
+import { updateUserAction } from '@/app/actions';
 
 interface EditUserFormProps {
   user: User;
@@ -77,16 +76,16 @@ export function EditUserForm({ user, departments: initialDepartments }: EditUser
     }
 
     try {
-        const userRef = doc(db, 'users', user.id);
-        await updateDoc(userRef, updatedData);
+        await updateUserAction(user.id, updatedData);
         toast({ title: 'Pengguna Diperbarui', description: `Data untuk ${user.name} telah berhasil diperbarui.` });
         router.push('/admin');
         router.refresh();
     } catch (error) {
         console.error("Error updating user: ", error);
+        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui.';
         toast({
             title: 'Gagal Memperbarui Pengguna',
-            description: 'Terjadi kesalahan yang tidak diketahui.',
+            description: errorMessage,
             variant: 'destructive',
         });
     } finally {

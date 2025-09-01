@@ -63,21 +63,13 @@ export function getPendingRequests(
      return () => {};
    }
 
-  // To show all pending requests for any manager, as was the mock logic
-  const q = query(
+   // The logic to check if user is manager is now server-side in the calling component
+   // or page. This function just fetches data.
+   const q = query(
     collection(db, 'requests'), 
     where('status', '==', 'pending'),
     orderBy('createdAt', 'asc')
   );
-  
-  // If you only want to show requests for the CURRENT user as supervisor:
-  // const q = query(
-  //   collection(db, 'requests'),
-  //   where('status', '==', 'pending'),
-  //   where('supervisor.id', '==', currentUser.uid),
-  //   orderBy('createdAt', 'asc')
-  // );
-
 
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const requests: BudgetRequest[] = [];
@@ -146,6 +138,22 @@ export async function updateRequest(
         } as BudgetRequest;
     }
     return undefined;
+}
+
+export async function getRequest(id: string): Promise<BudgetRequest | null> {
+    if (!id) return null;
+    const requestDocRef = doc(db, 'requests', id);
+    const requestDoc = await getDoc(requestDocRef);
+    if (requestDoc.exists()) {
+        const data = requestDoc.data();
+        return { 
+            id: requestDoc.id, 
+            ...data,
+            createdAt: data.createdAt?.toDate().toISOString() ?? new Date().toISOString(),
+            updatedAt: data.updatedAt?.toDate().toISOString() ?? new Date().toISOString(),
+        } as BudgetRequest;
+    }
+    return null;
 }
 
 

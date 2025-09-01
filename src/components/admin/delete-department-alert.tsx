@@ -16,8 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Trash } from 'lucide-react';
-import { doc, deleteDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { deleteDepartmentAction } from '@/app/actions';
 
 interface DeleteDepartmentAlertProps {
   departmentId: string;
@@ -30,13 +29,14 @@ export function DeleteDepartmentAlert({ departmentId }: DeleteDepartmentAlertPro
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      await deleteDoc(doc(db, 'departments', departmentId));
+      await deleteDepartmentAction(departmentId);
       toast({ title: 'Departemen Dihapus', description: 'Departemen telah berhasil dihapus dari sistem.' });
     } catch (error) {
       console.error('Error deleting department:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui.';
       toast({
         title: 'Gagal Menghapus Departemen',
-        description: 'Terjadi kesalahan yang tidak diketahui.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

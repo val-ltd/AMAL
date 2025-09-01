@@ -18,8 +18,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { BudgetCategory } from '@/lib/types';
 import { Edit, Loader2, PlusCircle } from 'lucide-react';
-import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { saveCategoryAction } from '@/app/actions';
 
 interface SaveCategoryDialogProps {
   category?: BudgetCategory;
@@ -51,19 +50,19 @@ export function SaveCategoryDialog({ category }: SaveCategoryDialogProps) {
 
     try {
       if (isEditing) {
-        const catRef = doc(db, 'budgetCategories', category.id);
-        await updateDoc(catRef, { name });
+        await saveCategoryAction({ name }, category.id);
         toast({ title: `Kategori Diperbarui`, description: `Kategori telah berhasil diperbarui.` });
       } else {
-        await addDoc(collection(db, 'budgetCategories'), { name });
+        await saveCategoryAction({ name });
         toast({ title: `Kategori Ditambahkan`, description: `Kategori telah berhasil ditambahkan.` });
       }
       setOpen(false);
     } catch (error) {
       console.error('Error saving category: ', error);
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui.';
       toast({
         title: `Gagal ${isEditing ? 'Memperbarui' : 'Menambahkan'} Kategori`,
-        description: 'Terjadi kesalahan yang tidak diketahui.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

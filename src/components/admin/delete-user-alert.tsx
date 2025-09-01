@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -13,8 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { doc, deleteDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { deleteUserAction } from '@/app/actions';
 
 interface DeleteUserAlertProps {
   userId: string;
@@ -29,14 +29,15 @@ export function DeleteUserAlert({ userId, open, onOpenChange }: DeleteUserAlertP
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      await deleteDoc(doc(db, 'users', userId));
+      await deleteUserAction(userId);
       toast({ title: 'Pengguna Dihapus', description: 'Pengguna telah berhasil dihapus dari sistem.' });
       onOpenChange(false);
     } catch (error) {
       console.error('Error deleting user:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui.';
       toast({
         title: 'Gagal Menghapus Pengguna',
-        description: 'Terjadi kesalahan yang tidak diketahui.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

@@ -18,10 +18,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Department } from '@/lib/types';
 import { Edit, Loader2, PlusCircle } from 'lucide-react';
-import { collection, addDoc, updateDoc, doc, getDocs, query } from 'firebase/firestore';
+import { collection, getDocs, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Combobox } from './combobox';
+import { saveDepartmentAction } from '@/app/actions';
 
 interface SaveDepartmentDialogProps {
   department?: Department;
@@ -80,22 +80,22 @@ export function SaveDepartmentDialog({ department, onDepartmentAdded, triggerBut
 
     try {
       if (isEditing) {
-        const deptRef = doc(db, 'departments', department.id);
-        await updateDoc(deptRef, data);
+        await saveDepartmentAction(data, department.id);
         toast({ title: `Departemen Diperbarui`, description: `Departemen telah berhasil diperbarui.` });
       } else {
-        const docRef = await addDoc(collection(db, 'departments'), data);
+        // Since we cannot get the new ID from the server action easily,
+        // we rely on revalidation to update the list.
+        // The onDepartmentAdded callback becomes less useful here.
+        await saveDepartmentAction(data);
         toast({ title: `Departemen Ditambahkan`, description: `Departemen telah berhasil ditambahkan.` });
-        if(onDepartmentAdded) {
-          onDepartmentAdded({id: docRef.id, ...data});
-        }
       }
       setOpen(false);
     } catch (error) {
       console.error('Error saving department: ', error);
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui.';
       toast({
         title: `Gagal ${isEditing ? 'Memperbarui' : 'Menambahkan'} Departemen`,
-        description: 'Terjadi kesalahan yang tidak diketahui.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

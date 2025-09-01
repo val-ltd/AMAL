@@ -16,8 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Trash } from 'lucide-react';
-import { doc, deleteDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { deleteCategoryAction } from '@/app/actions';
 
 interface DeleteCategoryAlertProps {
   categoryId: string;
@@ -30,13 +29,14 @@ export function DeleteCategoryAlert({ categoryId }: DeleteCategoryAlertProps) {
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      await deleteDoc(doc(db, 'budgetCategories', categoryId));
+      await deleteCategoryAction(categoryId);
       toast({ title: 'Kategori Dihapus', description: 'Kategori anggaran telah berhasil dihapus.' });
     } catch (error) {
       console.error('Error deleting category:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui.';
       toast({
         title: 'Gagal Menghapus Kategori',
-        description: 'Terjadi kesalahan yang tidak diketahui.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
