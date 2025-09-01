@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState } from "react";
@@ -7,21 +6,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Trash, Building, Layers, Briefcase, Dot } from "lucide-react";
+import { MoreHorizontal, Edit, Trash, Building, Layers, Briefcase, Dot, ShieldCheck, ShieldAlert } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { DeleteUserAlert } from "@/components/admin/delete-user-alert";
 import { EditUserDialog } from "@/components/admin/edit-user-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Separator } from "../ui/separator";
-
-interface UserManagementTabProps {
-    users: User[];
-    loading: boolean;
-    departments: Department[];
-}
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
+import { Switch } from "../ui/switch";
+import { Label } from "../ui/label";
 
 function UserRow({ user, departments }: { user: User, departments: Department[]}) {
+    const { toast } = useToast();
     const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
     const [deleteUserAlertOpen, setDeleteUserAlertOpen] = useState(false);
 
@@ -33,10 +32,28 @@ function UserRow({ user, departments }: { user: User, departments: Department[]}
 
     const rowSpan = userDepartmentRows.length;
 
+    const handleVerificationToggle = async (isVerified: boolean) => {
+        try {
+            const userRef = doc(db, 'users', user.id);
+            await updateDoc(userRef, { isVerified });
+            toast({
+                title: 'Status Verifikasi Diperbarui',
+                description: `${user.name} telah ${isVerified ? 'diverifikasi' : 'verifikasinya dicabut'}.`,
+            });
+        } catch (error) {
+            console.error('Error toggling verification', error);
+            toast({
+                title: 'Gagal Memperbarui Status',
+                description: 'Terjadi kesalahan saat memperbarui status verifikasi pengguna.',
+                variant: 'destructive',
+            });
+        }
+    };
+
     return (
         <>
             {userDepartmentRows.map((department, index) => (
-                <TableRow key={`${user.id}-${department?.id || index}`}>
+                <TableRow key={`${user.id}-${department?.id || index}`} className={!user.isVerified ? 'bg-yellow-100/50 dark:bg-yellow-900/20' : ''}>
                     {index === 0 && (
                         <TableCell rowSpan={rowSpan} className="align-top">
                             <div className="flex items-center gap-3">
@@ -45,7 +62,15 @@ function UserRow({ user, departments }: { user: User, departments: Department[]}
                                     <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <div className="font-medium">{user.name}</div>
+                                    <div className="font-medium flex items-center gap-2">
+                                        {user.name}
+                                        {!user.isVerified && (
+                                            <Badge variant="outline" className="text-yellow-600 border-yellow-500">
+                                                <ShieldAlert className="mr-1 h-3 w-3" />
+                                                Belum Diverifikasi
+                                            </Badge>
+                                        )}
+                                    </div>
                                     <div className="text-sm text-muted-foreground">{user.email}</div>
                                 </div>
                             </div>
@@ -73,6 +98,19 @@ function UserRow({ user, departments }: { user: User, departments: Department[]}
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>Aksi</DropdownMenuLabel>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                        <div className="flex items-center space-x-2">
+                                            <Switch
+                                                id={`verify-switch-${user.id}`}
+                                                checked={!!user.isVerified}
+                                                onCheckedChange={handleVerificationToggle}
+                                            />
+                                            <Label htmlFor={`verify-switch-${user.id}`} className="font-normal cursor-pointer">
+                                                {user.isVerified ? 'Terverifikasi' : 'Verifikasi Pengguna'}
+                                            </Label>
+                                        </div>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem onSelect={() => setEditUserDialogOpen(true)}>
                                         <Edit className="mr-2 h-4 w-4" />
                                         <span>Ubah Pengguna</span>
@@ -108,6 +146,7 @@ function UserRow({ user, departments }: { user: User, departments: Department[]}
 }
 
 function UserCard({ user, departments }: { user: User, departments: Department[]}) {
+    const { toast } = useToast();
     const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
     const [deleteUserAlertOpen, setDeleteUserAlertOpen] = useState(false);
     
@@ -115,8 +154,27 @@ function UserCard({ user, departments }: { user: User, departments: Department[]
       ? user.departmentIds.map(deptId => departments.find(d => d.id === deptId) || null).filter(d => d !== null)
       : [];
 
+    const handleVerificationToggle = async (isVerified: boolean) => {
+        try {
+            const userRef = doc(db, 'users', user.id);
+            await updateDoc(userRef, { isVerified });
+            toast({
+                title: 'Status Verifikasi Diperbarui',
+                description: `${user.name} telah ${isVerified ? 'diverifikasi' : 'verifikasinya dicabut'}.`,
+            });
+        } catch (error) {
+            console.error('Error toggling verification', error);
+            toast({
+                title: 'Gagal Memperbarui Status',
+                description: 'Terjadi kesalahan saat memperbarui status verifikasi pengguna.',
+                variant: 'destructive',
+            });
+        }
+    };
+
+
     return (
-        <Card>
+        <Card className={!user.isVerified ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' : ''}>
             <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-3">
@@ -138,6 +196,19 @@ function UserCard({ user, departments }: { user: User, departments: Department[]
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Aksi</DropdownMenuLabel>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                <div className="flex items-center space-x-2">
+                                    <Switch
+                                        id={`verify-switch-card-${user.id}`}
+                                        checked={!!user.isVerified}
+                                        onCheckedChange={handleVerificationToggle}
+                                    />
+                                    <Label htmlFor={`verify-switch-card-${user.id}`} className="font-normal cursor-pointer">
+                                        {user.isVerified ? 'Terverifikasi' : 'Verifikasi'}
+                                    </Label>
+                                </div>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem onSelect={() => setEditUserDialogOpen(true)}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 <span>Ubah Pengguna</span>
@@ -152,9 +223,22 @@ function UserCard({ user, departments }: { user: User, departments: Department[]
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
-                 <Badge variant={user.role === 'Admin' ? 'destructive' : user.role === 'Manager' ? 'secondary' : 'outline'}>
-                    {user.role}
-                </Badge>
+                <div className="flex flex-wrap gap-2 items-center">
+                    <Badge variant={user.role === 'Admin' ? 'destructive' : user.role === 'Manager' ? 'secondary' : 'outline'}>
+                        {user.role}
+                    </Badge>
+                    {user.isVerified ? (
+                        <Badge variant="outline" className="text-green-600 border-green-500">
+                            <ShieldCheck className="mr-1 h-3 w-3" />
+                            Terverifikasi
+                        </Badge>
+                    ) : (
+                        <Badge variant="outline" className="text-yellow-600 border-yellow-500">
+                            <ShieldAlert className="mr-1 h-3 w-3" />
+                            Belum Diverifikasi
+                        </Badge>
+                    )}
+                </div>
                 <Separator />
                 <h4 className="font-semibold">Departemen</h4>
                 {userDepartments.length > 0 ? (
@@ -200,7 +284,7 @@ export function UserManagementTab({ users, loading, departments }: UserManagemen
              <Card>
                 <CardHeader>
                     <CardTitle>Daftar Pengguna</CardTitle>
-                    <CardDescription>Lihat, tambah, dan kelola pengguna sistem.</CardDescription>
+                    <CardDescription>Lihat, tambah, dan kelola pengguna sistem. Pengguna yang belum diverifikasi ditandai dengan warna kuning.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {loading ? (
@@ -225,7 +309,7 @@ export function UserManagementTab({ users, loading, departments }: UserManagemen
         <Card>
             <CardHeader>
                 <CardTitle>Daftar Pengguna</CardTitle>
-                <CardDescription>Lihat, tambah, dan kelola pengguna sistem.</CardDescription>
+                <CardDescription>Lihat, tambah, dan kelola pengguna sistem. Pengguna yang belum diverifikasi ditandai dengan warna kuning.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Table>

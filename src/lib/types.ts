@@ -12,6 +12,7 @@ export interface User {
   supervisor?: User;
   decider?: User;
   departmentIds?: string[]; // Changed from departmentId to departmentIds
+  isVerified?: boolean;
 }
 
 export interface BudgetRequest {

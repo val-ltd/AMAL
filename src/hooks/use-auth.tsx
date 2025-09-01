@@ -5,55 +5,79 @@ import { onAuthStateChanged, signInWithPopup, signOut, GoogleAuthProvider, User 
 import { auth, db } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import type { User } from '@/lib/types';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ShieldAlert } from 'lucide-react';
+import { AppShell } from '@/components/app-shell';
+
+interface AppUser extends FirebaseUser {
+    profile?: User;
+}
 
 interface AuthContextType {
-  user: FirebaseUser | null;
+  user: AppUser | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  isVerified: boolean | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isVerified, setIsVerified] = useState<boolean | null>(null);
   const router = useRouter();
   const pathname = usePathname();
-
+  
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // When user logs in, check if they exist in Firestore.
-        // If not, create a new document for them.
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (!userDoc.exists()) {
-          // New user: create their profile in Firestore.
-          try {
-            await setDoc(userDocRef, {
-              name: user.displayName || 'Anonymous User',
-              email: user.email,
-              avatarUrl: user.photoURL,
-              role: 'Employee', // Default role for new users
-              position: 'Staff', // Default position
-              institution: 'YAYASAN SAHABAT QURAN', // Default institution
-              division: 'Divisi Dakwah', // Default division
-            });
-            console.log(`Created new user profile for ${user.uid}`);
-          } catch (error) {
-            console.error("Error creating user document:", error);
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        
+        // Use a snapshot listener for real-time profile updates (e.g., verification by admin)
+        const unsubscribeSnapshot = onSnapshot(userDocRef, async (userDoc) => {
+          if (!userDoc.exists()) {
+            try {
+              const newUserProfile: User = {
+                id: firebaseUser.uid,
+                name: firebaseUser.displayName || 'Anonymous User',
+                email: firebaseUser.email!,
+                avatarUrl: firebaseUser.photoURL || '',
+                role: 'Employee',
+                position: 'Staff',
+                institution: 'YAYASAN SAHABAT QURAN',
+                division: 'Divisi Dakwah',
+                isVerified: false,
+              };
+              await setDoc(userDocRef, newUserProfile);
+              setUser({ ...firebaseUser, profile: newUserProfile });
+              setIsVerified(false);
+            } catch (error) {
+              console.error("Error creating user document:", error);
+            }
+          } else {
+            const userProfile = userDoc.data() as User;
+            setUser({ ...firebaseUser, profile: userProfile });
+            setIsVerified(userProfile.isVerified ?? false);
           }
-        }
+          setLoading(false);
+        });
+
+        // Cleanup the snapshot listener when auth state changes or component unmounts
+        return () => unsubscribeSnapshot();
+      } else {
+        setUser(null);
+        setIsVerified(null);
+        setLoading(false);
       }
-      setUser(user);
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
+
 
   useEffect(() => {
     if (!loading && !user && pathname !== '/login') {
@@ -81,9 +105,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
   
-  const value = { user, loading, signInWithGoogle, logout };
+  const value = { user, loading, signInWithGoogle, logout, isVerified };
   
-  if (loading && pathname !== '/login') {
+  if (loading) {
       return (
           <div className="flex flex-col min-h-screen">
               <header className="sticky top-0 z-10 hidden items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:flex h-16">
@@ -105,6 +129,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               </main>
           </div>
       );
+  }
+
+  // If user is logged in but not verified, show a warning page.
+  // Exception for login page.
+  if (user && !isVerified && pathname !== '/login') {
+    return (
+        <AuthContext.Provider value={value}>
+            <AppShell>
+                <div className="flex items-center justify-center h-full">
+                    <Alert variant="destructive" className="max-w-lg">
+                        <ShieldAlert className="h-4 w-4" />
+                        <AlertTitle>Akun Belum Diverifikasi</AlertTitle>
+                        <AlertDescription>
+                            Akun Anda sedang menunggu verifikasi oleh administrator. Silakan hubungi admin untuk mengaktifkan akun Anda.
+                        </AlertDescription>
+                    </Alert>
+                </div>
+            </AppShell>
+        </AuthContext.Provider>
+    )
   }
 
   return (

@@ -19,10 +19,24 @@ import { useAuth } from '@/hooks/use-auth';
 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isVerified } = useAuth();
   const pathname = usePathname();
 
-  if (loading || !user || pathname === '/login') {
+  // If loading, or not logged in, or not verified, the AuthProvider handles the view.
+  // The AppShell should only render its full content for verified users.
+  if (loading || !user || !isVerified) {
+    if (pathname === '/login') {
+      return <>{children}</>
+    }
+     // Show a minimal shell for the "unverified" warning page
+    if (user && !isVerified) {
+        return (
+            <div className="flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-1 p-4 sm:p-6">{children}</main>
+            </div>
+        )
+    }
     return <>{children}</>;
   }
   
@@ -36,19 +50,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 function Header() {
+  const { user, isVerified } = useAuth();
+
+  // Hide main nav and new request button if not verified.
+  const showFullHeader = user && isVerified;
+
   return (
     <header className="sticky top-0 z-10 hidden items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:flex h-16">
       <div className="flex items-center gap-6">
         <Logo />
-        <DesktopNav />
+        {showFullHeader && <DesktopNav />}
       </div>
       <div className="flex items-center gap-4">
-        <Button asChild>
-            <Link href="/request/new">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Permintaan Baru
-            </Link>
-        </Button>
+        {showFullHeader && (
+            <Button asChild>
+                <Link href="/request/new">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Permintaan Baru
+                </Link>
+            </Button>
+        )}
         <UserMenu />
       </div>
     </header>
