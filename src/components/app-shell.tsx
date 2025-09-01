@@ -82,8 +82,8 @@ function DesktopNav({ userRoles }: { userRoles: AppUser['roles'] | undefined }) 
   
   const navItems = [
     { href: '/', label: 'Permintaan Saya', icon: Home, requiredRoles: ['Employee'] },
-    { href: '/manager', label: 'Tampilan Manajer', icon: Shield, requiredRoles: ['Manager'] },
-    { href: '/admin', label: 'Manajemen Admin', icon: Users, requiredRoles: ['Admin'] },
+    { href: '/manager', label: 'Tampilan Manajer', icon: Shield, requiredRoles: ['Manager', 'Admin', 'Super Admin'] },
+    { href: '/admin', label: 'Manajemen Admin', icon: Users, requiredRoles: ['Admin', 'Super Admin'] },
   ];
 
   const availableNavItems = navItems.filter(item => 
@@ -118,8 +118,8 @@ function BottomNav() {
   const navItems = [
     { href: '/', label: 'Permintaan', icon: Home, requiredRoles: ['Employee'] },
     { href: '/request/new', label: 'Baru', icon: PlusCircle, requiredRoles: ['Employee'] },
-    { href: '/manager', label: 'Manajer', icon: Shield, requiredRoles: ['Manager'] },
-    { href: '/admin', label: 'Admin', icon: Users, requiredRoles: ['Admin'] },
+    { href: '/manager', label: 'Manajer', icon: Shield, requiredRoles: ['Manager', 'Admin', 'Super Admin'] },
+    { href: '/admin', label: 'Admin', icon: Users, requiredRoles: ['Admin', 'Super Admin'] },
     { href: '/profile', label: 'Profil', icon: User, requiredRoles: ['Employee'] },
   ];
 
@@ -129,14 +129,14 @@ function BottomNav() {
 
   return (
     <div className="fixed bottom-0 z-10 w-full border-t bg-background/95 backdrop-blur-sm sm:hidden">
-      <nav className={`grid grid-cols-${availableNavItems.length} items-center justify-around p-2`}>
+      <nav className="flex items-center justify-around p-1">
         {availableNavItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-col items-center gap-1 rounded-md p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-              pathname.startsWith(item.href) && item.href !== '/' || pathname === item.href ? "text-primary" : "text-muted-foreground"
+              "flex flex-1 flex-col items-center gap-1 rounded-md p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+              (pathname.startsWith(item.href) && item.href !== '/') || pathname === item.href ? "text-primary" : "text-muted-foreground"
             )}
           >
             <item.icon className="h-5 w-5" />
