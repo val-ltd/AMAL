@@ -28,6 +28,8 @@ export default function AdminPage() {
   const isAuthorized = userRoles?.includes('Admin');
   
   useEffect(() => {
+    const unsubscribers: (() => void)[] = [];
+
     if (isAuthorized) {
         setLoading(true);
         const usersQuery = query(collection(db, 'users'), orderBy('name', 'asc'));
@@ -38,23 +40,27 @@ export default function AdminPage() {
             setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)));
             if(activeTab === 'users') setLoading(false);
         });
+        unsubscribers.push(unsubUsers);
+
         const unsubDepartments = onSnapshot(departmentsQuery, (snapshot) => {
             setDepartments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Department)));
             if(activeTab === 'departments') setLoading(false);
         });
+        unsubscribers.push(unsubDepartments);
+        
         const unsubCategories = onSnapshot(categoriesQuery, (snapshot) => {
             setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BudgetCategory)));
             if(activeTab === 'categories') setLoading(false);
         });
+        unsubscribers.push(unsubCategories);
 
-        return () => {
-            unsubUsers();
-            unsubDepartments();
-            unsubCategories();
-        };
     } else if (!authLoading) {
       setLoading(false);
     }
+    
+    return () => {
+        unsubscribers.forEach(unsub => unsub());
+    };
   }, [activeTab, isAuthorized, authLoading]);
 
   if (authLoading) {

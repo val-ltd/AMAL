@@ -19,17 +19,22 @@ export default function ManagerPage() {
   const isAuthorized = userRoles?.includes('Manager') || userRoles?.includes('Admin') || userRoles?.includes('Super Admin');
 
   useEffect(() => {
+    let unsubscribe: () => void;
     if (!authLoading && user && isAuthorized) {
         setLoading(true);
-        const unsubscribe = getPendingRequests((fetchedRequests) => {
+        unsubscribe = getPendingRequests((fetchedRequests) => {
             setRequests(fetchedRequests);
             setLoading(false);
         });
-        // Cleanup subscription on component unmount
-        return () => unsubscribe();
     } else if (!authLoading) {
       setLoading(false);
     }
+    // Cleanup subscription on component unmount
+    return () => {
+        if (unsubscribe) {
+            unsubscribe();
+        }
+    };
   }, [user, authLoading, isAuthorized]);
 
   if (authLoading || loading) {

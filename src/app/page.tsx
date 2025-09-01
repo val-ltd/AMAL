@@ -17,18 +17,23 @@ export default function EmployeeDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let unsubscribe: () => void;
     if (!authLoading && user) {
       setLoading(true);
-      const unsubscribe = getMyRequests((fetchedRequests) => {
+      unsubscribe = getMyRequests((fetchedRequests) => {
         setRequests(fetchedRequests);
         setLoading(false);
       });
-
-      // Cleanup subscription on component unmount
-      return () => unsubscribe();
     } else if (!authLoading && !user) {
         setLoading(false);
     }
+
+    // Cleanup subscription on component unmount or when auth state changes
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [user, authLoading]);
 
   return (
