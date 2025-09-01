@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -5,7 +6,7 @@ import { onAuthStateChanged, signInWithPopup, signOut, GoogleAuthProvider, User 
 import { auth, db } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ShieldAlert } from 'lucide-react';
@@ -33,12 +34,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   
   useEffect(() => {
+    let unsubscribeSnapshot: Unsubscribe | undefined;
+    
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Clean up previous snapshot listener if it exists
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+        unsubscribeSnapshot = undefined;
+      }
+
       if (firebaseUser) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         
         // Use a snapshot listener for real-time profile updates (e.g., verification by admin)
-        const unsubscribeSnapshot = onSnapshot(userDocRef, async (userDoc) => {
+        unsubscribeSnapshot = onSnapshot(userDocRef, async (userDoc) => {
           if (!userDoc.exists()) {
             try {
               const newUserProfile: User = {
@@ -47,9 +56,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 email: firebaseUser.email!,
                 avatarUrl: firebaseUser.photoURL || '',
                 roles: ['Employee'],
-                position: 'Staff',
-                institution: 'YAYASAN SAHABAT QURAN',
-                division: 'Divisi Dakwah',
                 isVerified: false,
               };
               await setDoc(userDocRef, newUserProfile);
@@ -64,10 +70,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsVerified(userProfile.isVerified ?? false);
           }
           setLoading(false);
+        }, (error) => {
+            console.error("Snapshot listener error:", error);
+            setUser(null);
+            setIsVerified(null);
+            setLoading(false);
         });
 
-        // Cleanup the snapshot listener when auth state changes or component unmounts
-        return () => unsubscribeSnapshot();
       } else {
         setUser(null);
         setIsVerified(null);
@@ -75,7 +84,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+        unsubscribeAuth();
+        if (unsubscribeSnapshot) {
+            unsubscribeSnapshot();
+        }
+    };
   }, []);
 
 
