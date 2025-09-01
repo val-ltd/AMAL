@@ -1,13 +1,10 @@
-import { Wallet } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 export function Logo() {
   return (
     <Link href="/" className="flex items-center gap-2 text-xl font-bold">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Wallet className="h-5 w-5" />
-        </div>
-        <span className="text-foreground">BudgetFlow</span>
+        <Image src="/amal-logo.png" alt="Amal Logo" width={80} height={32} />
     </Link>
   );
 }
