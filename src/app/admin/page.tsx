@@ -39,8 +39,10 @@ export default function AdminPage() {
   }, []);
 
   const handleDepartmentAdded = useCallback((newDepartment: Department) => {
-    // This optimistic update is no longer needed, Firestore's onSnapshot will handle it.
-    // setDepartments(prev => [...prev, newDepartment]);
+    // We let onSnapshot handle the update, but if we want to see it instantly 
+    // without waiting for the snapshot, we could add it here.
+    // However, it's safer to rely on the snapshot to avoid duplicates.
+    // For now, this can be empty as the listener will catch the change.
   }, []);
 
   const renderAddButton = () => {

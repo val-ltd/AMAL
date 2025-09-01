@@ -10,7 +10,7 @@ import { MoreHorizontal, Edit } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { DeleteUserAlert } from "@/components/admin/delete-user-alert";
-import Link from "next/link";
+import { EditUserDialog } from "@/components/admin/edit-user-dialog";
 
 interface UserManagementTabProps {
     users: User[];
@@ -100,11 +100,13 @@ export function UserManagementTab({ users, loading, departments, onDepartmentAdd
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuLabel>Aksi</DropdownMenuLabel>
-                                                    <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
-                                                        <Link href={`/admin/${user.id}/edit`} className="flex items-center w-full">
-                                                          <Edit className="mr-2 h-4 w-4" />
-                                                          Ubah Pengguna
-                                                        </Link>
+                                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                                        <EditUserDialog user={user} departments={departments} onDepartmentAdded={onDepartmentAdded}>
+                                                            <div className="flex items-center w-full">
+                                                                <Edit className="mr-2 h-4 w-4" />
+                                                                Ubah Pengguna
+                                                            </div>
+                                                        </EditUserDialog>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
