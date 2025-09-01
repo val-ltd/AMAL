@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -16,7 +15,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Trash } from 'lucide-react';
-import { deleteCategoryAction } from '@/app/actions';
+import { deleteDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface DeleteCategoryAlertProps {
   categoryId: string;
@@ -29,7 +29,7 @@ export function DeleteCategoryAlert({ categoryId }: DeleteCategoryAlertProps) {
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      await deleteCategoryAction(categoryId);
+      await deleteDoc(doc(db, 'budgetCategories', categoryId));
       toast({ title: 'Kategori Dihapus', description: 'Kategori anggaran telah berhasil dihapus.' });
     } catch (error) {
       console.error('Error deleting category:', error);

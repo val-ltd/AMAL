@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { getSuggestionsAction, createRequestAction } from '@/app/actions';
+import { getSuggestionsAction } from '@/app/actions';
 import { Loader2, Sparkles, Wand2, Terminal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -16,9 +16,10 @@ import { getManagers, getUser, getBudgetCategories } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { getDoc, doc } from 'firebase/firestore';
+import { getDoc, doc, serverTimestamp, addDoc, collection, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatDepartment } from '@/lib/utils';
+import { appendRequestToSheet } from '@/lib/sheets';
 
 export function NewRequestForm() {
   const { user: authUser, loading: authLoading } = useAuth();
@@ -65,7 +66,6 @@ export function NewRequestForm() {
                   const deptDocs = await Promise.all(deptPromises);
                   const depts = deptDocs.map(d => ({id: d.id, ...d.data()}) as Department);
                   setUserDepartments(depts);
-                  // set the first department as the default selected one
                   if(depts.length > 0) {
                       setSelectedDepartmentId(depts[0].id);
                   }
@@ -90,7 +90,7 @@ export function NewRequestForm() {
       setFormError("Semua kolom harus diisi.");
       return;
     }
-     if (userDepartments.length > 1 && !selectedDepartmentId) {
+     if (userDepartments.length > 0 && !selectedDepartmentId) {
       setFormError("Silakan pilih departemen untuk permintaan ini.");
       return;
     }
@@ -105,61 +105,71 @@ export function NewRequestForm() {
 
     setIsSubmitting(true);
 
-    const supervisor = managers.find(m => m.id === supervisorId);
-    if (!supervisor) {
-        setFormError("Supervisor yang dipilih tidak valid.");
-        setIsSubmitting(false);
-        return;
-    }
-    
-    const selectedDepartment = userDepartments.find(d => d.id === selectedDepartmentId);
-    if(!selectedDepartment) {
-        setFormError("Departemen yang dipilih tidak valid.");
-        setIsSubmitting(false);
-        return;
-    }
+    try {
+      const supervisor = managers.find(m => m.id === supervisorId);
+      if (!supervisor) {
+          throw new Error("Supervisor yang dipilih tidak valid.");
+      }
+      
+      const selectedDepartment = userDepartments.find(d => d.id === selectedDepartmentId);
+      if(!selectedDepartment && userDepartments.length > 0) {
+          throw new Error("Departemen yang dipilih tidak valid.");
+      }
 
-    // 2. Prepare data object
-    const newRequestData = {
-        category,
-        amount: Number(amount),
-        description,
-        institution: selectedDepartment.lembaga,
-        division: selectedDepartment.divisi,
-        department: {
-            lembaga: selectedDepartment.lembaga,
-            divisi: selectedDepartment.divisi,
-            bagian: selectedDepartment.bagian || '',
-            unit: selectedDepartment.unit || '',
-        },
-        requester: {
-            id: authUser.uid,
-            name: profileData.name || 'Unknown User',
-            avatarUrl: profileData.avatarUrl || '',
-        },
-        supervisor: {
-            id: supervisor.id,
-            name: supervisor.name,
-        },
-    };
+      const newRequestData = {
+          category,
+          amount: Number(amount),
+          description,
+          institution: selectedDepartment?.lembaga || profileData.institution || '',
+          division: selectedDepartment?.divisi || profileData.division || '',
+          department: selectedDepartment ? {
+              lembaga: selectedDepartment.lembaga,
+              divisi: selectedDepartment.divisi,
+              bagian: selectedDepartment.bagian || '',
+              unit: selectedDepartment.unit || '',
+          } : undefined,
+          requester: {
+              id: authUser.uid,
+              name: profileData.name || 'Unknown User',
+              avatarUrl: profileData.avatarUrl || '',
+          },
+          supervisor: {
+              id: supervisor.id,
+              name: supervisor.name,
+          },
+          status: 'pending' as const,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+      };
 
-    const { request, error } = await createRequestAction(newRequestData);
+      const docRef = await addDoc(collection(db, 'requests'), newRequestData);
+      
+      const createdRequest = {
+        id: docRef.id,
+        ...newRequestData,
+        createdAt: new Date().toISOString(), 
+        updatedAt: new Date().toISOString(),
+      };
+      // We are not awaiting this. Let it run in the background.
+      appendRequestToSheet(createdRequest);
 
-    setIsSubmitting(false);
+      toast({
+          title: "Permintaan Terkirim",
+          description: "Permintaan anggaran Anda telah berhasil dibuat.",
+      });
+      router.push('/');
 
-    if (error) {
-        setFormError(error);
+    } catch (error) {
+        console.error("Error creating request:", error);
+        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tak terduga.';
+        setFormError(errorMessage);
         toast({
             variant: 'destructive',
             title: 'Gagal Membuat Permintaan',
-            description: error,
+            description: errorMessage,
         });
-    } else {
-        toast({
-            title: "Permintaan Terkirim",
-            description: "Permintaan anggaran Anda telah berhasil dibuat.",
-        });
-        router.push('/');
+    } finally {
+        setIsSubmitting(false);
     }
   };
   
@@ -182,7 +192,6 @@ export function NewRequestForm() {
   const primaryDepartment = useMemo(() => {
     if (userDepartments.length === 0) return 'N/A';
     if (userDepartments.length === 1) return formatDepartment(userDepartments[0]);
-    // If multiple departments, let them select. The info card will show a generic message.
     return `${userDepartments.length} departemen ditugaskan`;
   }, [userDepartments]);
 
@@ -337,3 +346,5 @@ export function NewRequestForm() {
     </form>
   );
 }
+
+    

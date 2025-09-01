@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -18,10 +17,9 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Department } from '@/lib/types';
 import { Edit, Loader2, PlusCircle } from 'lucide-react';
-import { collection, getDocs, query } from 'firebase/firestore';
+import { collection, getDocs, query, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Combobox } from './combobox';
-import { saveDepartmentAction } from '@/app/actions';
 
 interface SaveDepartmentDialogProps {
   department?: Department;
@@ -52,7 +50,6 @@ export function SaveDepartmentDialog({ department, onDepartmentAdded, triggerBut
       };
       fetchDepts();
       
-      // Reset form state when dialog opens for editing or creating
       setLembaga(department?.lembaga || '');
       setDivisi(department?.divisi || '');
       setBagian(department?.bagian || '');
@@ -79,15 +76,15 @@ export function SaveDepartmentDialog({ department, onDepartmentAdded, triggerBut
     }
 
     try {
-      if (isEditing) {
-        await saveDepartmentAction(data, department.id);
+      if (isEditing && department.id) {
+        await updateDoc(doc(db, 'departments', department.id), data);
         toast({ title: `Departemen Diperbarui`, description: `Departemen telah berhasil diperbarui.` });
       } else {
-        // Since we cannot get the new ID from the server action easily,
-        // we rely on revalidation to update the list.
-        // The onDepartmentAdded callback becomes less useful here.
-        await saveDepartmentAction(data);
+        const docRef = await addDoc(collection(db, 'departments'), data);
         toast({ title: `Departemen Ditambahkan`, description: `Departemen telah berhasil ditambahkan.` });
+        if(onDepartmentAdded) {
+            onDepartmentAdded({id: docRef.id, ...data});
+        }
       }
       setOpen(false);
     } catch (error) {
@@ -105,7 +102,6 @@ export function SaveDepartmentDialog({ department, onDepartmentAdded, triggerBut
 
   const Trigger = () => {
     if (triggerButton) {
-        // This is a workaround to make the DialogTrigger work inside CommandItem
         return <div onClick={() => setOpen(true)}>{triggerButton}</div>
     }
     if (isEditing) {

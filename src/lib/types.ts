@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -36,6 +35,7 @@ export interface BudgetRequest {
     name: string;
   };
   department?: Department;
+  sheetRowNumber?: number;
 }
 
 export interface Department {

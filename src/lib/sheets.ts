@@ -1,6 +1,9 @@
+'use server';
 
 import { google } from 'googleapis';
 import type { BudgetRequest } from './types';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from './firebase';
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 
@@ -54,17 +57,18 @@ const ensureHeaderRow = async (sheets: any, sheetId: string) => {
     }
 };
 
-export async function appendRequestToSheet(request: BudgetRequest) {
+export async function appendRequestToSheet(request: Omit<BudgetRequest, 'createdAt' | 'updatedAt'> & {createdAt: string, updatedAt: string}) {
   try {
     const sheets = getSheetsApi();
     const sheetId = process.env.GOOGLE_SHEET_ID;
     if (!sheetId) {
-      throw new Error('Missing GOOGLE_SHEET_ID env var');
+      console.log('Missing GOOGLE_SHEET_ID env var, skipping sheet append.');
+      return;
     }
     
     await ensureHeaderRow(sheets, sheetId);
 
-    const range = 'Sheet1!A1'; // The range to find the next empty row in.
+    const range = 'Sheet1!A1';
 
     const values = [
       [
@@ -81,7 +85,7 @@ export async function appendRequestToSheet(request: BudgetRequest) {
       ],
     ];
 
-    await sheets.spreadsheets.values.append({
+    const response = await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
       range,
       valueInputOption: 'USER_ENTERED',
@@ -90,6 +94,20 @@ export async function appendRequestToSheet(request: BudgetRequest) {
         values,
       },
     });
+
+    // Extract the range of the newly added row
+    const updatedRange = response.data.updates?.updatedRange;
+    if (updatedRange) {
+        const match = updatedRange.match(/!A(\d+):/);
+        if (match) {
+            const rowNumber = parseInt(match[1], 10);
+             // Update Firestore document with the sheet's row number
+            const requestRef = doc(db, 'requests', request.id);
+            await updateDoc(requestRef, { sheetRowNumber: rowNumber });
+        }
+    }
+
+
   } catch (error) {
     console.error('Error appending to Google Sheet:', error);
   }
@@ -100,30 +118,26 @@ export async function updateRequestInSheet(request: BudgetRequest) {
         const sheets = getSheetsApi();
         const sheetId = process.env.GOOGLE_SHEET_ID;
         if (!sheetId) {
-            throw new Error('Missing GOOGLE_SHEET_ID env var');
+          console.log('Missing GOOGLE_SHEET_ID env var, skipping sheet update.');
+          return;
         }
 
-        // Find the row with the matching request ID
-        const findResponse = await sheets.spreadsheets.values.get({
-            spreadsheetId: sheetId,
-            range: 'Sheet1!A:A', // Search in the ID column
-        });
+        const requestRef = doc(db, 'requests', request.id);
+        const requestSnap = await getDoc(requestRef);
+        const requestData = requestSnap.data();
+        const rowNumber = requestData?.sheetRowNumber;
 
-        const rowValues = findResponse.data.values;
-        if (!rowValues) {
-            console.error(`Could not find request with ID ${request.id} in the sheet.`);
+        if (!rowNumber) {
+            console.error(`Could not find sheetRowNumber for request ID ${request.id}. Appending as new row.`);
+            // The type for appendRequestToSheet is slightly different, so we need to ensure compatibility
+            await appendRequestToSheet({
+              ...request,
+              createdAt: new Date(request.createdAt).toISOString(),
+              updatedAt: new Date(request.updatedAt).toISOString()
+            });
             return;
         }
 
-        const rowIndex = rowValues.findIndex(row => row[0] === request.id);
-        if (rowIndex === -1) {
-            console.error(`Could not find request with ID ${request.id} in the sheet.`);
-            // If not found, just append it as a new row.
-            await appendRequestToSheet(request);
-            return;
-        }
-
-        const rowNumber = rowIndex + 1; // 1-based index
         const rangeToUpdate = `Sheet1!A${rowNumber}:J${rowNumber}`;
 
         const values = [
@@ -154,3 +168,5 @@ export async function updateRequestInSheet(request: BudgetRequest) {
         console.error('Error updating Google Sheet:', error);
     }
 }
+
+    

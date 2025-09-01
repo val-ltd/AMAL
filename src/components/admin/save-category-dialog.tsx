@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -18,7 +17,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { BudgetCategory } from '@/lib/types';
 import { Edit, Loader2, PlusCircle } from 'lucide-react';
-import { saveCategoryAction } from '@/app/actions';
+import { addDoc, collection, doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface SaveCategoryDialogProps {
   category?: BudgetCategory;
@@ -49,11 +49,11 @@ export function SaveCategoryDialog({ category }: SaveCategoryDialogProps) {
     }
 
     try {
-      if (isEditing) {
-        await saveCategoryAction({ name }, category.id);
+      if (isEditing && category.id) {
+        await updateDoc(doc(db, 'budgetCategories', category.id), { name });
         toast({ title: `Kategori Diperbarui`, description: `Kategori telah berhasil diperbarui.` });
       } else {
-        await saveCategoryAction({ name });
+        await addDoc(collection(db, 'budgetCategories'), { name });
         toast({ title: `Kategori Ditambahkan`, description: `Kategori telah berhasil ditambahkan.` });
       }
       setOpen(false);

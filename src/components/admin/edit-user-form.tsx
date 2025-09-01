@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -14,7 +13,8 @@ import { formatDepartment } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { SaveDepartmentDialog } from './save-department-dialog';
-import { updateUserAction } from '@/app/actions';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface EditUserFormProps {
   user: User;
@@ -63,7 +63,6 @@ export function EditUserForm({ user, departments: initialDepartments }: EditUser
         departmentIds: selectedDepartments,
     };
     
-    // Legacy support: also update institution/division on the user object
     if (selectedDepartments.length > 0) {
         const firstDept = departments.find(d => d.id === selectedDepartments[0]);
         if (firstDept) {
@@ -76,7 +75,8 @@ export function EditUserForm({ user, departments: initialDepartments }: EditUser
     }
 
     try {
-        await updateUserAction(user.id, updatedData);
+        const userRef = doc(db, 'users', user.id);
+        await updateDoc(userRef, updatedData);
         toast({ title: 'Pengguna Diperbarui', description: `Data untuk ${user.name} telah berhasil diperbarui.` });
         router.push('/admin');
         router.refresh();

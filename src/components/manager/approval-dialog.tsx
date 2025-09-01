@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { BudgetRequest } from '@/lib/types';
@@ -14,7 +13,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
-import { updateRequestAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import StatusBadge from '../status-badge';
 import { format } from 'date-fns';
@@ -23,6 +21,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Building, Loader2, ThumbsDown, ThumbsUp, UserCheck } from 'lucide-react';
 import { formatDepartment } from '@/lib/utils';
 import { Separator } from '../ui/separator';
+import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface ApprovalDialogProps {
   request: BudgetRequest;
@@ -45,13 +45,31 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
 
   const handleSubmit = async (status: 'approved' | 'rejected') => {
     setIsSubmitting(true);
-    await updateRequestAction(request.id, status, comment);
-    setIsSubmitting(false);
-    setOpen(false);
-    toast({
-      title: `Permintaan ${status === 'approved' ? 'Disetujui' : 'Ditolak'}`,
-      description: `Permintaan anggaran untuk "${request.category}" telah ${status === 'approved' ? 'disetujui' : 'ditolak'}.`,
-    });
+    try {
+        const requestRef = doc(db, 'requests', request.id);
+        await updateDoc(requestRef, {
+            status,
+            managerComment: comment,
+            updatedAt: serverTimestamp(),
+        });
+
+        toast({
+            title: `Permintaan ${status === 'approved' ? 'Disetujui' : 'Ditolak'}`,
+            description: `Permintaan anggaran untuk "${request.category}" telah ${status === 'approved' ? 'disetujui' : 'ditolak'}.`,
+        });
+        setOpen(false);
+
+    } catch (error) {
+        console.error("Error updating request:", error);
+        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tak terduga.';
+        toast({
+            variant: 'destructive',
+            title: 'Gagal Memperbarui Permintaan',
+            description: errorMessage,
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   return (
