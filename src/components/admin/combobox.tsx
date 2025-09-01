@@ -19,6 +19,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { Input } from "../ui/input"
 
 interface ComboboxProps {
     options: { value: string; label: string }[];
@@ -32,10 +33,25 @@ interface ComboboxProps {
 export function Combobox({ options, value, onChange, placeholder, className, disabled }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange(e.target.value);
+  }
+
+  // The main input element for the combobox
+  const renderInput = () => (
+    <Input
+      value={value}
+      onChange={handleInputChange}
+      placeholder={placeholder}
+      className="w-full"
+      disabled={disabled}
+    />
+  );
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
+         <Button
           variant="outline"
           role="combobox"
           aria-expanded={open}
@@ -43,20 +59,20 @@ export function Combobox({ options, value, onChange, placeholder, className, dis
           disabled={disabled}
         >
           {value
-            ? options.find((option) => option.value === value)?.label
+            ? options.find((option) => option.value === value)?.label || value
             : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-        <Command>
+        <Command filter={(value, search) => {
+          if (value.toLowerCase().includes(search.toLowerCase())) return 1
+          return 0
+        }}>
           <CommandInput 
             placeholder={placeholder}
-            onValueChange={(search) => {
-                if (!options.some(opt => opt.value === search)) {
-                    onChange(search);
-                }
-            }}
+            value={value}
+            onValueChange={onChange}
            />
           <CommandList>
             <CommandEmpty>Tidak ada hasil. Ketik untuk membuat yang baru.</CommandEmpty>
@@ -64,9 +80,10 @@ export function Combobox({ options, value, onChange, placeholder, className, dis
               {options.map((option) => (
                 <CommandItem
                   key={option.value}
-                  value={option.value}
+                  value={option.label} // Compare against label
                   onSelect={(currentValue) => {
-                    onChange(currentValue === value ? "" : currentValue)
+                    const selectedOption = options.find(opt => opt.label.toLowerCase() === currentValue.toLowerCase());
+                    onChange(selectedOption ? selectedOption.value : currentValue)
                     setOpen(false)
                   }}
                 >
