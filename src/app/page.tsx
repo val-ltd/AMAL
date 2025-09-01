@@ -26,24 +26,39 @@ export default function EmployeeDashboard() {
 
       // Cleanup subscription on component unmount
       return () => unsubscribe();
+    } else if (!authLoading && !user) {
+        setLoading(false);
     }
   }, [user, authLoading]);
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Permintaan Saya</h1>
-        <Button asChild className="hidden sm:inline-flex">
-          <Link href="/request/new">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Permintaan Baru
-          </Link>
-        </Button>
-      </div>
+      {loading ? (
+        <HeaderSkeleton />
+      ) : (
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">Permintaan Saya</h1>
+          <Button asChild className="hidden sm:inline-flex">
+            <Link href="/request/new">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Permintaan Baru
+            </Link>
+          </Button>
+        </div>
+      )}
 
       {loading ? <RequestListSkeleton /> : <RequestList requests={requests} />}
     </div>
   )
+}
+
+function HeaderSkeleton() {
+    return (
+        <div className="flex items-center justify-between">
+            <Skeleton className="h-9 w-48" />
+            <Skeleton className="h-10 w-36 hidden sm:inline-flex" />
+        </div>
+    )
 }
 
 function RequestListSkeleton() {
