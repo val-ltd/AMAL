@@ -10,19 +10,19 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Trash } from 'lucide-react';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 interface DeleteUserAlertProps {
   userId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function DeleteUserAlert({ userId }: DeleteUserAlertProps) {
+export function DeleteUserAlert({ userId, open, onOpenChange }: DeleteUserAlertProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -31,6 +31,7 @@ export function DeleteUserAlert({ userId }: DeleteUserAlertProps) {
     try {
       await deleteDoc(doc(db, 'users', userId));
       toast({ title: 'Pengguna Dihapus', description: 'Pengguna telah berhasil dihapus dari sistem.' });
+      onOpenChange(false);
     } catch (error) {
       console.error('Error deleting user:', error);
       toast({
@@ -44,13 +45,7 @@ export function DeleteUserAlert({ userId }: DeleteUserAlertProps) {
   };
 
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <button className="flex items-center w-full text-left text-red-600">
-          <Trash className="mr-2 h-4 w-4" />
-          Hapus
-        </button>
-      </AlertDialogTrigger>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Apakah Anda benar-benar yakin?</AlertDialogTitle>

@@ -13,7 +13,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatDepartment } from '@/lib/utils';
 import { SaveDepartmentDialog } from './save-department-dialog';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '../ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '../ui/dialog';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 
@@ -21,15 +21,14 @@ interface EditUserDialogProps {
   user: User;
   departments: Department[];
   onDepartmentAdded: (newDepartment: Department) => void;
-  children: React.ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function EditUserDialog({ user, departments: initialDepartments, onDepartmentAdded, children }: EditUserDialogProps) {
+export function EditUserDialog({ user, departments: initialDepartments, onDepartmentAdded, open, onOpenChange }: EditUserDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   
-  const [open, setOpen] = useState(false);
-
   const [formData, setFormData] = useState({
       name: user.name,
       email: user.email,
@@ -97,7 +96,7 @@ export function EditUserDialog({ user, departments: initialDepartments, onDepart
         const userRef = doc(db, 'users', user.id);
         await updateDoc(userRef, updatedData);
         toast({ title: 'Pengguna Diperbarui', description: `Data untuk ${user.name} telah berhasil diperbarui.` });
-        setOpen(false);
+        onOpenChange(false);
     } catch (error) {
         console.error("Error updating user: ", error);
         toast({
@@ -126,8 +125,7 @@ export function EditUserDialog({ user, departments: initialDepartments, onDepart
   }, [onDepartmentAdded]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Ubah Pengguna: {user.name}</DialogTitle>
