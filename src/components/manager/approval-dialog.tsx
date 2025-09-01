@@ -18,7 +18,7 @@ import StatusBadge from '../status-badge';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Building, Loader2, ThumbsDown, ThumbsUp, UserCheck } from 'lucide-react';
+import { Building, Eye, Loader2, ThumbsDown, ThumbsUp, UserCheck } from 'lucide-react';
 import { formatDepartment } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
@@ -27,20 +27,16 @@ import { useAuth } from '@/hooks/use-auth';
 
 interface ApprovalDialogProps {
   request: BudgetRequest;
+  isReadOnly?: boolean;
+  triggerButton?: React.ReactNode;
 }
 
-export function ApprovalDialog({ request }: ApprovalDialogProps) {
+export function ApprovalDialog({ request, isReadOnly = false, triggerButton }: ApprovalDialogProps) {
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
-
-  // The primary check: is the current user the designated supervisor for this request?
-  // This allows any user who is set as the supervisor (Manager, Admin, or Super Admin) to approve.
-  const canApprove = user?.uid === request.supervisor?.id;
-
-
+  
   const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -51,14 +47,7 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
   };
 
   const handleSubmit = async (status: 'approved' | 'rejected') => {
-    if (!canApprove) {
-      toast({
-        title: 'Aksi Tidak Diizinkan',
-        description: 'Anda bukan penyetuju yang ditunjuk untuk permintaan ini.',
-        variant: 'destructive',
-      });
-      return;
-    }
+    if (isReadOnly) return;
 
     setIsSubmitting(true);
     try {
@@ -88,16 +77,25 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
     }
   };
 
+  const Trigger = () => {
+    if (triggerButton) {
+        return <div onClick={() => setOpen(true)}>{triggerButton}</div>
+    }
+    return (
+        <DialogTrigger asChild>
+            <Button>Tinjau</Button>
+        </DialogTrigger>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>Tinjau</Button>
-      </DialogTrigger>
+      <Trigger />
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
-          <DialogTitle>Tinjau Permintaan Anggaran</DialogTitle>
+          <DialogTitle>{isReadOnly ? 'Detail' : 'Tinjau'} Permintaan Anggaran</DialogTitle>
           <DialogDescription>
-            Tinjau detail di bawah ini dan setujui atau tolak permintaan.
+            {isReadOnly ? 'Anda hanya dapat melihat detail permintaan ini.' : 'Tinjau detail di bawah ini dan setujui atau tolak permintaan.'}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -142,36 +140,44 @@ export function ApprovalDialog({ request }: ApprovalDialogProps) {
             </div>
           </div>
           
-          <div>
-            <label htmlFor="manager-comment" className="mb-2 block text-sm font-medium">
-              Komentar Anda (Opsional)
-            </label>
-            <Textarea
-              id="manager-comment"
-              placeholder="Berikan alasan untuk keputusan Anda..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              disabled={isSubmitting || !canApprove}
-            />
-          </div>
+          {!isReadOnly && (
+            <div>
+                <label htmlFor="manager-comment" className="mb-2 block text-sm font-medium">
+                Komentar Anda (Opsional)
+                </label>
+                <Textarea
+                id="manager-comment"
+                placeholder="Berikan alasan untuk keputusan Anda..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                disabled={isSubmitting}
+                />
+            </div>
+          )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
-            Batal
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => handleSubmit('rejected')}
-            disabled={isSubmitting || !canApprove}
-            className="bg-red-600 hover:bg-red-700"
-          >
-            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsDown className="mr-2 h-4 w-4" />}
-            Tolak
-          </Button>
-          <Button onClick={() => handleSubmit('approved')} disabled={isSubmitting || !canApprove} className="bg-green-600 hover:bg-green-700">
-             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsUp className="mr-2 h-4 w-4" />}
-            Setujui
-          </Button>
+          {isReadOnly ? (
+            <Button variant="outline" onClick={() => setOpen(false)}>Tutup</Button>
+          ) : (
+            <>
+                <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
+                    Batal
+                </Button>
+                <Button
+                    variant="destructive"
+                    onClick={() => handleSubmit('rejected')}
+                    disabled={isSubmitting}
+                    className="bg-red-600 hover:bg-red-700"
+                >
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsDown className="mr-2 h-4 w-4" />}
+                    Tolak
+                </Button>
+                <Button onClick={() => handleSubmit('approved')} disabled={isSubmitting} className="bg-green-600 hover:bg-green-700">
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsUp className="mr-2 h-4 w-4" />}
+                    Setujui
+                </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
