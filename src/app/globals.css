@@ -99,4 +99,7 @@
     size: A4;
     margin: 0.5in;
   }
+  .memo-container {
+      page-break-after: always;
+  }
 }
