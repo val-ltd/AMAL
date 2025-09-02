@@ -5,7 +5,7 @@ import type { FundAccount } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Edit } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SaveFundAccountDialog } from "./save-fund-account-dialog";
 import { DeleteFundAccountAlert } from "./delete-fund-account-alert";
@@ -38,7 +38,12 @@ export function FundAccountManagementTab({ fundAccounts, loading }: { fundAccoun
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onSelect={e => e.preventDefault()}><SaveFundAccountDialog account={account} /></DropdownMenuItem>
+                                            <SaveFundAccountDialog account={account}>
+                                                <DropdownMenuItem onSelect={e => e.preventDefault()}>
+                                                    <Edit className="mr-2 h-4 w-4" />
+                                                    Ubah
+                                                </DropdownMenuItem>
+                                            </SaveFundAccountDialog>
                                             <DropdownMenuItem onSelect={e => e.preventDefault()} className="text-red-500"><DeleteFundAccountAlert accountId={account.id} /></DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
@@ -104,9 +109,12 @@ export function FundAccountManagementTab({ fundAccounts, loading }: { fundAccoun
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuLabel>Aksi</DropdownMenuLabel>
-                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                                    <SaveFundAccountDialog account={account} />
-                                                </DropdownMenuItem>
+                                                 <SaveFundAccountDialog account={account}>
+                                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                                        <Edit className="mr-2 h-4 w-4" />
+                                                        Ubah
+                                                    </DropdownMenuItem>
+                                                </SaveFundAccountDialog>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
                                                     <DeleteFundAccountAlert accountId={account.id} />

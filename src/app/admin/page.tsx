@@ -103,7 +103,14 @@ export default function AdminPage() {
       case 'categories':
         return <SaveCategoryDialog />;
       case 'fundAccounts':
-        return <SaveFundAccountDialog />;
+        return (
+          <SaveFundAccountDialog>
+            <Button>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Tambah Sumber Dana
+            </Button>
+          </SaveFundAccountDialog>
+        );
       default:
         return null;
     }

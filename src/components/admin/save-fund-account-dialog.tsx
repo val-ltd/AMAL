@@ -17,13 +17,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { FundAccount } from '@/lib/types';
-import { Edit, Loader2, PlusCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { addDoc, collection, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { ScrollArea } from '../ui/scroll-area';
 
 interface SaveFundAccountDialogProps {
   account?: FundAccount;
+  children: React.ReactNode;
 }
 
 const initialFormState = {
@@ -41,7 +42,7 @@ const initialFormState = {
     petugas: '',
 };
 
-export function SaveFundAccountDialog({ account }: SaveFundAccountDialogProps) {
+export function SaveFundAccountDialog({ account, children }: SaveFundAccountDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -124,28 +125,9 @@ export function SaveFundAccountDialog({ account }: SaveFundAccountDialogProps) {
     { id: 'petugas', label: 'Petugas' },
   ];
 
-  const Trigger = () => {
-    if (isEditing) {
-      return (
-        <button className="flex items-center w-full text-left">
-          <Edit className="mr-2 h-4 w-4" />
-          Ubah Rekening
-        </button>
-      );
-    }
-    return (
-      <Button>
-        <PlusCircle className="mr-2 h-4 w-4" />
-        Tambah Sumber Dana
-      </Button>
-    );
-  };
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Trigger />
-      </DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Ubah' : 'Tambah'} Sumber Dana</DialogTitle>
