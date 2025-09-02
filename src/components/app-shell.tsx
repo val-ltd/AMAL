@@ -154,13 +154,21 @@ function BottomNav() {
     item.requiredRoles.some(role => userRoles.includes(role))
   );
   
-  const mainItems = availableNavItems;
-  const leftItems = mainItems.slice(0, 2);
-  const rightItems = mainItems.slice(2, 5);
+  const leftItems = availableNavItems.slice(0, 2);
+  const rightItems = availableNavItems.slice(2, 5);
 
 
   return (
     <div className="fixed bottom-0 z-10 w-full sm:hidden">
+      <div className="absolute inset-x-0 bottom-4 flex justify-center">
+        <Button asChild className="h-16 w-16 rounded-full shadow-lg">
+          <Link href="/request/new">
+            <PlusCircle className="h-8 w-8" />
+            <span className="sr-only">Permintaan Baru</span>
+          </Link>
+        </Button>
+      </div>
+
       {!isEmployeeOnly && (
         <div className="relative grid h-16 grid-cols-5 items-stretch border-t bg-background/95 backdrop-blur-sm">
           {leftItems.map((item) => (
@@ -194,15 +202,6 @@ function BottomNav() {
           ))}
         </div>
       )}
-      
-      <div className="absolute bottom-4 right-4 sm:bottom-auto sm:left-1/2 sm:top-0 sm:h-16 sm:w-16 sm:-translate-x-1/2 sm:-translate-y-1/2">
-          <Button asChild className="h-14 w-14 rounded-full shadow-lg sm:h-full sm:w-full">
-               <Link href="/request/new">
-                  <PlusCircle className="h-6 w-6" />
-                  <span className="sr-only">Permintaan Baru</span>
-               </Link>
-          </Button>
-      </div>
     </div>
   );
 }
