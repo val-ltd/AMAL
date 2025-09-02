@@ -17,24 +17,6 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { formatDepartment } from "@/lib/utils";
 
-// Helper to group requests by department
-const groupRequestsByDepartment = (requests: BudgetRequest[]) => {
-  return requests.reduce((acc, request) => {
-    const key = request.department 
-      ? [request.department.lembaga, request.department.divisi, request.department.bagian, request.department.unit].filter(Boolean).join(' / ')
-      : `${request.institution} / ${request.division}`;
-      
-    if (!acc[key]) {
-      acc[key] = {
-        department: request.department || { lembaga: request.institution, divisi: request.division, id: 'legacy' },
-        requests: []
-      };
-    }
-    acc[key].requests.push(request);
-    return acc;
-  }, {} as Record<string, { department: Department, requests: BudgetRequest[] }>);
-};
-
 const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -48,7 +30,7 @@ export default function ReleasePage() {
   const [allRequests, setAllRequests] = useState<BudgetRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
-  const [generatedMemos, setGeneratedMemos] = useState<Record<string, { department: Department, requests: BudgetRequest[] }> | null>(null);
+  const [requestsForMemo, setRequestsForMemo] = useState<BudgetRequest[] | null>(null);
 
   const userRoles = user?.profile?.roles;
   const isAuthorized = userRoles?.includes('Releaser') || userRoles?.includes('Admin') || userRoles?.includes('Super Admin');
@@ -70,9 +52,9 @@ export default function ReleasePage() {
     };
   }, [isAuthorized, authLoading]);
 
-  const handleGenerateMemos = () => {
+  const handleGenerateMemo = () => {
     const selectedRequests = allRequests.filter(req => selectedRequestIds.includes(req.id));
-    setGeneratedMemos(groupRequestsByDepartment(selectedRequests));
+    setRequestsForMemo(selectedRequests);
   };
   
   const handleSelectionChange = (requestId: string) => {
@@ -119,7 +101,7 @@ export default function ReleasePage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between no-print">
         <h1 className="text-3xl font-bold tracking-tight">Pencairan Dana</h1>
-        <Button onClick={handleGenerateMemos} disabled={selectedRequestIds.length === 0}>
+        <Button onClick={handleGenerateMemo} disabled={selectedRequestIds.length === 0}>
             <FileText className="mr-2 h-4 w-4" />
             Buat Memo untuk ({selectedRequestIds.length}) Permintaan Terpilih
         </Button>
@@ -133,7 +115,7 @@ export default function ReleasePage() {
                     <TableHead className="w-12">
                         <Checkbox
                             checked={selectedRequestIds.length > 0 && selectedRequestIds.length === allRequests.length}
-                            onCheckedChange={handleSelectAll}
+                            onCheckedChange={(checked) => handleSelectAll(!!checked)}
                             aria-label="Pilih semua baris"
                         />
                     </TableHead>
@@ -186,15 +168,13 @@ export default function ReleasePage() {
         </CardContent>
       </Card>
       
-      {generatedMemos && (
-         Object.keys(generatedMemos).length === 0 ? (
+      {requestsForMemo && (
+         requestsForMemo.length === 0 ? (
             <p className="text-center text-muted-foreground no-print">Pilih setidaknya satu permintaan untuk membuat memo.</p>
          ) : (
-             Object.entries(generatedMemos).map(([key, group]) => (
-                <div key={key} className="memo-container print:mb-8 last:print:mb-0">
-                    <ReleaseMemo department={group.department} requests={group.requests} />
-                </div>
-            ))
+            <div className="memo-container print:mb-8 last:print:mb-0">
+                <ReleaseMemo requests={requestsForMemo} />
+            </div>
          )
       )}
     </div>
