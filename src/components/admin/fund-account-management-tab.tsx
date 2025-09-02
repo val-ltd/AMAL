@@ -39,7 +39,7 @@ export function FundAccountManagementTab({ fundAccounts, loading }: { fundAccoun
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <SaveFundAccountDialog account={account}>
-                                                <DropdownMenuItem onSelect={e => e.preventDefault()}>
+                                                <DropdownMenuItem onSelect={e => e.preventDefault()} className="flex items-center">
                                                     <Edit className="mr-2 h-4 w-4" />
                                                     Ubah
                                                 </DropdownMenuItem>
@@ -110,7 +110,7 @@ export function FundAccountManagementTab({ fundAccounts, loading }: { fundAccoun
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuLabel>Aksi</DropdownMenuLabel>
                                                  <SaveFundAccountDialog account={account}>
-                                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex items-center">
                                                         <Edit className="mr-2 h-4 w-4" />
                                                         Ubah
                                                     </DropdownMenuItem>

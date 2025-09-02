@@ -76,6 +76,12 @@ export default function ProfilePage() {
     const handleGenderChange = (value: string) => {
       setFormData({ ...formData, gender: value as 'Male' | 'Female' });
     }
+    
+    const handleCancelEdit = () => {
+        setIsEditing(false);
+        setFormData(profileData || {});
+        setBankAccounts(profileData?.bankAccounts || []);
+    };
 
     const handleSaveProfile = async () => {
       if (!profileData) return;
@@ -94,7 +100,13 @@ export default function ProfilePage() {
     };
     
     const handleBankAccountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEditingAccount({...editingAccount, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        if (name === 'accountNumber') {
+            const numericValue = value.replace(/[^0-9]/g, '');
+            setEditingAccount({...editingAccount, [name]: numericValue });
+        } else {
+            setEditingAccount({...editingAccount, [name]: value });
+        }
     }
 
     const handleSaveBankAccount = (index: number) => {
@@ -159,7 +171,7 @@ export default function ProfilePage() {
                          <h3 className="font-semibold text-lg">Informasi Pribadi</h3>
                          {isEditing ? (
                             <div className="flex gap-2">
-                                <Button size="sm" variant="outline" onClick={() => { setIsEditing(false); setFormData(profileData); }}>
+                                <Button size="sm" variant="outline" onClick={handleCancelEdit}>
                                     <X className="h-4 w-4 mr-2" /> Batal
                                 </Button>
                                 <Button size="sm" onClick={handleSaveProfile} disabled={isSubmitting}>
@@ -208,16 +220,16 @@ export default function ProfilePage() {
                                 <TableHead>Bank</TableHead>
                                 <TableHead>No. Rekening</TableHead>
                                 <TableHead>Atas Nama</TableHead>
-                                <TableHead className="text-right">Aksi</TableHead>
+                                {isEditing && <TableHead className="text-right">Aksi</TableHead>}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {bankAccounts.map((acc, index) => (
-                                <TableRow key={acc.accountNumber}>
+                                <TableRow key={index}>
                                     {editingAccount.index === index ? (
                                         <>
                                             <TableCell><Input name="bankName" value={editingAccount.bankName || ''} onChange={handleBankAccountChange} /></TableCell>
-                                            <TableCell>{acc.accountNumber}</TableCell>
+                                            <TableCell><Input name="accountNumber" value={editingAccount.accountNumber || ''} onChange={handleBankAccountChange} /></TableCell>
                                             <TableCell><Input name="accountHolderName" value={editingAccount.accountHolderName || ''} onChange={handleBankAccountChange} /></TableCell>
                                             <TableCell className="text-right">
                                                 <Button size="icon" variant="ghost" onClick={() => handleSaveBankAccount(index)}><Save className="h-4 w-4"/></Button>
@@ -229,10 +241,12 @@ export default function ProfilePage() {
                                             <TableCell>{acc.bankName}</TableCell>
                                             <TableCell>{acc.accountNumber}</TableCell>
                                             <TableCell>{acc.accountHolderName}</TableCell>
-                                            <TableCell className="text-right">
-                                                <Button size="icon" variant="ghost" onClick={() => setEditingAccount({...acc, index})}><Edit className="h-4 w-4"/></Button>
-                                                <DeleteAccountAlert onConfirm={() => handleDeleteBankAccount(index)} />
-                                            </TableCell>
+                                            {isEditing && (
+                                                <TableCell className="text-right">
+                                                    <Button size="icon" variant="ghost" onClick={() => setEditingAccount({...acc, index})}><Edit className="h-4 w-4"/></Button>
+                                                    <DeleteAccountAlert onConfirm={() => handleDeleteBankAccount(index)} />
+                                                </TableCell>
+                                            )}
                                         </>
                                     )}
                                 </TableRow>
@@ -240,7 +254,7 @@ export default function ProfilePage() {
                             {editingAccount.index === -1 && (
                                 <TableRow>
                                     <TableCell><Input name="bankName" placeholder="Nama Bank" value={editingAccount.bankName || ''} onChange={handleBankAccountChange} /></TableCell>
-                                    <TableCell><Input name="accountNumber" placeholder="No. Rekening" value={editingAccount.accountNumber || ''} onChange={handleBankAccountChange} /></TableCell>
+                                    <TableCell><Input name="accountNumber" placeholder="Hanya angka" value={editingAccount.accountNumber || ''} onChange={handleBankAccountChange} /></TableCell>
                                     <TableCell><Input name="accountHolderName" placeholder="Nama Pemilik" value={editingAccount.accountHolderName || ''} onChange={handleBankAccountChange} /></TableCell>
                                     <TableCell className="text-right">
                                         <Button size="icon" variant="ghost" onClick={() => handleSaveBankAccount(-1)}><Save className="h-4 w-4"/></Button>
@@ -251,7 +265,7 @@ export default function ProfilePage() {
                         </TableBody>
                      </Table>
                      {isEditing && (
-                        <Button variant="outline" size="sm" onClick={() => setEditingAccount({ index: -1, bankName: '', accountHolderName: '', accountNumber: '', bankCode: '' })} disabled={editingAccount.index !== undefined}>
+                        <Button variant="outline" size="sm" onClick={() => setEditingAccount({ index: -1, bankName: '', accountHolderName: profileData.name, accountNumber: '', bankCode: '' })} disabled={editingAccount.index !== undefined}>
                             <PlusCircle className="mr-2 h-4 w-4" /> Tambah Rekening
                         </Button>
                      )}
@@ -328,7 +342,7 @@ function DeleteAccountAlert({ onConfirm }: { onConfirm: () => void }) {
 
 function ProfileSkeleton() {
     return (
-      <div className="mx-auto max-w-2xl space-y-8">
+      <div className="mx-auto max-w-4xl space-y-8">
         <Card>
             <CardHeader className="items-center text-center">
                 <Skeleton className="h-24 w-24 rounded-full mb-4" />
@@ -367,5 +381,3 @@ function ProfileSkeleton() {
       </div>
     )
 }
-
-    
