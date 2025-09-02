@@ -73,9 +73,14 @@ function Header() {
       </div>
       <div className="flex items-center gap-2 sm:gap-4">
         {showFullHeader && (
-          <div className="sm:hidden">
-             <NotificationBell />
-          </div>
+          <>
+            <div className="sm:hidden">
+              <NotificationBell />
+            </div>
+            <div className="hidden sm:flex">
+                <NotificationBell />
+            </div>
+          </>
         )}
         <UserMenu />
       </div>
@@ -121,16 +126,13 @@ function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
   const userRoles = user?.profile?.roles;
-  const unreadCount = getUnreadNotificationCount();
 
   const navItems = [
     { href: '/', label: 'Permintaan', icon: Home, requiredRoles: ['Employee'] },
     { href: '/request/new', label: 'Baru', icon: PlusCircle, requiredRoles: ['Employee'] },
     { href: '/manager', label: 'Pengajuan', icon: Shield, requiredRoles: ['Manager', 'Admin', 'Super Admin'] },
     { href: '/release', label: 'Pencairan', icon: DollarSign, requiredRoles: ['Releaser', 'Admin', 'Super Admin'] },
-    { href: '/notifications', label: 'Notifikasi', icon: Bell, requiredRoles: ['Employee'], notificationCount: unreadCount },
     { href: '/admin', label: 'Admin', icon: Users, requiredRoles: ['Admin', 'Super Admin'] },
-    { href: '/profile', label: 'Profil', icon: User, requiredRoles: ['Employee'] },
   ];
 
   const getNavOrder = (roles: AppUser['roles'] | undefined) => {
@@ -153,8 +155,6 @@ function BottomNav() {
           baseNav.splice(1, 0, adminItem);
        }
     }
-
-    baseNav.push(navItems.find(i => i.href === '/profile'));
     
     return [...new Set(baseNav.filter(Boolean))]
            .filter(item => item!.requiredRoles.some(role => roles.includes(role)));
@@ -177,11 +177,6 @@ function BottomNav() {
           >
             <item.icon className="h-5 w-5" />
             <span>{item.label}</span>
-            {item.notificationCount && item.notificationCount > 0 && (
-                <div className="absolute top-1 right-3.5 flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 border-2 border-background rounded-full">
-                    {item.notificationCount}
-                </div>
-            )}
           </Link>
         ))}
       </nav>
