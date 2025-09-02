@@ -1,3 +1,4 @@
+
 export type Role = 'Admin' | 'Manager' | 'Employee' | 'Super Admin' | 'Releaser';
 
 export interface User {
@@ -17,33 +18,43 @@ export interface User {
   isVerified?: boolean;
 }
 
+export interface RequestItem {
+  id: string; //
+  description: string;
+  qty: number;
+  unit: string;
+  price: number;
+  total: number;
+  category: string;
+}
+
 export interface BudgetRequest {
   id: string;
   requester: {
-    id: string;
+    id:string;
     name: string;
     avatarUrl: string;
   };
-  category: string;
-  description: string;
-  amount: number;
+  items: RequestItem[];
+  amount: number; // This will be the sum of all item totals
   status: 'pending' | 'approved' | 'rejected' | 'released';
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
   managerComment?: string;
-  institution: string;
+  institution: string; // Top-level institution for grouping
   division: string;
   supervisor?: {
     id: string;
     name: string;
   };
-  department?: Department;
+  department?: Department; // The specific department making the request
   sheetRowNumber?: number;
   releasedAt?: string; // ISO string
   releasedBy?: {
     id: string;
     name: string;
   };
+  additionalInfo?: string;
 }
 
 export interface Department {

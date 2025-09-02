@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { getApprovedUnreleasedRequests } from "@/lib/data";
-import type { BudgetRequest, Department } from "@/lib/types";
+import type { BudgetRequest } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DollarSign, ShieldAlert, FileText, Inbox } from "lucide-react";
@@ -15,7 +15,6 @@ import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { formatDepartment } from "@/lib/utils";
 
 const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -25,12 +24,24 @@ const formatRupiah = (amount: number) => {
     }).format(amount);
 };
 
+// Group requests by Lembaga
+const groupRequestsByLembaga = (requests: BudgetRequest[]) => {
+  return requests.reduce((acc, request) => {
+    const key = request.institution || 'Lainnya';
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(request);
+    return acc;
+  }, {} as Record<string, BudgetRequest[]>);
+};
+
 export default function ReleasePage() {
   const { user, loading: authLoading } = useAuth();
   const [allRequests, setAllRequests] = useState<BudgetRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
-  const [requestsForMemo, setRequestsForMemo] = useState<BudgetRequest[] | null>(null);
+  const [memosToGenerate, setMemosToGenerate] = useState<Record<string, BudgetRequest[]> | null>(null);
 
   const userRoles = user?.profile?.roles;
   const isAuthorized = userRoles?.includes('Releaser') || userRoles?.includes('Admin') || userRoles?.includes('Super Admin');
@@ -54,7 +65,8 @@ export default function ReleasePage() {
 
   const handleGenerateMemo = () => {
     const selectedRequests = allRequests.filter(req => selectedRequestIds.includes(req.id));
-    setRequestsForMemo(selectedRequests);
+    const groupedByLembaga = groupRequestsByLembaga(selectedRequests);
+    setMemosToGenerate(groupedByLembaga);
   };
   
   const handleSelectionChange = (requestId: string) => {
@@ -120,7 +132,7 @@ export default function ReleasePage() {
                         />
                     </TableHead>
                     <TableHead>Pemohon & Tanggal</TableHead>
-                    <TableHead>Departemen</TableHead>
+                    <TableHead>Lembaga</TableHead>
                     <TableHead>Deskripsi</TableHead>
                     <TableHead className="text-right">Jumlah</TableHead>
                 </TableRow>
@@ -153,11 +165,12 @@ export default function ReleasePage() {
                                 <div className="text-sm text-muted-foreground">{format(new Date(req.createdAt), 'dd MMM yyyy', { locale: id })}</div>
                             </TableCell>
                             <TableCell>
-                                <div className="text-sm">{req.department ? formatDepartment(req.department) : `${req.institution} / ${req.division}`}</div>
+                                <div className="text-sm font-medium">{req.institution}</div>
+                                <div className="text-sm text-muted-foreground">{req.division}</div>
                             </TableCell>
                             <TableCell>
-                                 <div className="font-medium">{req.category}</div>
-                                 <div className="text-sm text-muted-foreground line-clamp-1">{req.description}</div>
+                                 <div className="font-medium">{req.items[0]?.description || 'N/A'}</div>
+                                 <div className="text-sm text-muted-foreground line-clamp-1">{req.items.length > 1 ? `dan ${req.items.length - 1} item lainnya.` : (req.items[0]?.category || '')}</div>
                             </TableCell>
                             <TableCell className="text-right font-medium">{formatRupiah(req.amount)}</TableCell>
                         </TableRow>
@@ -168,15 +181,13 @@ export default function ReleasePage() {
         </CardContent>
       </Card>
       
-      {requestsForMemo && (
-         requestsForMemo.length === 0 ? (
-            <p className="text-center text-muted-foreground no-print">Pilih setidaknya satu permintaan untuk membuat memo.</p>
-         ) : (
-            <div className="memo-container print:mb-8 last:print:mb-0">
-                <ReleaseMemo requests={requestsForMemo} />
+      {memosToGenerate && Object.entries(memosToGenerate).map(([lembaga, requests]) => (
+         requests.length > 0 && (
+            <div key={lembaga} className="memo-container print:mb-8 last:print:mb-0">
+                <ReleaseMemo requests={requests} lembaga={lembaga} />
             </div>
          )
-      )}
+      ))}
     </div>
   );
 }

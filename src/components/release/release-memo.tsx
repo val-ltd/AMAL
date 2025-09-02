@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { BudgetRequest, Department } from "@/lib/types";
+import type { BudgetRequest } from "@/lib/types";
 import Image from "next/image";
 import { Button } from "../ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
@@ -13,10 +13,10 @@ import { useToast } from "@/hooks/use-toast";
 import { markRequestsAsReleased } from "@/lib/data";
 import { Loader2, Printer, DollarSign } from "lucide-react";
 import { Separator } from "../ui/separator";
-import { formatDepartment } from "@/lib/utils";
 
 interface ReleaseMemoProps {
     requests: BudgetRequest[];
+    lembaga: string;
 }
 
 const formatRupiah = (amount: number) => {
@@ -75,7 +75,7 @@ const numberToWords = (num: number): string => {
 };
 
 
-export function ReleaseMemo({ requests }: ReleaseMemoProps) {
+export function ReleaseMemo({ requests, lembaga }: ReleaseMemoProps) {
     const { user } = useAuth();
     const { toast } = useToast();
     const [isReleasing, setIsReleasing] = useState(false);
@@ -108,10 +108,6 @@ export function ReleaseMemo({ requests }: ReleaseMemoProps) {
     
     const approverName = requests[0]?.supervisor?.name || '........................';
     const firstRequesterName = requests[0]?.requester?.name || '........................';
-    
-    const departmentDisplay = requests.length > 0 && requests[0].department
-        ? formatDepartment(requests[0].department)
-        : "Gabungan Departemen";
 
     return (
         <div className="bg-card p-8 rounded-lg shadow-lg print-container">
@@ -133,7 +129,7 @@ export function ReleaseMemo({ requests }: ReleaseMemoProps) {
                     <span className="font-semibold">Kepada:</span> Kasir
                 </div>
                 <div>
-                     <span className="font-semibold">Unit Kerja:</span> {departmentDisplay}
+                     <span className="font-semibold">Lembaga:</span> {lembaga}
                 </div>
                  <div className="text-right">
                     <span className="font-semibold">Tanggal:</span> {format(new Date(), 'dd MMMM yyyy', { locale: id })}
@@ -155,17 +151,23 @@ export function ReleaseMemo({ requests }: ReleaseMemoProps) {
                         <TableRow>
                             <TableHead className="w-[5%]">NO.</TableHead>
                             <TableHead>URAIAN</TableHead>
-                            <TableHead className="w-[15%] text-right">JUMLAH (Rp.)</TableHead>
-                            <TableHead className="w-[25%]">DEPARTEMEN</TableHead>
+                            <TableHead>JML</TableHead>
+                            <TableHead>SATUAN</TableHead>
+                            <TableHead>HARGA/SAT.</TableHead>
+                            <TableHead>JUMLAH (Rp.)</TableHead>
+                            <TableHead>KATEGORI</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {requests.map((req, index) => (
-                            <TableRow key={req.id}>
+                        {requests.flatMap((req) => req.items).map((item, index) => (
+                            <TableRow key={index}>
                                 <TableCell>{index + 1}</TableCell>
-                                <TableCell>{req.description}</TableCell>
-                                <TableCell className="text-right">{formatRupiah(req.amount)}</TableCell>
-                                <TableCell>{req.department ? formatDepartment(req.department) : `${req.institution} / ${req.division}`}</TableCell>
+                                <TableCell>{item.description}</TableCell>
+                                <TableCell>{item.qty}</TableCell>
+                                <TableCell>{item.unit}</TableCell>
+                                <TableCell>{formatRupiah(item.price)}</TableCell>
+                                <TableCell>{formatRupiah(item.total)}</TableCell>
+                                <TableCell>{item.category}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>

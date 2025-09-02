@@ -1,3 +1,4 @@
+
 import { NewRequestForm } from '@/components/new-request-form';
 import {
   Card,
@@ -9,7 +10,7 @@ import {
 
 export default function NewRequestPage() {
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-4xl">
       <Card>
         <CardHeader>
           <CardTitle>Buat Permintaan Anggaran</CardTitle>

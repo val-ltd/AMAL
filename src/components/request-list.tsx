@@ -51,6 +51,8 @@ export default function RequestList({ requests, isManagerView = false }: Request
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {requests.map((request) => {
         const canApprove = user?.uid === request.supervisor?.id;
+        const firstItemDescription = request.items && request.items.length > 0 ? request.items[0].description : 'Tidak ada item';
+        const itemCount = request.items?.length || 0;
 
         return (
             <Card key={request.id} className="flex flex-col">
@@ -73,8 +75,10 @@ export default function RequestList({ requests, isManagerView = false }: Request
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
                 <div>
-                    <h3 className="font-semibold text-lg">{request.category}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-3 mt-1">{request.description}</p>
+                    <h3 className="font-semibold text-lg">{firstItemDescription}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-3 mt-1">
+                        {itemCount > 1 ? `dan ${itemCount - 1} item lainnya...` : (request.items?.[0]?.category || 'Permintaan anggaran')}
+                    </p>
                 </div>
                 <Separator />
                 <div>
@@ -86,17 +90,15 @@ export default function RequestList({ requests, isManagerView = false }: Request
                 <div className="text-xl font-bold">
                 {formatRupiah(request.amount)}
                 </div>
-                {isManagerView && (
-                    <ApprovalDialog 
-                        request={request}
-                        isReadOnly={!canApprove}
-                        triggerButton={
-                            <Button variant={canApprove ? 'default' : 'outline'}>
-                                {canApprove ? 'Tinjau' : <><Eye className="mr-2 h-4 w-4" />Lihat Detail</>}
-                            </Button>
-                        }
-                    />
-                )}
+                <ApprovalDialog 
+                    request={request}
+                    isReadOnly={!canApprove}
+                    triggerButton={
+                        <Button variant={isManagerView && canApprove ? 'default' : 'outline'}>
+                            {isManagerView && canApprove ? 'Tinjau' : <><Eye className="mr-2 h-4 w-4" />Lihat Detail</>}
+                        </Button>
+                    }
+                />
             </CardFooter>
             </Card>
         )

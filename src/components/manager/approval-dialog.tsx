@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { BudgetRequest } from '@/lib/types';
@@ -23,7 +24,7 @@ import { formatDepartment } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { useAuth } from '@/hooks/use-auth';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
 interface ApprovalDialogProps {
   request: BudgetRequest;
@@ -42,8 +43,7 @@ export function ApprovalDialog({ request, isReadOnly = false, triggerButton }: A
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount).replace('IDR', 'Rp');
+    }).format(amount);
   };
 
   const handleSubmit = async (status: 'approved' | 'rejected') => {
@@ -60,7 +60,7 @@ export function ApprovalDialog({ request, isReadOnly = false, triggerButton }: A
 
         toast({
             title: `Permintaan ${status === 'approved' ? 'Disetujui' : 'Ditolak'}`,
-            description: `Permintaan anggaran untuk "${request.category}" telah ${status === 'approved' ? 'disetujui' : 'ditolak'}.`,
+            description: `Permintaan anggaran telah ${status === 'approved' ? 'disetujui' : 'ditolak'}.`,
         });
         setOpen(false);
 
@@ -91,14 +91,14 @@ export function ApprovalDialog({ request, isReadOnly = false, triggerButton }: A
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Trigger />
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>{isReadOnly ? 'Detail' : 'Tinjau'} Permintaan Anggaran</DialogTitle>
           <DialogDescription>
             {isReadOnly ? 'Anda hanya dapat melihat detail permintaan ini.' : 'Tinjau detail di bawah ini dan setujui atau tolak permintaan.'}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
           <div className="flex items-center justify-between rounded-lg border bg-card p-4">
             <div className='flex items-center gap-3'>
                 <Avatar>
@@ -116,15 +116,32 @@ export function ApprovalDialog({ request, isReadOnly = false, triggerButton }: A
           </div>
 
           <div className="rounded-lg border bg-card p-4 space-y-4">
-            <div>
-              <h3 className="font-semibold">{request.category}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {request.description}
-              </p>
-              <div className="mt-4 text-2xl font-bold">
-                {formatRupiah(request.amount)}
-              </div>
-            </div>
+             <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead className="w-[40%]">Uraian</TableHead>
+                        <TableHead>Kategori</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className="text-right">Harga</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {request.items.map((item, index) => (
+                        <TableRow key={index}>
+                            <TableCell className="font-medium">{item.description}</TableCell>
+                            <TableCell>{item.category}</TableCell>
+                            <TableCell className="text-right">{item.qty} {item.unit}</TableCell>
+                            <TableCell className="text-right">{formatRupiah(item.price)}</TableCell>
+                            <TableCell className="text-right">{formatRupiah(item.total)}</TableCell>
+                        </TableRow>
+                    ))}
+                    <TableRow>
+                        <TableCell colSpan={4} className="text-right font-bold">Total Pengajuan</TableCell>
+                        <TableCell className="text-right font-bold">{formatRupiah(request.amount)}</TableCell>
+                    </TableRow>
+                </TableBody>
+             </Table>
             <Separator />
             <div className="space-y-3 text-sm">
                 <div className="flex items-start gap-3 text-muted-foreground">
@@ -153,6 +170,13 @@ export function ApprovalDialog({ request, isReadOnly = false, triggerButton }: A
                 disabled={isSubmitting}
                 />
             </div>
+          )}
+
+          {request.managerComment && (
+             <div>
+                <h4 className="text-sm font-semibold">Komentar Manajer</h4>
+                <p className="text-sm text-muted-foreground mt-1 p-3 bg-muted rounded-md">{request.managerComment}</p>
+             </div>
           )}
         </div>
         <DialogFooter>
