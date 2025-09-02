@@ -17,7 +17,7 @@ import { formatDepartment } from '@/lib/utils';
 import { Separator } from './ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
-import { Eye } from 'lucide-react';
+import { Eye, ThumbsUp } from 'lucide-react';
 
 interface RequestListProps {
   requests: BudgetRequest[];
@@ -50,7 +50,8 @@ export default function RequestList({ requests, isManagerView = false }: Request
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {requests.map((request) => {
-        const canApprove = user?.uid === request.supervisor?.id;
+        const isSupervisor = user?.uid === request.supervisor?.id;
+        const isActionable = isManagerView && isSupervisor && request.status === 'pending';
         
         const hasItems = Array.isArray(request.items) && request.items.length > 0;
         const firstItemDescription = hasItems ? request.items[0].description : (request as any).description || 'Tidak ada item';
@@ -95,10 +96,10 @@ export default function RequestList({ requests, isManagerView = false }: Request
                 </div>
                 <ApprovalDialog 
                     request={request}
-                    isReadOnly={!canApprove}
+                    isReadOnly={!isActionable}
                     triggerButton={
-                        <Button variant={isManagerView && canApprove ? 'default' : 'outline'}>
-                            {isManagerView && canApprove ? 'Tinjau' : <><Eye className="mr-2 h-4 w-4" />Lihat Detail</>}
+                        <Button variant={isActionable ? 'default' : 'outline'}>
+                            {isActionable ? <><ThumbsUp className="mr-2 h-4 w-4" />Tinjau</> : <><Eye className="mr-2 h-4 w-4" />Lihat Detail</>}
                         </Button>
                     }
                 />

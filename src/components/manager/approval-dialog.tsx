@@ -32,12 +32,15 @@ interface ApprovalDialogProps {
   triggerButton?: React.ReactNode;
 }
 
-export function ApprovalDialog({ request, isReadOnly = false, triggerButton }: ApprovalDialogProps) {
+export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false, triggerButton }: ApprovalDialogProps) {
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   
+  // A request is always read-only if its status is 'released' or if the initial prop says so.
+  const isReadOnly = initialIsReadOnly || request.status === 'released';
+
   const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
