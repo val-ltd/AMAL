@@ -74,32 +74,35 @@ export default function NotificationsPage() {
     return (
       <div className="space-y-4">
         {notifications.map((notif) => (
-          <Link href={`/request/${notif.requestId}?from=notifications`} key={notif.id} legacyBehavior>
-            <a onClick={() => handleNotificationClick(notif)} className="block">
-              <div
-                className={cn(
-                  'flex items-start gap-4 rounded-lg p-3 transition-colors hover:bg-muted/50',
-                  !notif.isRead && 'bg-blue-50 dark:bg-blue-900/20'
-                )}
-              >
-                <div className="flex-shrink-0 mt-1">
-                  {ICONS[notif.type] || <Bell className="h-5 w-5 text-muted-foreground" />}
-                </div>
-                <div className="flex-1">
-                  <p className="font-semibold">{notif.title}</p>
-                  <p className="text-sm text-muted-foreground">{notif.message}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true, locale: id })}
-                  </p>
-                </div>
-                {!notif.isRead && (
-                  <div
-                    className="h-2 w-2 rounded-full bg-primary mt-1.5 flex-shrink-0"
-                    aria-label="Unread"
-                  ></div>
-                )}
+          <Link 
+            href={`/request/${notif.requestId}?from=notifications`} 
+            key={notif.id}
+            onClick={() => handleNotificationClick(notif)} 
+            className="block"
+          >
+            <div
+              className={cn(
+                'flex items-start gap-4 rounded-lg p-3 transition-colors hover:bg-muted/50',
+                !notif.isRead && 'bg-blue-50 dark:bg-blue-900/20'
+              )}
+            >
+              <div className="flex-shrink-0 mt-1">
+                {ICONS[notif.type] || <Bell className="h-5 w-5 text-muted-foreground" />}
               </div>
-            </a>
+              <div className="flex-1">
+                <p className="font-semibold">{notif.title}</p>
+                <p className="text-sm text-muted-foreground">{notif.message}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true, locale: id })}
+                </p>
+              </div>
+              {!notif.isRead && (
+                <div
+                  className="h-2 w-2 rounded-full bg-primary mt-1.5 flex-shrink-0"
+                  aria-label="Unread"
+                ></div>
+              )}
+            </div>
           </Link>
         ))}
       </div>
