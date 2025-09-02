@@ -1,7 +1,8 @@
+
 'use client';
 
 import Link from 'next/link';
-import { Home, Shield, PlusCircle, User, LogOut, ChevronDown, Wallet, Users, ShieldCheck } from 'lucide-react';
+import { Home, Shield, PlusCircle, User, LogOut, ChevronDown, Wallet, Users, ShieldCheck, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from './logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -83,6 +84,7 @@ function DesktopNav({ userRoles }: { userRoles: AppUser['roles'] | undefined }) 
   const navItems = [
     { href: '/', label: 'Permintaan Saya', icon: Home, requiredRoles: ['Employee'] },
     { href: '/manager', label: 'Tampilan Manajer', icon: Shield, requiredRoles: ['Manager', 'Admin', 'Super Admin'] },
+    { href: '/release', label: 'Pencairan Dana', icon: DollarSign, requiredRoles: ['Releaser', 'Admin', 'Super Admin'] },
     { href: '/admin', label: 'Manajemen Admin', icon: Users, requiredRoles: ['Admin', 'Super Admin'] },
   ];
 
@@ -119,6 +121,7 @@ function BottomNav() {
     { href: '/', label: 'Permintaan', icon: Home, requiredRoles: ['Employee'] },
     { href: '/request/new', label: 'Baru', icon: PlusCircle, requiredRoles: ['Employee'] },
     { href: '/manager', label: 'Manajer', icon: Shield, requiredRoles: ['Manager', 'Admin', 'Super Admin'] },
+    { href: '/release', label: 'Pencairan', icon: DollarSign, requiredRoles: ['Releaser', 'Admin', 'Super Admin'] },
     { href: '/admin', label: 'Admin', icon: Users, requiredRoles: ['Admin', 'Super Admin'] },
     { href: '/profile', label: 'Profil', icon: User, requiredRoles: ['Employee'] },
   ];

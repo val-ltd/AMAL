@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Trash, Building, Layers, Briefcase, Dot, ShieldCheck, ShieldAlert } from "lucide-react";
+import { MoreHorizontal, Edit, Trash, Building, Layers, Briefcase, Dot, ShieldCheck, ShieldAlert, DollarSign } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { DeleteUserAlert } from "@/components/admin/delete-user-alert";
@@ -34,6 +34,7 @@ const getRolesArray = (roles: any): Role[] => {
 const getHighestRole = (roles: Role[]): Role => {
     if (roles.includes('Super Admin')) return 'Super Admin';
     if (roles.includes('Admin')) return 'Admin';
+    if (roles.includes('Releaser')) return 'Releaser';
     if (roles.includes('Manager')) return 'Manager';
     return 'Employee';
 }
@@ -73,6 +74,16 @@ function UserRow({ user, departments }: { user: User, departments: Department[]}
         }
     };
 
+    const getRoleBadgeVariant = (role: Role) => {
+        switch(role) {
+            case 'Super Admin': return 'destructive';
+            case 'Admin': return 'destructive';
+            case 'Releaser': return 'default';
+            case 'Manager': return 'secondary';
+            default: return 'outline';
+        }
+    }
+
     return (
         <>
             {userDepartmentRows.map((department, index) => (
@@ -105,7 +116,7 @@ function UserRow({ user, departments }: { user: User, departments: Department[]}
                     <TableCell>{department?.unit || '-'}</TableCell>
                     {index === 0 && (
                         <TableCell rowSpan={rowSpan} className="align-top">
-                           <Badge variant={highestRole === 'Admin' || highestRole === 'Super Admin' ? 'destructive' : highestRole === 'Manager' ? 'secondary' : 'outline'}>
+                           <Badge variant={getRoleBadgeVariant(highestRole)}>
                                 {highestRole}
                             </Badge>
                         </TableCell>
@@ -198,6 +209,16 @@ function UserCard({ user, departments }: { user: User, departments: Department[]
         }
     };
 
+    const getRoleBadgeVariant = (role: Role) => {
+        switch(role) {
+            case 'Super Admin': return 'destructive';
+            case 'Admin': return 'destructive';
+            case 'Releaser': return 'default';
+            case 'Manager': return 'secondary';
+            default: return 'outline';
+        }
+    }
+
 
     return (
         <Card className={!user.isVerified ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' : ''}>
@@ -250,7 +271,7 @@ function UserCard({ user, departments }: { user: User, departments: Department[]
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex flex-wrap gap-2 items-center">
-                    <Badge variant={highestRole === 'Admin' || highestRole === 'Super Admin' ? 'destructive' : highestRole === 'Manager' ? 'secondary' : 'outline'}>
+                    <Badge variant={getRoleBadgeVariant(highestRole)}>
                         {highestRole}
                     </Badge>
                     {user.isVerified ? (

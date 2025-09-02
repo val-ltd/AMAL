@@ -14,6 +14,7 @@ import {
   orderBy,
   getDocs,
   deleteDoc,
+  writeBatch,
 } from 'firebase/firestore';
 import type { BudgetRequest, User, Department, BudgetCategory } from './types';
 import { auth, db } from './firebase';
@@ -91,6 +92,42 @@ export function getPendingRequests(
   return unsubscribe;
 }
 
+export function getApprovedUnreleasedRequests(
+  callback: (requests: BudgetRequest[]) => void
+): Unsubscribe {
+   const currentUser = auth.currentUser;
+   if (!currentUser) {
+     return () => {};
+   }
+   
+   const q = query(
+    collection(db, 'requests'), 
+    where('status', '==', 'approved'),
+    orderBy('createdAt', 'asc')
+  );
+
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const requests: BudgetRequest[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      requests.push({
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate().toISOString() ?? new Date().toISOString(),
+        updatedAt: data.updatedAt?.toDate().toISOString() ?? new Date().toISOString(),
+        releasedAt: data.releasedAt?.toDate().toISOString(),
+      } as BudgetRequest);
+    });
+    callback(requests);
+  }, (error) => {
+      console.error("Error fetching approved unreleased requests:", error);
+      callback([]);
+  });
+
+  return unsubscribe;
+}
+
+
 export async function createRequest(
   data: Omit<BudgetRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>,
 ): Promise<BudgetRequest> {
@@ -139,6 +176,23 @@ export async function updateRequest(
     }
     return undefined;
 }
+
+export async function markRequestsAsReleased(requestIds: string[], releasedBy: {id: string, name: string}): Promise<void> {
+    const batch = writeBatch(db);
+    
+    requestIds.forEach(id => {
+        const requestRef = doc(db, 'requests', id);
+        batch.update(requestRef, {
+            status: 'released',
+            releasedAt: serverTimestamp(),
+            releasedBy: releasedBy,
+            updatedAt: serverTimestamp()
+        });
+    });
+
+    await batch.commit();
+}
+
 
 export async function getRequest(id: string): Promise<BudgetRequest | null> {
     if (!id) return null;

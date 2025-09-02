@@ -16,12 +16,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 
-type Role = 'Admin' | 'Manager' | 'Employee' | 'Super Admin';
-const ALL_ROLES: Role[] = ['Employee', 'Manager', 'Admin', 'Super Admin'];
+type Role = 'Admin' | 'Manager' | 'Employee' | 'Super Admin' | 'Releaser';
+const ALL_ROLES: Role[] = ['Employee', 'Manager', 'Admin', 'Super Admin', 'Releaser'];
 const ROLE_HIERARCHY: Record<Role, Role[]> = {
-    'Super Admin': ['Super Admin', 'Admin', 'Manager', 'Employee'],
-    'Admin': ['Admin', 'Manager', 'Employee'],
+    'Super Admin': ['Super Admin', 'Admin', 'Manager', 'Releaser', 'Employee'],
+    'Admin': ['Admin', 'Manager', 'Releaser', 'Employee'],
     'Manager': ['Manager', 'Employee'],
+    'Releaser': ['Releaser', 'Employee'],
     'Employee': ['Employee'],
 };
 

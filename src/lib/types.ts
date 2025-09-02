@@ -1,4 +1,4 @@
-export type Role = 'Admin' | 'Manager' | 'Employee' | 'Super Admin';
+export type Role = 'Admin' | 'Manager' | 'Employee' | 'Super Admin' | 'Releaser';
 
 export interface User {
   id: string;
@@ -27,7 +27,7 @@ export interface BudgetRequest {
   category: string;
   description: string;
   amount: number;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'released';
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
   managerComment?: string;
@@ -39,6 +39,11 @@ export interface BudgetRequest {
   };
   department?: Department;
   sheetRowNumber?: number;
+  releasedAt?: string; // ISO string
+  releasedBy?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface Department {

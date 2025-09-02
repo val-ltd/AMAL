@@ -83,3 +83,20 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  body {
+    background: white;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-container {
+    box-shadow: none;
+    border: none;
+  }
+  @page {
+    size: A4;
+    margin: 0.5in;
+  }
+}
