@@ -1,22 +1,22 @@
 
 'use client'
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { getApprovedUnreleasedRequests, getFundAccounts, getFundAccount } from "@/lib/data";
 import type { BudgetRequest, FundAccount } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { DollarSign, ShieldAlert, FileText, Inbox, Printer } from "lucide-react";
+import { Inbox, ShieldAlert, Printer, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { ReleaseMemo } from "@/components/release/release-memo";
 
 const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -26,14 +26,27 @@ const formatRupiah = (amount: number) => {
     }).format(amount);
 };
 
+const groupRequestsByLembaga = (requests: BudgetRequest[]) => {
+  return requests.reduce((acc, request) => {
+    const key = request.institution || 'Lainnya';
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(request);
+    return acc;
+  }, {} as Record<string, BudgetRequest[]>);
+};
+
+
 export default function ReleasePage() {
   const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
   const [allRequests, setAllRequests] = useState<BudgetRequest[]>([]);
   const [fundAccounts, setFundAccounts] = useState<FundAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
   const [selectedFundAccountId, setSelectedFundAccountId] = useState<string>('');
+  
+  const [showPreview, setShowPreview] = useState(false);
   
   const userRoles = user?.profile?.roles;
   const isAuthorized = userRoles?.includes('Releaser') || userRoles?.includes('Admin') || userRoles?.includes('Super Admin');
@@ -63,7 +76,7 @@ export default function ReleasePage() {
     };
   }, [isAuthorized, authLoading]);
 
-  const handlePreviewMemo = async () => {
+  const handleOpenPrintPage = () => {
     if (selectedRequestIds.length > 0 && selectedFundAccountId) {
       const queryParams = new URLSearchParams({
         fundAccountId: selectedFundAccountId,
@@ -113,6 +126,34 @@ export default function ReleasePage() {
         </Alert>
     )
   }
+  
+  if (showPreview) {
+    const selectedRequests = allRequests.filter(req => selectedRequestIds.includes(req.id));
+    const selectedFundAccount = fundAccounts.find(acc => acc.id === selectedFundAccountId);
+    const groupedRequests = groupRequestsByLembaga(selectedRequests);
+
+    return (
+      <div className="bg-gray-100 dark:bg-gray-800 p-2 sm:p-8">
+            <div className="flex justify-between gap-2 mb-4">
+                <Button variant="outline" onClick={() => setShowPreview(false)}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Kembali ke Daftar
+                </Button>
+                <Button onClick={handleOpenPrintPage}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    Lanjutkan ke Halaman Cetak ({Object.keys(groupedRequests).length} Memo)
+                </Button>
+            </div>
+            {selectedFundAccount && Object.entries(groupedRequests).map(([lembaga, reqs], index) => (
+                reqs.length > 0 && (
+                    <div key={lembaga} className={`memo-wrapper bg-white my-8 ${index > 0 ? 'page-break-before' : ''}`}>
+                        <ReleaseMemo requests={reqs} lembaga={lembaga} fundAccount={selectedFundAccount} isPreview />
+                    </div>
+                )
+            ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -134,7 +175,7 @@ export default function ReleasePage() {
                     </SelectContent>
                 </Select>
             </div>
-            <Button onClick={handlePreviewMemo} disabled={selectedRequestIds.length === 0 || !selectedFundAccountId}>
+            <Button onClick={() => setShowPreview(true)} disabled={selectedRequestIds.length === 0 || !selectedFundAccountId}>
                 <Printer className="mr-2 h-4 w-4" />
                 Lihat Pratinjau Cetak ({selectedRequestIds.length})
             </Button>
@@ -212,3 +253,5 @@ export default function ReleasePage() {
     </div>
   );
 }
+
+    

@@ -8,7 +8,7 @@ import { BudgetRequest, FundAccount } from "@/lib/types";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, Loader2 } from "lucide-react";
+import { Printer } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const groupRequestsByLembaga = (requests: BudgetRequest[]) => {
@@ -29,7 +29,8 @@ function PrintPageContent() {
     const [loading, setLoading] = useState(true);
 
     const fundAccountId = searchParams.get('fundAccountId');
-    const requestIds = searchParams.get('requestIds')?.split(',') || [];
+    const requestIdsParam = searchParams.get('requestIds');
+    const requestIds = requestIdsParam ? requestIdsParam.split(',') : [];
 
     useEffect(() => {
         const fetchData = async () => {
@@ -52,7 +53,7 @@ function PrintPageContent() {
         };
 
         fetchData();
-    }, [fundAccountId, requestIds.join(',')]); // Effect depends on the joined string of IDs
+    }, [fundAccountId, requestIdsParam]); // Effect depends on the joined string of IDs
 
     if (loading) {
         return <PrintPageSkeleton />;
@@ -66,17 +67,17 @@ function PrintPageContent() {
     const memoCount = Object.keys(groupedRequests).length;
 
     return (
-        <div className="bg-gray-100 dark:bg-gray-800 p-2 sm:p-8 print-container">
-            <div className="flex justify-end gap-2 mb-4 no-print">
+        <div className="bg-gray-100 dark:bg-gray-800 print-container">
+            <div className="flex justify-end gap-2 p-4 no-print fixed top-2 right-2">
                 <Button onClick={() => window.print()}>
                     <Printer className="mr-2 h-4 w-4" />
                     Cetak Halaman Ini ({memoCount} Memo)
                 </Button>
             </div>
-            <div className="space-y-8">
+            <div className="space-y-8 print:space-y-0">
                 {Object.entries(groupedRequests).map(([lembaga, reqs], index) => (
                     reqs.length > 0 && (
-                        <div key={lembaga} className={`memo-wrapper ${index > 0 ? 'page-break-before' : ''}`}>
+                        <div key={lembaga} className="memo-wrapper">
                             <ReleaseMemo requests={reqs} lembaga={lembaga} fundAccount={fundAccount} />
                         </div>
                     )
@@ -116,3 +117,5 @@ function PrintPageSkeleton() {
         </div>
     );
 }
+
+    

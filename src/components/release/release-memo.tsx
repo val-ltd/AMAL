@@ -11,13 +11,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { useState }from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { markRequestsAsReleased } from "@/lib/data";
-import { Loader2, Printer, DollarSign } from "lucide-react";
+import { Loader2, DollarSign } from "lucide-react";
 import { Separator } from "../ui/separator";
 
 interface ReleaseMemoProps {
     requests: BudgetRequest[];
     lembaga: string;
     fundAccount: FundAccount;
+    isPreview?: boolean; // Added to distinguish between preview and final print
 }
 
 const formatRupiah = (amount: number) => {
@@ -88,7 +89,7 @@ function MemoHeader() {
     );
 }
 
-export function ReleaseMemo({ requests, lembaga, fundAccount }: ReleaseMemoProps) {
+export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false }: ReleaseMemoProps) {
     const { user } = useAuth();
     const { toast } = useToast();
     const [isReleasing, setIsReleasing] = useState(false);
@@ -111,7 +112,14 @@ export function ReleaseMemo({ requests, lembaga, fundAccount }: ReleaseMemoProps
                 title: 'Dana Dicairkan',
                 description: `${requests.length} permintaan telah ditandai sebagai dicairkan.`,
             });
-            window.close(); // Close the print preview tab
+            // Try to close the tab, will only work if script opened it
+            window.close();
+            // Fallback for when window.close() fails silently (e.g. user opened link manually)
+            // Navigate to a "safe" page if it's still open.
+            setTimeout(() => {
+                window.location.href = '/release?status=released';
+            }, 500);
+
         } catch (error) {
             console.error("Failed to release funds:", error);
             toast({ title: 'Gagal Mencairkan Dana', description: 'Terjadi kesalahan.', variant: 'destructive' });
@@ -242,12 +250,14 @@ export function ReleaseMemo({ requests, lembaga, fundAccount }: ReleaseMemoProps
             </div>
 
 
-            <div className="mt-8 flex justify-end gap-2 no-print">
-                <Button onClick={handleRelease} disabled={isReleasing}>
-                    {isReleasing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
-                    Tandai Sudah Dicairkan & Tutup
-                </Button>
-            </div>
+            {!isPreview && (
+              <div className="mt-8 flex justify-end gap-2 no-print">
+                  <Button onClick={handleRelease} disabled={isReleasing}>
+                      {isReleasing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
+                      Tandai Sudah Dicairkan & Tutup
+                  </Button>
+              </div>
+            )}
 
             <footer className="printable-footer pt-8 text-xs text-gray-500 flex justify-between">
                 <span>Nomor: M.XX / PT&PM-XXXX / VIII / 25</span>
@@ -256,3 +266,5 @@ export function ReleaseMemo({ requests, lembaga, fundAccount }: ReleaseMemoProps
         </div>
     )
 }
+
+    
