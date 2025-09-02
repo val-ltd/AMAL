@@ -21,6 +21,7 @@ import { formatDepartment } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Label } from './ui/label';
+import { appendRequestToSheet } from '@/lib/sheets';
 
 const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -412,5 +413,3 @@ export function NewRequestForm() {
     </form>
   );
 }
-
-    
