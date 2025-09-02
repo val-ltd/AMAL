@@ -51,8 +51,11 @@ export default function RequestList({ requests, isManagerView = false }: Request
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {requests.map((request) => {
         const canApprove = user?.uid === request.supervisor?.id;
-        const firstItemDescription = request.items && request.items.length > 0 ? request.items[0].description : 'Tidak ada item';
-        const itemCount = request.items?.length || 0;
+        
+        const hasItems = Array.isArray(request.items) && request.items.length > 0;
+        const firstItemDescription = hasItems ? request.items[0].description : (request as any).description || 'Tidak ada item';
+        const itemCount = hasItems ? request.items.length : 0;
+        const category = hasItems ? request.items[0].category : (request as any).category;
 
         return (
             <Card key={request.id} className="flex flex-col">
@@ -77,7 +80,7 @@ export default function RequestList({ requests, isManagerView = false }: Request
                 <div>
                     <h3 className="font-semibold text-lg">{firstItemDescription}</h3>
                     <p className="text-sm text-muted-foreground line-clamp-3 mt-1">
-                        {itemCount > 1 ? `dan ${itemCount - 1} item lainnya...` : (request.items?.[0]?.category || 'Permintaan anggaran')}
+                        {itemCount > 1 ? `dan ${itemCount - 1} item lainnya...` : (category || 'Permintaan anggaran')}
                     </p>
                 </div>
                 <Separator />

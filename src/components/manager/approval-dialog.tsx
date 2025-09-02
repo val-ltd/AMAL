@@ -88,6 +88,9 @@ export function ApprovalDialog({ request, isReadOnly = false, triggerButton }: A
     );
   }
 
+  const items = Array.isArray(request.items) && request.items.length > 0 ? request.items : [];
+  const legacyDescription = (request as any).description; // For old data
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Trigger />
@@ -116,32 +119,43 @@ export function ApprovalDialog({ request, isReadOnly = false, triggerButton }: A
           </div>
 
           <div className="rounded-lg border bg-card p-4 space-y-4">
-             <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-[40%]">Uraian</TableHead>
-                        <TableHead>Kategori</TableHead>
-                        <TableHead className="text-right">Qty</TableHead>
-                        <TableHead className="text-right">Harga</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {request.items.map((item, index) => (
-                        <TableRow key={index}>
-                            <TableCell className="font-medium">{item.description}</TableCell>
-                            <TableCell>{item.category}</TableCell>
-                            <TableCell className="text-right">{item.qty} {item.unit}</TableCell>
-                            <TableCell className="text-right">{formatRupiah(item.price)}</TableCell>
-                            <TableCell className="text-right">{formatRupiah(item.total)}</TableCell>
+             {items.length > 0 ? (
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[40%]">Uraian</TableHead>
+                            <TableHead>Kategori</TableHead>
+                            <TableHead className="text-right">Qty</TableHead>
+                            <TableHead className="text-right">Harga</TableHead>
+                            <TableHead className="text-right">Total</TableHead>
                         </TableRow>
-                    ))}
-                    <TableRow>
-                        <TableCell colSpan={4} className="text-right font-bold">Total Pengajuan</TableCell>
-                        <TableCell className="text-right font-bold">{formatRupiah(request.amount)}</TableCell>
-                    </TableRow>
-                </TableBody>
-             </Table>
+                    </TableHeader>
+                    <TableBody>
+                        {items.map((item, index) => (
+                            <TableRow key={index}>
+                                <TableCell className="font-medium">{item.description}</TableCell>
+                                <TableCell>{item.category}</TableCell>
+                                <TableCell className="text-right">{item.qty} {item.unit}</TableCell>
+                                <TableCell className="text-right">{formatRupiah(item.price)}</TableCell>
+                                <TableCell className="text-right">{formatRupiah(item.total)}</TableCell>
+                            </TableRow>
+                        ))}
+                        <TableRow>
+                            <TableCell colSpan={4} className="text-right font-bold">Total Pengajuan</TableCell>
+                            <TableCell className="text-right font-bold">{formatRupiah(request.amount)}</TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+             ) : (
+                <div className="space-y-2">
+                    <p className="font-medium">Deskripsi (Data Lama)</p>
+                    <p className="text-sm text-muted-foreground">{legacyDescription || 'Tidak ada deskripsi.'}</p>
+                    <Separator />
+                    <div className="flex justify-end font-bold">
+                        <span>Total: {formatRupiah(request.amount)}</span>
+                    </div>
+                </div>
+             )}
             <Separator />
             <div className="space-y-3 text-sm">
                 <div className="flex items-start gap-3 text-muted-foreground">

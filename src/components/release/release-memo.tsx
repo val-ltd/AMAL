@@ -108,6 +108,19 @@ export function ReleaseMemo({ requests, lembaga }: ReleaseMemoProps) {
     
     const approverName = requests[0]?.supervisor?.name || '........................';
     const firstRequesterName = requests[0]?.requester?.name || '........................';
+    
+    const allItems = requests.flatMap(req => 
+        (Array.isArray(req.items) && req.items.length > 0) 
+        ? req.items 
+        : [{ 
+            description: (req as any).description, 
+            qty: 1, 
+            unit: 'item', 
+            price: req.amount, 
+            total: req.amount,
+            category: (req as any).category
+          }]
+    );
 
     return (
         <div className="bg-card p-8 rounded-lg shadow-lg print-container">
@@ -159,7 +172,7 @@ export function ReleaseMemo({ requests, lembaga }: ReleaseMemoProps) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {requests.flatMap((req) => req.items).map((item, index) => (
+                        {allItems.map((item, index) => (
                             <TableRow key={index}>
                                 <TableCell>{index + 1}</TableCell>
                                 <TableCell>{item.description}</TableCell>

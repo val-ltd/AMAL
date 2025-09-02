@@ -151,7 +151,13 @@ export default function ReleasePage() {
                         </TableCell>
                     </TableRow>
                 ) : (
-                    allRequests.map(req => (
+                    allRequests.map(req => {
+                      const hasItems = Array.isArray(req.items) && req.items.length > 0;
+                      const description = hasItems ? req.items[0].description : (req as any).description;
+                      const category = hasItems ? req.items[0].category : (req as any).category;
+                      const itemCount = hasItems ? req.items.length : 0;
+                      
+                      return (
                         <TableRow key={req.id} data-state={selectedRequestIds.includes(req.id) ? "selected" : ""}>
                             <TableCell>
                                 <Checkbox
@@ -169,12 +175,13 @@ export default function ReleasePage() {
                                 <div className="text-sm text-muted-foreground">{req.division}</div>
                             </TableCell>
                             <TableCell>
-                                 <div className="font-medium">{req.items[0]?.description || 'N/A'}</div>
-                                 <div className="text-sm text-muted-foreground line-clamp-1">{req.items.length > 1 ? `dan ${req.items.length - 1} item lainnya.` : (req.items[0]?.category || '')}</div>
+                                 <div className="font-medium">{description || 'N/A'}</div>
+                                 <div className="text-sm text-muted-foreground line-clamp-1">{itemCount > 1 ? `dan ${itemCount - 1} item lainnya.` : (category || '')}</div>
                             </TableCell>
                             <TableCell className="text-right font-medium">{formatRupiah(req.amount)}</TableCell>
                         </TableRow>
-                    ))
+                      )
+                    })
                 )}
             </TableBody>
           </Table>
