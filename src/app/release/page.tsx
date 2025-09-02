@@ -17,7 +17,6 @@ import { id } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ReleaseMemo } from "@/components/release/release-memo";
 
 const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -27,29 +26,15 @@ const formatRupiah = (amount: number) => {
     }).format(amount);
 };
 
-const groupRequestsByLembaga = (requests: BudgetRequest[]) => {
-  return requests.reduce((acc, request) => {
-    const key = request.institution || 'Lainnya';
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(request);
-    return acc;
-  }, {} as Record<string, BudgetRequest[]>);
-};
-
 export default function ReleasePage() {
   const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [allRequests, setAllRequests] = useState<BudgetRequest[]>([]);
   const [fundAccounts, setFundAccounts] = useState<FundAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
   const [selectedFundAccountId, setSelectedFundAccountId] = useState<string>('');
   
-  const [showPreview, setShowPreview] = useState(false);
-  const [selectedRequests, setSelectedRequests] = useState<BudgetRequest[]>([]);
-  const [selectedFundAccount, setSelectedFundAccount] = useState<FundAccount | null>(null);
-
   const userRoles = user?.profile?.roles;
   const isAuthorized = userRoles?.includes('Releaser') || userRoles?.includes('Admin') || userRoles?.includes('Super Admin');
 
@@ -80,18 +65,13 @@ export default function ReleasePage() {
 
   const handlePreviewMemo = async () => {
     if (selectedRequestIds.length > 0 && selectedFundAccountId) {
-      const requests = allRequests.filter(req => selectedRequestIds.includes(req.id));
-      const account = await getFundAccount(selectedFundAccountId);
-      setSelectedRequests(requests);
-      setSelectedFundAccount(account);
-      setShowPreview(true);
+      const queryParams = new URLSearchParams({
+        fundAccountId: selectedFundAccountId,
+        requestIds: selectedRequestIds.join(','),
+      }).toString();
+      
+      window.open(`/release/print?${queryParams}`, '_blank');
     }
-  };
-
-  const handleBackToList = () => {
-    setShowPreview(false);
-    setSelectedRequests([]);
-    setSelectedFundAccount(null);
   };
   
   const handleSelectionChange = (requestId: string) => {
@@ -134,36 +114,9 @@ export default function ReleasePage() {
     )
   }
 
-  if (showPreview) {
-    const groupedRequests = groupRequestsByLembaga(selectedRequests);
-    const memoCount = Object.keys(groupedRequests).length;
-
-    return (
-      <div className="bg-gray-200 -m-4 sm:-m-6 p-4 sm:p-8 print-container">
-        <div className="flex justify-end gap-2 mb-4 no-print">
-            <Button variant="outline" onClick={handleBackToList}>Kembali ke Daftar</Button>
-            <Button onClick={() => window.print()}>
-                <Printer className="mr-2 h-4 w-4" />
-                Cetak Halaman Ini ({memoCount} Memo)
-            </Button>
-        </div>
-        <div className="space-y-8">
-          {selectedFundAccount && Object.entries(groupedRequests).map(([lembaga, requests]) => (
-            requests.length > 0 && (
-                <div key={lembaga} className="bg-white shadow-lg page-break">
-                  <ReleaseMemo requests={requests} lembaga={lembaga} fundAccount={selectedFundAccount} />
-                </div>
-            )
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-
   return (
     <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 no-print">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Pencairan Dana</h1>
         <div className="flex items-end gap-4 w-full sm:w-auto">
             <div className="grid w-full max-w-sm items-center gap-1.5">
@@ -188,7 +141,7 @@ export default function ReleasePage() {
         </div>
       </div>
 
-      <Card className="no-print">
+      <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -259,5 +212,3 @@ export default function ReleasePage() {
     </div>
   );
 }
-
-    

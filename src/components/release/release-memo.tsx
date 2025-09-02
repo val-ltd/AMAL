@@ -75,6 +75,18 @@ const numberToWords = (num: number): string => {
     return words.trim();
 };
 
+function MemoHeader() {
+    return (
+        <div className="flex items-center justify-between pb-4 border-b-4 border-black px-4">
+            <Image src="/logo-wm.png" alt="Wadi Mubarak Logo" width={80} height={80} />
+            <div className="text-center">
+                <h1 className="text-xl font-bold">MEMO PERMOHONAN PENCAIRAN DANA</h1>
+                <h2 className="text-lg font-semibold">ANGGARAN BULANAN</h2>
+            </div>
+            <Image src="/amal-logo.png" alt="Amal Logo" width={120} height={48} />
+        </div>
+    );
+}
 
 export function ReleaseMemo({ requests, lembaga, fundAccount }: ReleaseMemoProps) {
     const { user } = useAuth();
@@ -125,17 +137,10 @@ export function ReleaseMemo({ requests, lembaga, fundAccount }: ReleaseMemoProps
     );
 
     return (
-        <div className="bg-white p-4 print-container memo-container">
-            <div className="memo-header hidden print:block">
-                <div className="flex items-center justify-between pb-4 border-b-4 border-black px-4">
-                    <Image src="/logo-wm.png" alt="Wadi Mubarak Logo" width={80} height={80} />
-                    <div className="text-center">
-                        <h1 className="text-xl font-bold">MEMO PERMOHONAN PENCAIRAN DANA</h1>
-                        <h2 className="text-lg font-semibold">ANGGARAN BULANAN</h2>
-                    </div>
-                    <Image src="/amal-logo.png" alt="Amal Logo" width={120} height={48} />
-                </div>
-            </div>
+        <div className="bg-white p-8 shadow-lg">
+            <header className="printable-header">
+                <MemoHeader />
+            </header>
 
             <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
                 <div>
@@ -244,10 +249,10 @@ export function ReleaseMemo({ requests, lembaga, fundAccount }: ReleaseMemoProps
                 </Button>
             </div>
 
-            <div className="memo-footer hidden print:flex">
-                <p>Nomor: M.XX / PT&PM-XXXX / VIII / 25</p>
-                <p className="page-number"></p>
-            </div>
+            <footer className="printable-footer pt-8 text-xs text-gray-500 flex justify-between">
+                <span>Nomor: M.XX / PT&PM-XXXX / VIII / 25</span>
+                <span>Halaman <span className="page-number"></span></span>
+            </footer>
         </div>
     )
 }

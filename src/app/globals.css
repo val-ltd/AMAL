@@ -87,63 +87,51 @@
 
 /* --- Print Styles --- */
 @media print {
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+
   body {
     background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
-  
+
   .no-print {
     display: none !important;
   }
-  
+
   .print-container {
     padding: 0;
     margin: 0;
     box-shadow: none;
     border: none;
   }
+
+  .page-break-before {
+    page-break-before: always;
+  }
   
-  .page-break {
-     page-break-after: always;
+  .memo-wrapper {
+    break-inside: avoid;
+    page-break-after: always;
   }
 
-  .memo-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
+  .memo-header, .memo-footer {
+     display: none; /* These will be handled by @page rules if possible, or repeated in component */
+  }
+  
+  /* A trick to make headers repeat. We can't use fixed positioning easily with dynamic content */
+  .printable-header {
+    display: table-header-group;
   }
 
-  .memo-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    font-size: 0.8rem;
-  }
-}
-
-@page {
-  size: A4;
-  margin: 0.7cm;
-
-  @bottom-right {
-    content: "Halaman " counter(page);
-    font-size: 9pt;
-    color: #333;
+  .printable-footer {
+    display: table-footer-group;
   }
 
-   @bottom-left {
-    content: "Nomor: M.XX / PT&PM-XXXX / VIII / 25";
-    font-size: 9pt;
-    color: #333;
+  html, body {
+    height: auto;
   }
 }
-
-html {
-  counter-reset: page;
-}
-
-
-    
