@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useState }from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { markRequestsAsReleased } from "@/lib/data";
-import { Loader2, Printer } from "lucide-react";
+import { Loader2, Printer, DollarSign } from "lucide-react";
 import { Separator } from "../ui/separator";
 
 interface ReleaseMemoProps {
