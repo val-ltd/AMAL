@@ -5,30 +5,38 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, User as UserIcon, Edit, Home, Phone, Banknote, Landmark } from "lucide-react";
+import { LogOut, User as UserIcon, Landmark } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { User } from "@/lib/types";
 import { getUser } from "@/lib/data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { EditProfileDialog } from "@/components/profile/edit-profile-dialog";
 
 export default function ProfilePage() {
     const { user: authUser, logout } = useAuth();
     const [profileData, setProfileData] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+    const fetchProfileData = async () => {
+        if (authUser) {
+            setLoading(true);
+            const data = await getUser(authUser.uid);
+            setProfileData(data);
+            setLoading(false);
+        }
+    }
 
     useEffect(() => {
-        const fetchProfileData = async () => {
-            if (authUser) {
-                setLoading(true);
-                const data = await getUser(authUser.uid);
-                setProfileData(data);
-                setLoading(false);
-            }
-        }
         fetchProfileData();
     }, [authUser]);
+
+    const handleProfileUpdate = () => {
+        // Refetch the profile data after it's been updated in the dialog
+        fetchProfileData();
+    };
 
     if (loading) {
         return <ProfileSkeleton />
@@ -109,9 +117,9 @@ export default function ProfilePage() {
                                             <UserIcon className="w-4 h-4 text-muted-foreground" />
                                             <p><span className="text-muted-foreground">A/N:</span> {acc.accountHolderName}</p>
                                         </div>
-                                         <div className="flex items-center gap-2">
-                                            <Banknote className="w-4 h-4 text-muted-foreground" />
-                                            <p><span className="text-muted-foreground">No. Rek:</span> {acc.accountNumber}</p>
+                                         <div className="flex items-center gap-2 md:col-span-2">
+                                            <p className="text-muted-foreground">No. Rek:</p>
+                                            <p className="font-mono">{acc.accountNumber}</p>
                                         </div>
                                     </div>
                                     {index < profileData.bankAccounts!.length - 1 && <Separator className="my-4"/>}
@@ -122,17 +130,16 @@ export default function ProfilePage() {
                         <p className="text-muted-foreground text-center">Tidak ada rekening bank yang tersimpan.</p>
                      )}
                 </div>
+                
+                <EditProfileDialog 
+                    user={profileData} 
+                    onProfileUpdate={handleProfileUpdate}
+                />
 
-                <div className="flex flex-col space-y-2">
-                    <Button variant="outline" className="w-full justify-start">
-                        <Edit className="mr-2 h-4 w-4" />
-                        <span>Ubah Profil</span>
-                    </Button>
-                    <Button variant="destructive" className="w-full justify-start" onClick={logout}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Keluar</span>
-                    </Button>
-                </div>
+                <Button variant="destructive" className="w-full justify-start" onClick={logout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Keluar</span>
+                </Button>
             </CardContent>
         </Card>
       </div>
