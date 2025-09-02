@@ -126,20 +126,20 @@ export function SaveFundAccountDialog({ account }: SaveFundAccountDialogProps) {
 
   const Trigger = () => {
     if (isEditing) {
-        return (
-            <button className="flex items-center w-full text-left">
-                <Edit className="mr-2 h-4 w-4" />
-                Ubah Rekening
-            </button>
-        )
+      return (
+        <button className="flex items-center w-full text-left">
+          <Edit className="mr-2 h-4 w-4" />
+          Ubah Rekening
+        </button>
+      );
     }
     return (
       <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Tambah Sumber Dana
+        <PlusCircle className="mr-2 h-4 w-4" />
+        Tambah Sumber Dana
       </Button>
     );
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
