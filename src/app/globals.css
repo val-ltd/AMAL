@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -87,7 +88,7 @@
 /* --- Print Styles --- */
 @media print {
   body {
-    background: white;
+    background: white !important;
   }
   
   .no-print {
@@ -95,18 +96,14 @@
   }
   
   .print-container {
-    box-shadow: none !important;
-    border: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100%;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+    border: none;
   }
   
-  .memo-container {
-    page-break-after: always;
-    position: relative;
-    padding-top: 100px; /* Space for the header */
-    padding-bottom: 50px; /* Space for the footer */
+  .page-break {
+     page-break-after: always;
   }
 
   .memo-header {
@@ -124,18 +121,6 @@
     right: 0;
     width: 100%;
     font-size: 0.8rem;
-    display: flex;
-    justify-content: space-between;
-    padding: 0 1rem;
-  }
-
-  .page-number::after {
-    content: "Halaman " counter(page);
-  }
-
-  /* This forces the header to be displayed. We'll use a class on the print page to make it visible */
-  .printable-header {
-    display: block !important;
   }
 }
 
@@ -144,7 +129,7 @@
   margin: 0.7cm;
 
   @bottom-right {
-    content: "Halaman " counter(page) " dari " counter(pages);
+    content: "Halaman " counter(page);
     font-size: 9pt;
     color: #333;
   }
@@ -159,3 +144,6 @@
 html {
   counter-reset: page;
 }
+
+
+    

@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { getApprovedUnreleasedRequests, getFundAccounts } from "@/lib/data";
+import { getApprovedUnreleasedRequests, getFundAccounts, getFundAccount } from "@/lib/data";
 import type { BudgetRequest, FundAccount } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -17,6 +17,7 @@ import { id } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { ReleaseMemo } from "@/components/release/release-memo";
 
 const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -26,15 +27,29 @@ const formatRupiah = (amount: number) => {
     }).format(amount);
 };
 
+const groupRequestsByLembaga = (requests: BudgetRequest[]) => {
+  return requests.reduce((acc, request) => {
+    const key = request.institution || 'Lainnya';
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(request);
+    return acc;
+  }, {} as Record<string, BudgetRequest[]>);
+};
+
 export default function ReleasePage() {
   const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
   const [allRequests, setAllRequests] = useState<BudgetRequest[]>([]);
   const [fundAccounts, setFundAccounts] = useState<FundAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
   const [selectedFundAccountId, setSelectedFundAccountId] = useState<string>('');
   
+  const [showPreview, setShowPreview] = useState(false);
+  const [selectedRequests, setSelectedRequests] = useState<BudgetRequest[]>([]);
+  const [selectedFundAccount, setSelectedFundAccount] = useState<FundAccount | null>(null);
+
   const userRoles = user?.profile?.roles;
   const isAuthorized = userRoles?.includes('Releaser') || userRoles?.includes('Admin') || userRoles?.includes('Super Admin');
 
@@ -63,15 +78,20 @@ export default function ReleasePage() {
     };
   }, [isAuthorized, authLoading]);
 
-  const handlePreviewMemo = () => {
+  const handlePreviewMemo = async () => {
     if (selectedRequestIds.length > 0 && selectedFundAccountId) {
-      const query = new URLSearchParams({ 
-          ids: selectedRequestIds.join(','),
-          fundSourceId: selectedFundAccountId 
-      });
-      const url = `/release/print?${query.toString()}`;
-      window.open(url, '_blank');
+      const requests = allRequests.filter(req => selectedRequestIds.includes(req.id));
+      const account = await getFundAccount(selectedFundAccountId);
+      setSelectedRequests(requests);
+      setSelectedFundAccount(account);
+      setShowPreview(true);
     }
+  };
+
+  const handleBackToList = () => {
+    setShowPreview(false);
+    setSelectedRequests([]);
+    setSelectedFundAccount(null);
   };
   
   const handleSelectionChange = (requestId: string) => {
@@ -113,6 +133,33 @@ export default function ReleasePage() {
         </Alert>
     )
   }
+
+  if (showPreview) {
+    const groupedRequests = groupRequestsByLembaga(selectedRequests);
+    const memoCount = Object.keys(groupedRequests).length;
+
+    return (
+      <div className="bg-gray-200 p-8 print-container">
+        <div className="fixed top-4 right-4 no-print z-50 flex gap-2">
+            <Button variant="outline" onClick={handleBackToList}>Kembali ke Daftar</Button>
+            <Button onClick={() => window.print()}>
+                <Printer className="mr-2 h-4 w-4" />
+                Cetak Halaman Ini ({memoCount} Memo)
+            </Button>
+        </div>
+        <div className="space-y-8">
+          {selectedFundAccount && Object.entries(groupedRequests).map(([lembaga, requests]) => (
+            requests.length > 0 && (
+                <div key={lembaga} className="bg-white shadow-lg page-break">
+                  <ReleaseMemo requests={requests} lembaga={lembaga} fundAccount={selectedFundAccount} />
+                </div>
+            )
+          ))}
+        </div>
+      </div>
+    )
+  }
+
 
   return (
     <div className="space-y-8">
@@ -212,3 +259,5 @@ export default function ReleasePage() {
     </div>
   );
 }
+
+    
