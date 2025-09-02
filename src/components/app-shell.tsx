@@ -14,7 +14,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
@@ -74,15 +73,9 @@ function Header() {
       </div>
       <div className="flex items-center gap-2 sm:gap-4">
         {showFullHeader && (
-          <>
-            <Button asChild className="hidden sm:flex">
-                <Link href="/request/new">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Permintaan Baru
-                </Link>
-            </Button>
-            <NotificationBell />
-          </>
+          <div className="sm:hidden">
+             <NotificationBell />
+          </div>
         )}
         <UserMenu />
       </div>
@@ -95,9 +88,9 @@ function DesktopNav({ userRoles }: { userRoles: AppUser['roles'] | undefined }) 
   
   const navItems = [
     { href: '/', label: 'Permintaan Saya', icon: Home, requiredRoles: ['Employee'] },
-    { href: '/manager', label: 'Tampilan Manajer', icon: Shield, requiredRoles: ['Manager', 'Admin', 'Super Admin'] },
+    { href: '/manager', label: 'Pengajuan', icon: Shield, requiredRoles: ['Manager', 'Admin', 'Super Admin'] },
     { href: '/release', label: 'Pencairan Dana', icon: DollarSign, requiredRoles: ['Releaser', 'Admin', 'Super Admin'] },
-    { href: '/admin', label: 'Manajemen Admin', icon: Users, requiredRoles: ['Admin', 'Super Admin'] },
+    { href: '/admin', label: 'Admin', icon: Users, requiredRoles: ['Admin', 'Super Admin'] },
   ];
 
   const availableNavItems = navItems.filter(item => 
@@ -133,7 +126,7 @@ function BottomNav() {
   const navItems = [
     { href: '/', label: 'Permintaan', icon: Home, requiredRoles: ['Employee'] },
     { href: '/request/new', label: 'Baru', icon: PlusCircle, requiredRoles: ['Employee'] },
-    { href: '/manager', label: 'Manajer', icon: Shield, requiredRoles: ['Manager', 'Admin', 'Super Admin'] },
+    { href: '/manager', label: 'Pengajuan', icon: Shield, requiredRoles: ['Manager', 'Admin', 'Super Admin'] },
     { href: '/release', label: 'Pencairan', icon: DollarSign, requiredRoles: ['Releaser', 'Admin', 'Super Admin'] },
     { href: '/notifications', label: 'Notifikasi', icon: Bell, requiredRoles: ['Employee'], notificationCount: unreadCount },
     { href: '/admin', label: 'Admin', icon: Users, requiredRoles: ['Admin', 'Super Admin'] },
@@ -155,10 +148,12 @@ function BottomNav() {
       baseNav.splice(1, 0, navItems.find(i => i.href === '/release'));
     }
      if (roles.includes('Admin')) {
-      baseNav.splice(1, 0, navItems.find(i => i.href === '/admin'));
+       const adminItem = navItems.find(i => i.href === '/admin');
+       if(adminItem) {
+          baseNav.splice(1, 0, adminItem);
+       }
     }
 
-    baseNav.push(navItems.find(i => i.href === '/notifications'));
     baseNav.push(navItems.find(i => i.href === '/profile'));
     
     return [...new Set(baseNav.filter(Boolean))]
@@ -198,31 +193,17 @@ function NotificationBell() {
     const unreadCount = getUnreadNotificationCount();
 
     return (
-        <Popover>
-            <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative hidden sm:inline-flex">
-                    <Bell className="h-5 w-5" />
-                    {unreadCount > 0 && (
-                        <div className="absolute top-1.5 right-1.5 flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 border-2 border-background rounded-full">
-                           {unreadCount}
-                        </div>
-                    )}
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-0">
-                 <div className="p-4 font-medium border-b">
-                    Notifikasi
-                </div>
-                <div className="p-4">
-                    <p className="text-sm text-muted-foreground">Tidak ada notifikasi baru.</p>
-                </div>
-                 <div className="p-2 border-t">
-                    <Button variant="link" asChild className="w-full">
-                        <Link href="/notifications">Lihat semua notifikasi</Link>
-                    </Button>
-                </div>
-            </PopoverContent>
-        </Popover>
+        <Button asChild variant="ghost" size="icon" className="relative">
+            <Link href="/notifications">
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                    <div className="absolute top-1.5 right-1.5 flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 border-2 border-background rounded-full">
+                       {unreadCount}
+                    </div>
+                )}
+                 <span className="sr-only">Notifications</span>
+            </Link>
+        </Button>
     )
 }
 
@@ -234,18 +215,11 @@ function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-auto px-2">
-          <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8">
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+            <Avatar className="h-9 w-9">
               <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? ''} data-ai-hint="person" />
               <AvatarFallback>{user.displayName?.charAt(0) ?? 'U'}</AvatarFallback>
             </Avatar>
-            <div className="hidden flex-col items-start text-left sm:flex">
-              <span className="font-medium">{user.displayName}</span>
-              <span className="text-xs text-muted-foreground">{user.email}</span>
-            </div>
-             <ChevronDown className="ml-1 h-4 w-4 text-muted-foreground hidden sm:inline" />
-          </div>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
