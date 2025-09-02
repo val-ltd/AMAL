@@ -250,9 +250,11 @@ export default function ProfilePage() {
                             )}
                         </TableBody>
                      </Table>
-                     <Button variant="outline" size="sm" onClick={() => setEditingAccount({ index: -1, bankName: '', accountHolderName: '', accountNumber: '', bankCode: '' })} disabled={editingAccount.index !== undefined}>
-                        <PlusCircle className="mr-2 h-4 w-4" /> Tambah Rekening
-                     </Button>
+                     {isEditing && (
+                        <Button variant="outline" size="sm" onClick={() => setEditingAccount({ index: -1, bankName: '', accountHolderName: '', accountNumber: '', bankCode: '' })} disabled={editingAccount.index !== undefined}>
+                            <PlusCircle className="mr-2 h-4 w-4" /> Tambah Rekening
+                        </Button>
+                     )}
                 </div>
             </CardContent>
             <CardFooter className="flex-col items-start gap-4">
@@ -365,3 +367,5 @@ function ProfileSkeleton() {
       </div>
     )
 }
+
+    
