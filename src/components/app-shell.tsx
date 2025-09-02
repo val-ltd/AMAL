@@ -178,13 +178,13 @@ function BottomNav() {
           </Link>
         </Button>
       </div>
-      <div className="grid h-16 grid-cols-4 items-stretch">
+      <div className="flex h-16 items-center justify-between px-2">
         {availableNavItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+              "flex flex-col items-center justify-center gap-1 p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground flex-1",
               (pathname.startsWith(item.href) && item.href !== '/') || pathname === item.href ? "text-primary" : "text-muted-foreground"
             )}
           >
