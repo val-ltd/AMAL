@@ -18,7 +18,7 @@ import {
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
-import type { User as AppUser, Notification } from '@/lib/types';
+import type { User as AppUser, Notification, Role } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import { getNotifications } from '@/lib/data';
 
@@ -27,19 +27,44 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading, isVerified } = useAuth();
   const pathname = usePathname();
 
-  if (loading || !user || !isVerified) {
-    if (pathname === '/login') {
-      return <>{children}</>
-    }
-    if (user && !isVerified) {
-        return (
-            <div className="flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1 p-4 sm:p-6">{children}</main>
-            </div>
-        )
-    }
-    return <>{children}</>;
+  if (loading || (!user && pathname !== '/login')) {
+      return (
+        <div className="flex flex-col min-h-screen">
+            <header className="sticky top-0 z-10 hidden items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:flex h-16">
+                <div className="flex items-center gap-6">
+                    <Logo />
+                    <div className="flex items-center gap-4">
+                        <div className="h-6 w-24 rounded-md bg-muted animate-pulse"></div>
+                        <div className="h-6 w-24 rounded-md bg-muted animate-pulse"></div>
+                    </div>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-muted animate-pulse"></div>
+            </header>
+            <main className="flex-1 p-4 sm:p-6">
+              <div className="space-y-4">
+                  <div className="h-10 w-1/4 rounded-md bg-muted animate-pulse" />
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      <div className="h-48 w-full rounded-lg bg-muted animate-pulse" />
+                      <div className="h-48 w-full rounded-lg bg-muted animate-pulse" />
+                      <div className="h-48 w-full rounded-lg bg-muted animate-pulse" />
+                  </div>
+              </div>
+            </main>
+        </div>
+      );
+  }
+
+  if (pathname === '/login') {
+    return <>{children}</>
+  }
+  
+  if (user && !isVerified) {
+      return (
+          <div className="flex min-h-screen flex-col">
+            <Header />
+            <main className="flex-1 p-4 sm:p-6">{children}</main>
+          </div>
+      )
   }
   
   return (
@@ -63,11 +88,14 @@ function Header() {
       </div>
       <div className="flex items-center gap-2 sm:gap-4">
         {showFullHeader && (
-          <>
+          <div className='flex items-center gap-2'>
             <NotificationBell />
-          </>
+            <UserMenu />
+          </div>
         )}
-        <UserMenu />
+        {!showFullHeader && authUser && (
+             <UserMenu />
+        )}
       </div>
     </header>
   );
@@ -102,12 +130,6 @@ function DesktopNav({ userRoles }: { userRoles: AppUser['roles'] | undefined }) 
           {item.label}
         </Link>
       ))}
-      <Button asChild>
-        <Link href="/request/new">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Permintaan Baru
-        </Link>
-      </Button>
     </nav>
   );
 }
@@ -116,60 +138,68 @@ function DesktopNav({ userRoles }: { userRoles: AppUser['roles'] | undefined }) 
 function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const userRoles = user?.profile?.roles;
+  const userRoles = user?.profile?.roles || [];
 
-  const navItems = [
+  const navItems: { href: string; label: string; icon: React.ElementType; requiredRoles: Role[] }[] = [
     { href: '/', label: 'Permintaan', icon: Home, requiredRoles: ['Employee'] },
     { href: '/manager', label: 'Pengajuan', icon: Shield, requiredRoles: ['Manager', 'Admin', 'Super Admin'] },
     { href: '/release', label: 'Pencairan', icon: DollarSign, requiredRoles: ['Releaser', 'Admin', 'Super Admin'] },
     { href: '/admin', label: 'Admin', icon: Users, requiredRoles: ['Admin', 'Super Admin'] },
-    { href: '/notifications', label: 'Notifikasi', icon: Bell, requiredRoles: ['Employee', 'Manager', 'Admin', 'Super Admin', 'Releaser'] },
   ];
 
-  const getNavOrder = (roles: AppUser['roles'] | undefined) => {
-    if (!roles) return [];
-    
-    let baseNav = [];
-    
-    if(roles.includes('Employee')) baseNav.push(navItems.find(i => i.href === '/'));
-    if(roles.includes('Manager')) baseNav.push(navItems.find(i => i.href === '/manager'));
-    if(roles.includes('Releaser')) baseNav.push(navItems.find(i => i.href === '/release'));
-    if(roles.includes('Admin')) baseNav.push(navItems.find(i => i.href === '/admin'));
-    
-    // Always add notifications
-    baseNav.push(navItems.find(i => i.href === '/notifications'));
+  const availableNavItems = navItems.filter(item =>
+    item.requiredRoles.some(role => userRoles.includes(role))
+  );
 
-    return [...new Set(baseNav.filter(Boolean))];
-  }
-
-  const finalNavItems = getNavOrder(userRoles);
-
+  // Ensure we have up to 4 main items
+  const mainItems = availableNavItems.slice(0, 4);
+  const leftItems = mainItems.slice(0, 2);
+  const rightItems = mainItems.slice(2, 4);
 
   return (
     <div className="fixed bottom-0 z-10 w-full border-t bg-background/95 backdrop-blur-sm sm:hidden">
-      <nav className="grid h-16 grid-cols-5 items-center justify-around">
-        {finalNavItems.map((item) => item && (
+      <div className="relative grid h-16 grid-cols-5 items-center">
+        {leftItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             className={cn(
-              "relative flex flex-col items-center gap-1 p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+              "flex flex-col items-center gap-1 p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
               (pathname.startsWith(item.href) && item.href !== '/') || pathname === item.href ? "text-primary" : "text-muted-foreground"
             )}
           >
-             {item.href === '/notifications' ? <NotificationIcon /> : <item.icon className="h-5 w-5" />}
+            <item.icon className="h-5 w-5" />
             <span>{item.label}</span>
           </Link>
         ))}
-         <div className="absolute -top-7 left-1/2 -translate-x-1/2">
-            <Button asChild className="h-14 w-14 rounded-full shadow-lg">
+        
+        {/* Placeholder for the FAB */}
+        <div /> 
+
+        {rightItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "flex flex-col items-center gap-1 p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+              (pathname.startsWith(item.href) && item.href !== '/') || pathname === item.href ? "text-primary" : "text-muted-foreground"
+            )}
+          >
+            <item.icon className="h-5 w-5" />
+            <span>{item.label}</span>
+          </Link>
+        ))}
+
+        {/* Floating Action Button */}
+        <div className="absolute left-1/2 top-0 h-16 w-16 -translate-x-1/2 -translate-y-1/2">
+            <Button asChild className="h-full w-full rounded-full shadow-lg">
                  <Link href="/request/new">
                     <PlusCircle className="h-6 w-6" />
                     <span className="sr-only">Permintaan Baru</span>
                  </Link>
             </Button>
         </div>
-      </nav>
+      </div>
     </div>
   );
 }
@@ -177,11 +207,12 @@ function BottomNav() {
 function NotificationIcon() {
     const { user } = useAuth();
     const [unreadCount, setUnreadCount] = useState(0);
+    const userRoles = user?.profile?.roles || [];
 
     useEffect(() => {
         let unsubscribe: () => void;
         if (user && user.profile) {
-            unsubscribe = getNotifications(user.profile.roles, (notifications: Notification[]) => {
+            unsubscribe = getNotifications(userRoles, (notifications: Notification[]) => {
                 const count = notifications.filter(n => !n.isRead).length;
                 setUnreadCount(count);
             });
@@ -189,13 +220,13 @@ function NotificationIcon() {
         return () => {
             if (unsubscribe) unsubscribe();
         }
-    }, [user]);
+    }, [user, userRoles]);
 
     return (
         <>
             <Bell className="h-5 w-5" />
              {unreadCount > 0 && (
-                <div className="absolute top-1 right-3.5 flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 border-2 border-background rounded-full">
+                <div className="absolute top-0 right-0 flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 border-2 border-background rounded-full">
                    {unreadCount > 9 ? '9+' : unreadCount}
                 </div>
             )}
