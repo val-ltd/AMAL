@@ -103,3 +103,19 @@ export interface FundAccount {
     kodeBank?: string;
     petugas: string;
 }
+
+export interface Notification {
+  id: string;
+  userId: string; // The user who receives the notification
+  type: 'new_request' | 'request_approved' | 'request_rejected' | 'funds_released';
+  title: string;
+  message: string;
+  requestId: string;
+  isRead: boolean;
+  createdAt: string; // ISO string
+  createdBy: {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+  };
+}

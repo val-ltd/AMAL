@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -185,6 +186,23 @@ export function NewRequestForm() {
       };
 
       const docRef = await addDoc(collection(db, 'requests'), newRequestData);
+      
+      // Create notification for supervisor
+      const notificationData = {
+          userId: supervisor.id,
+          type: 'new_request' as const,
+          title: 'Permintaan Anggaran Baru',
+          message: `${profileData.name} telah mengajukan permintaan baru untuk "${items[0]?.description || 'N/A'}".`,
+          requestId: docRef.id,
+          isRead: false,
+          createdAt: serverTimestamp(),
+          createdBy: {
+              id: authUser.uid,
+              name: profileData.name,
+              avatarUrl: profileData.avatarUrl,
+          }
+      };
+      await addDoc(collection(db, 'notifications'), notificationData);
       
       // We are not awaiting this. Let it run in the background.
       appendRequestToSheet({

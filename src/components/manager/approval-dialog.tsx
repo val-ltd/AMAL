@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type { BudgetRequest } from '@/lib/types';
@@ -22,9 +23,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Building, Eye, Loader2, ThumbsDown, ThumbsUp, UserCheck } from 'lucide-react';
 import { formatDepartment } from '@/lib/utils';
 import { Separator } from '../ui/separator';
-import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, serverTimestamp, updateDoc, collection, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { useAuth } from '@/hooks/use-auth';
 
 interface ApprovalDialogProps {
   request: BudgetRequest;
@@ -33,6 +35,7 @@ interface ApprovalDialogProps {
 }
 
 export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false, triggerButton }: ApprovalDialogProps) {
+  const { user: managerUser } = useAuth();
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
@@ -50,7 +53,7 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
   };
 
   const handleSubmit = async (status: 'approved' | 'rejected') => {
-    if (isReadOnly) return;
+    if (isReadOnly || !managerUser?.profile) return;
 
     setIsSubmitting(true);
     try {
@@ -60,6 +63,24 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
             managerComment: comment,
             updatedAt: serverTimestamp(),
         });
+
+        // Create notification for the requester
+        const notificationData = {
+            userId: request.requester.id,
+            type: status === 'approved' ? 'request_approved' : 'request_rejected',
+            title: `Permintaan ${status === 'approved' ? 'Disetujui' : 'Ditolak'}`,
+            message: `Permintaan Anda untuk "${request.items[0]?.description || 'N/A'}" telah di${status === 'approved' ? 'setujui' : 'tolak'}.`,
+            requestId: request.id,
+            isRead: false,
+            createdAt: serverTimestamp(),
+            createdBy: {
+                id: managerUser.uid,
+                name: managerUser.profile.name,
+                avatarUrl: managerUser.profile.avatarUrl,
+            }
+        };
+        await addDoc(collection(db, 'notifications'), notificationData);
+
 
         toast({
             title: `Permintaan ${status === 'approved' ? 'Disetujui' : 'Ditolak'}`,

@@ -15,8 +15,9 @@ import {
   getDocs,
   deleteDoc,
   writeBatch,
+  Timestamp,
 } from 'firebase/firestore';
-import type { BudgetRequest, User, Department, BudgetCategory, FundAccount } from './types';
+import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Notification } from './types';
 import { auth, db } from './firebase';
 
 // This function now returns an unsubscribe function for the real-time listener
@@ -180,15 +181,40 @@ export async function updateRequest(
 export async function markRequestsAsReleased(requestIds: string[], releasedBy: {id: string, name: string}, fundSourceId: string): Promise<void> {
     const batch = writeBatch(db);
     
-    requestIds.forEach(id => {
-        const requestRef = doc(db, 'requests', id);
-        batch.update(requestRef, {
-            status: 'released',
-            releasedAt: serverTimestamp(),
-            releasedBy: releasedBy,
-            fundSourceId: fundSourceId,
-            updatedAt: serverTimestamp()
-        });
+    const requestsToUpdate = await Promise.all(
+      requestIds.map(id => getDoc(doc(db, 'requests', id)))
+    );
+
+    requestsToUpdate.forEach(requestDoc => {
+        if (requestDoc.exists()) {
+            const requestData = requestDoc.data() as BudgetRequest;
+            const requestRef = doc(db, 'requests', requestDoc.id);
+
+            batch.update(requestRef, {
+                status: 'released',
+                releasedAt: serverTimestamp(),
+                releasedBy: releasedBy,
+                fundSourceId: fundSourceId,
+                updatedAt: serverTimestamp()
+            });
+
+            // Create notification for requester
+            const notificationData = {
+                userId: requestData.requester.id,
+                type: 'funds_released' as const,
+                title: 'Dana Telah Dicairkan',
+                message: `Dana untuk permintaan "${requestData.items[0]?.description || 'N/A'}" telah dicairkan.`,
+                requestId: requestDoc.id,
+                isRead: false,
+                createdAt: serverTimestamp(),
+                createdBy: {
+                    id: releasedBy.id,
+                    name: releasedBy.name,
+                }
+            };
+            const notificationRef = doc(collection(db, 'notifications'));
+            batch.set(notificationRef, notificationData);
+        }
     });
 
     await batch.commit();
@@ -225,7 +251,7 @@ export async function getUser(uid: string): Promise<User | null> {
 export async function getManagers(): Promise<User[]> {
     const q = query(
         collection(db, 'users'),
-        where('roles', 'array-contains-any', ['Manager', 'Admin'])
+        where('roles', 'array-contains-any', ['Manager', 'Admin', 'Super Admin'])
     );
     const querySnapshot = await getDocs(q);
     const managers: User[] = [];
@@ -305,4 +331,45 @@ export async function getFundAccount(id: string): Promise<FundAccount | null> {
         return { id: docSnap.id, ...docSnap.data() } as FundAccount;
     }
     return null;
+}
+
+
+// --- Notifications ---
+
+export function getNotifications(
+  callback: (notifications: Notification[]) => void
+): Unsubscribe {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    return () => {};
+  }
+
+  const q = query(
+    collection(db, 'notifications'),
+    where('userId', '==', currentUser.uid),
+    orderBy('createdAt', 'desc')
+  );
+
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const notifications: Notification[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      notifications.push({
+        id: doc.id,
+        ...data,
+        createdAt: (data.createdAt as Timestamp)?.toDate().toISOString() ?? new Date().toISOString(),
+      } as Notification);
+    });
+    callback(notifications);
+  }, (error) => {
+    console.error("Error fetching notifications:", error);
+    callback([]);
+  });
+
+  return unsubscribe;
+}
+
+export async function markNotificationAsRead(notificationId: string) {
+  const notificationRef = doc(db, 'notifications', notificationId);
+  await updateDoc(notificationRef, { isRead: true });
 }

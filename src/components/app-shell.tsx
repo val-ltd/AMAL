@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -17,20 +18,9 @@ import {
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
-import type { User as AppUser } from '@/lib/types';
-import { useState } from 'react';
-
-
-// Mock data for notification count - this would come from a real data source
-const getUnreadNotificationCount = () => {
-    const notifications = [
-      { id: '1', isRead: false },
-      { id: '2', isRead: false },
-      { id: '3', isRead: true },
-      { id: '4', isRead: true },
-    ];
-    return notifications.filter(n => !n.isRead).length;
-};
+import type { User as AppUser, Notification } from '@/lib/types';
+import { useState, useEffect } from 'react';
+import { getNotifications } from '@/lib/data';
 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -74,12 +64,7 @@ function Header() {
       <div className="flex items-center gap-2 sm:gap-4">
         {showFullHeader && (
           <>
-            <div className="sm:hidden">
-              <NotificationBell />
-            </div>
-            <div className="hidden sm:flex">
-                <NotificationBell />
-            </div>
+            <NotificationBell />
           </>
         )}
         <UserMenu />
@@ -185,7 +170,21 @@ function BottomNav() {
 }
 
 function NotificationBell() {
-    const unreadCount = getUnreadNotificationCount();
+    const { user } = useAuth();
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        let unsubscribe: () => void;
+        if (user) {
+            unsubscribe = getNotifications((notifications: Notification[]) => {
+                const count = notifications.filter(n => !n.isRead).length;
+                setUnreadCount(count);
+            });
+        }
+        return () => {
+            if (unsubscribe) unsubscribe();
+        }
+    }, [user]);
 
     return (
         <Button asChild variant="ghost" size="icon" className="relative">
@@ -193,7 +192,7 @@ function NotificationBell() {
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
                     <div className="absolute top-1.5 right-1.5 flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 border-2 border-background rounded-full">
-                       {unreadCount}
+                       {unreadCount > 9 ? '9+' : unreadCount}
                     </div>
                 )}
                  <span className="sr-only">Notifications</span>
