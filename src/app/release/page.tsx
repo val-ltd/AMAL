@@ -139,8 +139,8 @@ export default function ReleasePage() {
     const memoCount = Object.keys(groupedRequests).length;
 
     return (
-      <div className="bg-gray-200 p-8 print-container">
-        <div className="fixed top-4 right-4 no-print z-50 flex gap-2">
+      <div className="bg-gray-200 -m-4 sm:-m-6 p-4 sm:p-8 print-container">
+        <div className="flex justify-end gap-2 mb-4 no-print">
             <Button variant="outline" onClick={handleBackToList}>Kembali ke Daftar</Button>
             <Button onClick={() => window.print()}>
                 <Printer className="mr-2 h-4 w-4" />
