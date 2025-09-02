@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Shield, PlusCircle, User, LogOut, ChevronDown, Wallet, Users, ShieldCheck, DollarSign } from 'lucide-react';
+import { Home, Shield, PlusCircle, User, LogOut, ChevronDown, Wallet, Users, ShieldCheck, DollarSign, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from './logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
@@ -65,12 +66,15 @@ function Header() {
       </div>
       <div className="flex items-center gap-4">
         {showFullHeader && (
+          <>
             <Button asChild>
                 <Link href="/request/new">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Permintaan Baru
                 </Link>
             </Button>
+            <NotificationBell />
+          </>
         )}
         <UserMenu />
       </div>
@@ -122,6 +126,7 @@ function BottomNav() {
     { href: '/request/new', label: 'Baru', icon: PlusCircle, requiredRoles: ['Employee'] },
     { href: '/manager', label: 'Manajer', icon: Shield, requiredRoles: ['Manager', 'Admin', 'Super Admin'] },
     { href: '/release', label: 'Pencairan', icon: DollarSign, requiredRoles: ['Releaser', 'Admin', 'Super Admin'] },
+    { href: '/notifications', label: 'Notifikasi', icon: Bell, requiredRoles: ['Employee'] },
     { href: '/admin', label: 'Admin', icon: Users, requiredRoles: ['Admin', 'Super Admin'] },
     { href: '/profile', label: 'Profil', icon: User, requiredRoles: ['Employee'] },
   ];
@@ -129,11 +134,49 @@ function BottomNav() {
   const availableNavItems = navItems.filter(item => 
     userRoles && item.requiredRoles.some(role => userRoles.includes(role))
   );
+  
+  const bottomNavLayout = [
+    availableNavItems.find(i => i.href === '/'),
+    availableNavItems.find(i => i.href === '/manager'),
+    availableNavItems.find(i => i.href === '/request/new'),
+    availableNavItems.find(i => i.href === '/notifications'),
+    availableNavItems.find(i => i.href === '/profile'),
+  ].filter(Boolean);
+  
+  // Custom layout for bottom nav to ensure logical order
+  const getNavOrder = (roles: AppUser['roles'] | undefined) => {
+    if (!roles) return [];
+    
+    const baseNav = [
+      navItems.find(i => i.href === '/'),
+      navItems.find(i => i.href === '/request/new'),
+    ];
+
+    if (roles.includes('Manager')) {
+      baseNav.splice(1, 0, navItems.find(i => i.href === '/manager'));
+    }
+     if (roles.includes('Releaser')) {
+      baseNav.splice(1, 0, navItems.find(i => i.href === '/release'));
+    }
+     if (roles.includes('Admin')) {
+      baseNav.splice(1, 0, navItems.find(i => i.href === '/admin'));
+    }
+
+    baseNav.push(navItems.find(i => i.href === '/notifications'));
+    baseNav.push(navItems.find(i => i.href === '/profile'));
+    
+    // De-duplicate and filter by role again to be safe
+    return [...new Set(baseNav.filter(Boolean))]
+           .filter(item => item!.requiredRoles.some(role => roles.includes(role)));
+  }
+
+  const finalNavItems = getNavOrder(userRoles);
+
 
   return (
     <div className="fixed bottom-0 z-10 w-full border-t bg-background/95 backdrop-blur-sm sm:hidden">
       <nav className="flex items-center justify-around p-1">
-        {availableNavItems.map((item) => (
+        {finalNavItems.map((item) => item && (
           <Link
             key={item.href}
             href={item.href}
@@ -149,6 +192,33 @@ function BottomNav() {
       </nav>
     </div>
   );
+}
+
+function NotificationBell() {
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                    <Bell className="h-5 w-5" />
+                    {/* Unread indicator */}
+                    <span className="absolute top-2 right-2.5 block h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-0">
+                 <div className="p-4 font-medium border-b">
+                    Notifikasi
+                </div>
+                <div className="p-4">
+                    <p className="text-sm text-muted-foreground">Tidak ada notifikasi baru.</p>
+                </div>
+                 <div className="p-2 border-t">
+                    <Button variant="link" asChild className="w-full">
+                        <Link href="/notifications">Lihat semua notifikasi</Link>
+                    </Button>
+                </div>
+            </PopoverContent>
+        </Popover>
+    )
 }
 
 function UserMenu() {
