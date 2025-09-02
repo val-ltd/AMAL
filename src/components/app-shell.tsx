@@ -145,7 +145,6 @@ function BottomNav() {
     { href: '/manager', label: 'Pengajuan', icon: Shield, requiredRoles: ['Manager', 'Admin', 'Super Admin'] },
     { href: '/release', label: 'Pencairan', icon: DollarSign, requiredRoles: ['Releaser', 'Admin', 'Super Admin'] },
     { href: '/admin', label: 'Admin', icon: Users, requiredRoles: ['Admin', 'Super Admin'] },
-    { href: '/notifications', label: 'Notifikasi', icon: Bell, requiredRoles: ['Employee', 'Manager', 'Admin', 'Super Admin', 'Releaser'] },
   ];
   
   const isEmployeeOnly = userRoles.length === 1 && userRoles.includes('Employee');
@@ -154,9 +153,23 @@ function BottomNav() {
     item.requiredRoles.some(role => userRoles.includes(role))
   );
   
-  const leftItems = availableNavItems.slice(0, 2);
-  const rightItems = availableNavItems.slice(2, 5);
+  if (isEmployeeOnly) {
+    return (
+        <div className="fixed bottom-0 z-10 w-full sm:hidden">
+            <div className="absolute inset-x-0 bottom-4 flex justify-center">
+                <Button asChild className="h-16 w-16 rounded-full shadow-lg">
+                <Link href="/request/new">
+                    <PlusCircle className="h-8 w-8" />
+                    <span className="sr-only">Permintaan Baru</span>
+                </Link>
+                </Button>
+            </div>
+        </div>
+    )
+  }
 
+  const leftItems = availableNavItems.slice(0, 2);
+  const rightItems = availableNavItems.slice(2, 4);
 
   return (
     <div className="fixed bottom-0 z-10 w-full sm:hidden">
@@ -168,40 +181,37 @@ function BottomNav() {
           </Link>
         </Button>
       </div>
+      <div className="relative grid h-16 grid-cols-5 items-stretch border-t bg-background/95 backdrop-blur-sm">
+        {leftItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+              (pathname.startsWith(item.href) && item.href !== '/') || pathname === item.href ? "text-primary" : "text-muted-foreground"
+            )}
+          >
+            <item.icon className="h-5 w-5" />
+            <span>{item.label}</span>
+          </Link>
+        ))}
+        
+        <div /> 
 
-      {!isEmployeeOnly && (
-        <div className="relative grid h-16 grid-cols-5 items-stretch border-t bg-background/95 backdrop-blur-sm">
-          {leftItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex flex-col items-center justify-center gap-1 p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                (pathname.startsWith(item.href) && item.href !== '/') || pathname === item.href ? "text-primary" : "text-muted-foreground"
-              )}
-            >
-              <item.icon className="h-5 w-5" />
-              <span>{item.label}</span>
-            </Link>
-          ))}
-          
-          <div /> 
-
-          {rightItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex flex-col items-center justify-center gap-1 p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                (pathname.startsWith(item.href) && item.href !== '/') || pathname === item.href ? "text-primary" : "text-muted-foreground"
-              )}
-            >
-              <item.icon className="h-5 w-5" />
-              <span>{item.label}</span>
-            </Link>
-          ))}
-        </div>
-      )}
+        {rightItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+              (pathname.startsWith(item.href) && item.href !== '/') || pathname === item.href ? "text-primary" : "text-muted-foreground"
+            )}
+          >
+            <item.icon className="h-5 w-5" />
+            <span>{item.label}</span>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
