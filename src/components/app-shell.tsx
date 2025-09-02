@@ -19,19 +19,29 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import type { User as AppUser } from '@/lib/types';
+import { useState } from 'react';
+
+
+// Mock data for notification count - this would come from a real data source
+const getUnreadNotificationCount = () => {
+    const notifications = [
+      { id: '1', isRead: false },
+      { id: '2', isRead: false },
+      { id: '3', isRead: true },
+      { id: '4', isRead: true },
+    ];
+    return notifications.filter(n => !n.isRead).length;
+};
 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading, isVerified } = useAuth();
   const pathname = usePathname();
 
-  // If loading, or not logged in, or not verified, the AuthProvider handles the view.
-  // The AppShell should only render its full content for verified users.
   if (loading || !user || !isVerified) {
     if (pathname === '/login') {
       return <>{children}</>
     }
-     // Show a minimal shell for the "unverified" warning page
     if (user && !isVerified) {
         return (
             <div className="flex min-h-screen flex-col">
@@ -54,8 +64,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 function Header() {
   const { user: authUser, isVerified } = useAuth();
-
-  // Hide main nav and new request button if not verified.
   const showFullHeader = authUser && isVerified;
 
   return (
@@ -120,30 +128,18 @@ function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
   const userRoles = user?.profile?.roles;
+  const unreadCount = getUnreadNotificationCount();
 
   const navItems = [
     { href: '/', label: 'Permintaan', icon: Home, requiredRoles: ['Employee'] },
     { href: '/request/new', label: 'Baru', icon: PlusCircle, requiredRoles: ['Employee'] },
     { href: '/manager', label: 'Manajer', icon: Shield, requiredRoles: ['Manager', 'Admin', 'Super Admin'] },
     { href: '/release', label: 'Pencairan', icon: DollarSign, requiredRoles: ['Releaser', 'Admin', 'Super Admin'] },
-    { href: '/notifications', label: 'Notifikasi', icon: Bell, requiredRoles: ['Employee'] },
+    { href: '/notifications', label: 'Notifikasi', icon: Bell, requiredRoles: ['Employee'], notificationCount: unreadCount },
     { href: '/admin', label: 'Admin', icon: Users, requiredRoles: ['Admin', 'Super Admin'] },
     { href: '/profile', label: 'Profil', icon: User, requiredRoles: ['Employee'] },
   ];
 
-  const availableNavItems = navItems.filter(item => 
-    userRoles && item.requiredRoles.some(role => userRoles.includes(role))
-  );
-  
-  const bottomNavLayout = [
-    availableNavItems.find(i => i.href === '/'),
-    availableNavItems.find(i => i.href === '/manager'),
-    availableNavItems.find(i => i.href === '/request/new'),
-    availableNavItems.find(i => i.href === '/notifications'),
-    availableNavItems.find(i => i.href === '/profile'),
-  ].filter(Boolean);
-  
-  // Custom layout for bottom nav to ensure logical order
   const getNavOrder = (roles: AppUser['roles'] | undefined) => {
     if (!roles) return [];
     
@@ -165,7 +161,6 @@ function BottomNav() {
     baseNav.push(navItems.find(i => i.href === '/notifications'));
     baseNav.push(navItems.find(i => i.href === '/profile'));
     
-    // De-duplicate and filter by role again to be safe
     return [...new Set(baseNav.filter(Boolean))]
            .filter(item => item!.requiredRoles.some(role => roles.includes(role)));
   }
@@ -181,12 +176,17 @@ function BottomNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-1 flex-col items-center gap-1 rounded-md p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+              "relative flex flex-1 flex-col items-center gap-1 rounded-md p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
               (pathname.startsWith(item.href) && item.href !== '/') || pathname === item.href ? "text-primary" : "text-muted-foreground"
             )}
           >
             <item.icon className="h-5 w-5" />
             <span>{item.label}</span>
+            {item.notificationCount && item.notificationCount > 0 && (
+                <div className="absolute top-1 right-3.5 flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 border-2 border-background rounded-full">
+                    {item.notificationCount}
+                </div>
+            )}
           </Link>
         ))}
       </nav>
@@ -195,13 +195,18 @@ function BottomNav() {
 }
 
 function NotificationBell() {
+    const unreadCount = getUnreadNotificationCount();
+
     return (
         <Popover>
             <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
                     <Bell className="h-5 w-5" />
-                    {/* Unread indicator */}
-                    <span className="absolute top-2 right-2.5 block h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
+                    {unreadCount > 0 && (
+                        <div className="absolute top-1.5 right-1.5 flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 border-2 border-background rounded-full">
+                           {unreadCount}
+                        </div>
+                    )}
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80 p-0">
