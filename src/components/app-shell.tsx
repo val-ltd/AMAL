@@ -167,13 +167,10 @@ function BottomNav() {
         </div>
     )
   }
-
-  const leftItems = availableNavItems.slice(0, 2);
-  const rightItems = availableNavItems.slice(2, 4);
-
+  
   return (
-    <div className="fixed bottom-0 z-10 w-full sm:hidden">
-      <div className="absolute inset-x-0 bottom-4 flex justify-center">
+    <nav className="fixed bottom-0 z-10 w-full border-t bg-background/95 backdrop-blur-sm sm:hidden">
+      <div className="absolute inset-x-0 -top-8 flex justify-center">
         <Button asChild className="h-16 w-16 rounded-full shadow-lg">
           <Link href="/request/new">
             <PlusCircle className="h-8 w-8" />
@@ -181,24 +178,8 @@ function BottomNav() {
           </Link>
         </Button>
       </div>
-      <div className="relative grid h-16 grid-cols-5 items-stretch border-t bg-background/95 backdrop-blur-sm">
-        {leftItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex flex-col items-center justify-center gap-1 p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-              (pathname.startsWith(item.href) && item.href !== '/') || pathname === item.href ? "text-primary" : "text-muted-foreground"
-            )}
-          >
-            <item.icon className="h-5 w-5" />
-            <span>{item.label}</span>
-          </Link>
-        ))}
-        
-        <div /> 
-
-        {rightItems.map((item) => (
+      <div className="grid h-16 grid-cols-4 items-stretch">
+        {availableNavItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -212,7 +193,7 @@ function BottomNav() {
           </Link>
         ))}
       </div>
-    </div>
+    </nav>
   );
 }
 
