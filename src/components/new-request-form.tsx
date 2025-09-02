@@ -19,7 +19,8 @@ import { getDoc, doc, serverTimestamp, addDoc, collection } from 'firebase/fires
 import { db } from '@/lib/firebase';
 import { formatDepartment } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { appendRequestToSheet } from '@/lib/sheets';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Label } from './ui/label';
 
 const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -33,6 +34,7 @@ export function NewRequestForm() {
   const { user: authUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const [profileData, setProfileData] = useState<User | null>(null);
   const [managers, setManagers] = useState<User[]>([]);
@@ -199,6 +201,106 @@ export function NewRequestForm() {
   
   const isFormReady = !loading && !authLoading && profileData;
 
+  const renderItems = () => {
+    if (isMobile) {
+      return (
+        <div className="space-y-4">
+          {items.map((item, index) => (
+            <Card key={item.id} className="relative pt-6">
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor={`desc-mobile-${item.id}`}>Uraian</Label>
+                  <Textarea id={`desc-mobile-${item.id}`} value={item.description} onChange={e => handleItemChange(index, 'description', e.target.value)} placeholder="Deskripsi item..." />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor={`qty-mobile-${item.id}`}>Jml</Label>
+                    <Input id={`qty-mobile-${item.id}`} type="number" value={item.qty} onChange={e => handleItemChange(index, 'qty', parseInt(e.target.value, 10) || 0)} />
+                  </div>
+                  <div>
+                    <Label htmlFor={`unit-mobile-${item.id}`}>Satuan</Label>
+                    <Input id={`unit-mobile-${item.id}`} value={item.unit} onChange={e => handleItemChange(index, 'unit', e.target.value)} placeholder="Pcs" />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor={`price-mobile-${item.id}`}>Harga/Sat.</Label>
+                  <Input id={`price-mobile-${item.id}`} type="number" value={item.price} onChange={e => handleItemChange(index, 'price', parseInt(e.target.value, 10) || 0)} placeholder="100000" />
+                </div>
+                <div>
+                  <Label htmlFor={`cat-mobile-${item.id}`}>Kategori</Label>
+                  <Select value={item.category} onValueChange={v => handleItemChange(index, 'category', v)}>
+                    <SelectTrigger id={`cat-mobile-${item.id}`}><SelectValue placeholder="Pilih..." /></SelectTrigger>
+                    <SelectContent>
+                         {budgetCategories.map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="text-right font-medium">
+                  Jumlah: {formatRupiah(item.total)}
+                </div>
+              </CardContent>
+              {items.length > 1 && (
+                  <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItem(index)} className="absolute top-1 right-1">
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+              )}
+            </Card>
+          ))}
+        </div>
+      )
+    }
+
+    return (
+      <Table>
+          <TableHeader>
+              <TableRow>
+                  <TableHead className="w-[30%]">Uraian</TableHead>
+                  <TableHead className="w-[10%]">Jml</TableHead>
+                  <TableHead className="w-[10%]">Satuan</TableHead>
+                  <TableHead className="w-[15%]">Harga/Sat.</TableHead>
+                  <TableHead className="w-[20%]">Kategori</TableHead>
+                  <TableHead className="w-[15%] text-right">Jumlah</TableHead>
+                  <TableHead className="w-12 p-0"></TableHead>
+              </TableRow>
+          </TableHeader>
+          <TableBody>
+              {items.map((item, index) => (
+                  <TableRow key={item.id} className="align-top">
+                      <TableCell className="p-1">
+                          <Textarea value={item.description} onChange={e => handleItemChange(index, 'description', e.target.value)} placeholder="Deskripsi item..." className="h-10" />
+                      </TableCell>
+                      <TableCell className="p-1">
+                          <Input type="number" value={item.qty} onChange={e => handleItemChange(index, 'qty', parseInt(e.target.value, 10) || 0)} />
+                      </TableCell>
+                      <TableCell className="p-1">
+                          <Input value={item.unit} onChange={e => handleItemChange(index, 'unit', e.target.value)} placeholder="Pcs" />
+                      </TableCell>
+                       <TableCell className="p-1">
+                          <Input type="number" value={item.price} onChange={e => handleItemChange(index, 'price', parseInt(e.target.value, 10) || 0)} placeholder="100000" />
+                      </TableCell>
+                       <TableCell className="p-1">
+                          <Select value={item.category} onValueChange={v => handleItemChange(index, 'category', v)}>
+                              <SelectTrigger><SelectValue placeholder="Pilih..." /></SelectTrigger>
+                              <SelectContent>
+                                   {budgetCategories.map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}
+                              </SelectContent>
+                          </Select>
+                      </TableCell>
+                      <TableCell className="p-1 text-right align-middle">
+                          {formatRupiah(item.total)}
+                      </TableCell>
+                      <TableCell className="p-1 align-middle">
+                          <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItem(index)} disabled={items.length <= 1}>
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                      </TableCell>
+                  </TableRow>
+              ))}
+          </TableBody>
+      </Table>
+    );
+  }
+
   if (authLoading || loading) {
       return (
           <div className="space-y-8">
@@ -245,61 +347,15 @@ export function NewRequestForm() {
           </Card>
       )}
       
-      <Card>
+      <Card className="mt-6">
           <CardHeader>
               <CardTitle>Rincian Permintaan</CardTitle>
           </CardHeader>
           <CardContent>
-              <Table>
-                  <TableHeader>
-                      <TableRow>
-                          <TableHead className="w-[30%]">Uraian</TableHead>
-                          <TableHead className="w-[10%]">Jml</TableHead>
-                          <TableHead className="w-[10%]">Satuan</TableHead>
-                          <TableHead className="w-[15%]">Harga/Sat.</TableHead>
-                          <TableHead className="w-[20%]">Kategori</TableHead>
-                          <TableHead className="w-[15%] text-right">Jumlah</TableHead>
-                          <TableHead className="w-12 p-0"></TableHead>
-                      </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                      {items.map((item, index) => (
-                          <TableRow key={item.id} className="align-top">
-                              <TableCell className="p-1">
-                                  <Textarea value={item.description} onChange={e => handleItemChange(index, 'description', e.target.value)} placeholder="Deskripsi item..." className="h-10" />
-                              </TableCell>
-                              <TableCell className="p-1">
-                                  <Input type="number" value={item.qty} onChange={e => handleItemChange(index, 'qty', parseInt(e.target.value, 10) || 0)} />
-                              </TableCell>
-                              <TableCell className="p-1">
-                                  <Input value={item.unit} onChange={e => handleItemChange(index, 'unit', e.target.value)} placeholder="Pcs" />
-                              </TableCell>
-                               <TableCell className="p-1">
-                                  <Input type="number" value={item.price} onChange={e => handleItemChange(index, 'price', parseInt(e.target.value, 10) || 0)} placeholder="100000" />
-                              </TableCell>
-                               <TableCell className="p-1">
-                                  <Select value={item.category} onValueChange={v => handleItemChange(index, 'category', v)}>
-                                      <SelectTrigger><SelectValue placeholder="Pilih..." /></SelectTrigger>
-                                      <SelectContent>
-                                           {budgetCategories.map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}
-                                      </SelectContent>
-                                  </Select>
-                              </TableCell>
-                              <TableCell className="p-1 text-right align-middle">
-                                  {formatRupiah(item.total)}
-                              </TableCell>
-                              <TableCell className="p-1 align-middle">
-                                  <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItem(index)} disabled={items.length <= 1}>
-                                      <Trash2 className="h-4 w-4 text-red-500" />
-                                  </Button>
-                              </TableCell>
-                          </TableRow>
-                      ))}
-                  </TableBody>
-              </Table>
-              <Button type="button" variant="outline" size="sm" onClick={handleAddItem} className="mt-4">
-                  <Plus className="mr-2 h-4 w-4" /> Tambah Baris
-              </Button>
+            {renderItems()}
+            <Button type="button" variant="outline" size="sm" onClick={handleAddItem} className="mt-4">
+                <Plus className="mr-2 h-4 w-4" /> Tambah Item
+            </Button>
           </CardContent>
           <CardFooter className="flex-col items-start gap-4">
                <div>
@@ -356,3 +412,5 @@ export function NewRequestForm() {
     </form>
   );
 }
+
+    
