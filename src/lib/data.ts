@@ -17,7 +17,7 @@ import {
   writeBatch,
   Timestamp,
 } from 'firebase/firestore';
-import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Notification } from './types';
+import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Notification, Role } from './types';
 import { auth, db } from './firebase';
 
 // This function now returns an unsubscribe function for the real-time listener
@@ -203,7 +203,7 @@ export async function markRequestsAsReleased(requestIds: string[], releasedBy: {
                 userId: requestData.requester.id,
                 type: 'funds_released' as const,
                 title: 'Dana Telah Dicairkan',
-                message: `Dana untuk permintaan "${requestData.items[0]?.description || 'N/A'}" telah dicairkan.`,
+                message: `Dana untuk permintaan "${requestData.items[0]?.description || 'N/A'}" (${formatRupiah(requestData.amount)}) telah dicairkan.`,
                 requestId: requestDoc.id,
                 isRead: false,
                 createdAt: serverTimestamp(),
@@ -333,24 +333,46 @@ export async function getFundAccount(id: string): Promise<FundAccount | null> {
     return null;
 }
 
+const formatRupiah = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(amount);
+};
+
 
 // --- Notifications ---
 
 export function getNotifications(
+  userRoles: Role[],
   callback: (notifications: Notification[]) => void
 ): Unsubscribe {
   const currentUser = auth.currentUser;
   if (!currentUser) {
     return () => {};
   }
+  
+  const isAdmin = userRoles.includes('Admin') || userRoles.includes('Super Admin');
 
-  const q = query(
-    collection(db, 'notifications'),
-    where('userId', '==', currentUser.uid),
-    orderBy('createdAt', 'desc')
-  );
+  let notificationsQuery;
+  if (isAdmin) {
+    // Admins see all notifications
+    notificationsQuery = query(
+        collection(db, 'notifications'),
+        orderBy('createdAt', 'desc')
+    );
+  } else {
+    // Regular users see only their own
+    notificationsQuery = query(
+        collection(db, 'notifications'),
+        where('userId', '==', currentUser.uid),
+        orderBy('createdAt', 'desc')
+    );
+  }
 
-  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+
+  const unsubscribe = onSnapshot(notificationsQuery, (querySnapshot) => {
     const notifications: Notification[] = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data();
@@ -372,4 +394,25 @@ export function getNotifications(
 export async function markNotificationAsRead(notificationId: string) {
   const notificationRef = doc(db, 'notifications', notificationId);
   await updateDoc(notificationRef, { isRead: true });
+}
+
+
+export async function deleteNotification(notificationId: string) {
+  await deleteDoc(doc(db, 'notifications', notificationId));
+}
+
+export async function deleteReadNotifications(userId: string) {
+  const q = query(
+    collection(db, 'notifications'), 
+    where('userId', '==', userId),
+    where('isRead', '==', true)
+  );
+  
+  const querySnapshot = await getDocs(q);
+  const batch = writeBatch(db);
+  querySnapshot.forEach(doc => {
+    batch.delete(doc.ref);
+  });
+  
+  await batch.commit();
 }

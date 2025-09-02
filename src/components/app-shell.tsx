@@ -102,6 +102,12 @@ function DesktopNav({ userRoles }: { userRoles: AppUser['roles'] | undefined }) 
           {item.label}
         </Link>
       ))}
+      <Button asChild>
+        <Link href="/request/new">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Permintaan Baru
+        </Link>
+      </Button>
     </nav>
   );
 }
@@ -114,35 +120,26 @@ function BottomNav() {
 
   const navItems = [
     { href: '/', label: 'Permintaan', icon: Home, requiredRoles: ['Employee'] },
-    { href: '/request/new', label: 'Baru', icon: PlusCircle, requiredRoles: ['Employee'] },
     { href: '/manager', label: 'Pengajuan', icon: Shield, requiredRoles: ['Manager', 'Admin', 'Super Admin'] },
     { href: '/release', label: 'Pencairan', icon: DollarSign, requiredRoles: ['Releaser', 'Admin', 'Super Admin'] },
     { href: '/admin', label: 'Admin', icon: Users, requiredRoles: ['Admin', 'Super Admin'] },
+    { href: '/notifications', label: 'Notifikasi', icon: Bell, requiredRoles: ['Employee', 'Manager', 'Admin', 'Super Admin', 'Releaser'] },
   ];
 
   const getNavOrder = (roles: AppUser['roles'] | undefined) => {
     if (!roles) return [];
     
-    const baseNav = [
-      navItems.find(i => i.href === '/'),
-      navItems.find(i => i.href === '/request/new'),
-    ];
-
-    if (roles.includes('Manager')) {
-      baseNav.splice(1, 0, navItems.find(i => i.href === '/manager'));
-    }
-     if (roles.includes('Releaser')) {
-      baseNav.splice(1, 0, navItems.find(i => i.href === '/release'));
-    }
-     if (roles.includes('Admin')) {
-       const adminItem = navItems.find(i => i.href === '/admin');
-       if(adminItem) {
-          baseNav.splice(1, 0, adminItem);
-       }
-    }
+    let baseNav = [];
     
-    return [...new Set(baseNav.filter(Boolean))]
-           .filter(item => item!.requiredRoles.some(role => roles.includes(role)));
+    if(roles.includes('Employee')) baseNav.push(navItems.find(i => i.href === '/'));
+    if(roles.includes('Manager')) baseNav.push(navItems.find(i => i.href === '/manager'));
+    if(roles.includes('Releaser')) baseNav.push(navItems.find(i => i.href === '/release'));
+    if(roles.includes('Admin')) baseNav.push(navItems.find(i => i.href === '/admin'));
+    
+    // Always add notifications
+    baseNav.push(navItems.find(i => i.href === '/notifications'));
+
+    return [...new Set(baseNav.filter(Boolean))];
   }
 
   const finalNavItems = getNavOrder(userRoles);
@@ -150,33 +147,41 @@ function BottomNav() {
 
   return (
     <div className="fixed bottom-0 z-10 w-full border-t bg-background/95 backdrop-blur-sm sm:hidden">
-      <nav className="flex items-center justify-around p-1">
+      <nav className="grid h-16 grid-cols-5 items-center justify-around">
         {finalNavItems.map((item) => item && (
           <Link
             key={item.href}
             href={item.href}
             className={cn(
-              "relative flex flex-1 flex-col items-center gap-1 rounded-md p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+              "relative flex flex-col items-center gap-1 p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
               (pathname.startsWith(item.href) && item.href !== '/') || pathname === item.href ? "text-primary" : "text-muted-foreground"
             )}
           >
-            <item.icon className="h-5 w-5" />
+             {item.href === '/notifications' ? <NotificationIcon /> : <item.icon className="h-5 w-5" />}
             <span>{item.label}</span>
           </Link>
         ))}
+         <div className="absolute -top-7 left-1/2 -translate-x-1/2">
+            <Button asChild className="h-14 w-14 rounded-full shadow-lg">
+                 <Link href="/request/new">
+                    <PlusCircle className="h-6 w-6" />
+                    <span className="sr-only">Permintaan Baru</span>
+                 </Link>
+            </Button>
+        </div>
       </nav>
     </div>
   );
 }
 
-function NotificationBell() {
+function NotificationIcon() {
     const { user } = useAuth();
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
         let unsubscribe: () => void;
-        if (user) {
-            unsubscribe = getNotifications((notifications: Notification[]) => {
+        if (user && user.profile) {
+            unsubscribe = getNotifications(user.profile.roles, (notifications: Notification[]) => {
                 const count = notifications.filter(n => !n.isRead).length;
                 setUnreadCount(count);
             });
@@ -187,14 +192,22 @@ function NotificationBell() {
     }, [user]);
 
     return (
+        <>
+            <Bell className="h-5 w-5" />
+             {unreadCount > 0 && (
+                <div className="absolute top-1 right-3.5 flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 border-2 border-background rounded-full">
+                   {unreadCount > 9 ? '9+' : unreadCount}
+                </div>
+            )}
+        </>
+    )
+}
+
+function NotificationBell() {
+    return (
         <Button asChild variant="ghost" size="icon" className="relative">
             <Link href="/notifications">
-                <Bell className="h-5 w-5" />
-                {unreadCount > 0 && (
-                    <div className="absolute top-1.5 right-1.5 flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 border-2 border-background rounded-full">
-                       {unreadCount > 9 ? '9+' : unreadCount}
-                    </div>
-                )}
+                <NotificationIcon />
                  <span className="sr-only">Notifications</span>
             </Link>
         </Button>

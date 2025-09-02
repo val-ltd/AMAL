@@ -16,7 +16,7 @@ import { getManagers, getUser, getBudgetCategories } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { getDoc, doc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
+import { getDoc, doc, serverTimestamp, addDoc, collection, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatDepartment } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -186,24 +186,36 @@ export function NewRequestForm() {
       };
 
       const docRef = await addDoc(collection(db, 'requests'), newRequestData);
-      
+      const batch = writeBatch(db);
+
       // Create notification for supervisor
-      const notificationData = {
+      const supervisorNotification = {
           userId: supervisor.id,
           type: 'new_request' as const,
           title: 'Permintaan Anggaran Baru',
-          message: `${profileData.name} telah mengajukan permintaan baru untuk "${items[0]?.description || 'N/A'}".`,
+          message: `${profileData.name} mengajukan permintaan baru (${formatRupiah(totalAmount)}) untuk ditinjau.`,
           requestId: docRef.id,
           isRead: false,
           createdAt: serverTimestamp(),
-          createdBy: {
-              id: authUser.uid,
-              name: profileData.name,
-              avatarUrl: profileData.avatarUrl,
-          }
+          createdBy: newRequestData.requester
       };
-      await addDoc(collection(db, 'notifications'), notificationData);
+      batch.set(doc(collection(db, 'notifications')), supervisorNotification);
       
+      // Create notification for requester
+      const requesterNotification = {
+          userId: authUser.uid,
+          type: 'request_submitted' as const,
+          title: 'Permintaan Terkirim',
+          message: `Permintaan Anda (${formatRupiah(totalAmount)}) telah dikirim ke ${supervisor.name} untuk ditinjau.`,
+          requestId: docRef.id,
+          isRead: false,
+          createdAt: serverTimestamp(),
+          createdBy: { id: 'system', name: 'System' }
+      };
+      batch.set(doc(collection(db, 'notifications')), requesterNotification);
+      
+      await batch.commit();
+
       // We are not awaiting this. Let it run in the background.
       appendRequestToSheet({
         id: docRef.id,
@@ -243,8 +255,8 @@ export function NewRequestForm() {
             <Card key={item.id} className="relative pt-6">
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor={`desc-mobile-${item.id}`}>Uraian</Label>
-                  <Textarea id={`desc-mobile-${item.id}`} value={item.description} onChange={e => handleItemChange(index, 'description', e.target.value)} placeholder="Deskripsi item..." />
+                  <Label htmlFor={`desc-mobile-${item.id}`}>Item</Label>
+                  <Input id={`desc-mobile-${item.id}`} value={item.description} onChange={e => handleItemChange(index, 'description', e.target.value)} placeholder="Nama item..." />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -288,7 +300,7 @@ export function NewRequestForm() {
       <Table>
           <TableHeader>
               <TableRow>
-                  <TableHead className="w-[30%]">Uraian</TableHead>
+                  <TableHead className="w-[30%]">Item</TableHead>
                   <TableHead className="w-[10%]">Jml</TableHead>
                   <TableHead className="w-[10%]">Satuan</TableHead>
                   <TableHead className="w-[15%]">Harga/Sat.</TableHead>
@@ -301,7 +313,7 @@ export function NewRequestForm() {
               {items.map((item, index) => (
                   <TableRow key={item.id} className="align-top">
                       <TableCell className="p-1">
-                          <Textarea value={item.description} onChange={e => handleItemChange(index, 'description', e.target.value)} placeholder="Deskripsi item..." className="h-10" />
+                          <Input value={item.description} onChange={e => handleItemChange(index, 'description', e.target.value)} placeholder="Nama item..." />
                       </TableCell>
                       <TableCell className="p-1">
                           <Input type="number" value={item.qty} onChange={e => handleItemChange(index, 'qty', parseInt(e.target.value, 10) || 0)} />

@@ -2,7 +2,7 @@
 
 'use client';
 
-import type { BudgetRequest } from '@/lib/types';
+import type { BudgetRequest, FundAccount } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import StatusBadge from '../status-badge';
 import { format } from 'date-fns';
@@ -23,10 +23,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Building, Eye, Loader2, ThumbsDown, ThumbsUp, UserCheck } from 'lucide-react';
 import { formatDepartment } from '@/lib/utils';
 import { Separator } from '../ui/separator';
-import { doc, serverTimestamp, updateDoc, collection, addDoc } from 'firebase/firestore';
+import { doc, serverTimestamp, updateDoc, collection, addDoc, writeBatch, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { useAuth } from '@/hooks/use-auth';
+import { getFundAccounts } from '@/lib/data';
 
 interface ApprovalDialogProps {
   request: BudgetRequest;
@@ -34,42 +35,54 @@ interface ApprovalDialogProps {
   triggerButton?: React.ReactNode;
 }
 
-export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false, triggerButton }: ApprovalDialogProps) {
-  const { user: managerUser } = useAuth();
-  const [comment, setComment] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [open, setOpen] = useState(false);
-  const { toast } = useToast();
-  
-  // A request is always read-only if its status is 'released' or if the initial prop says so.
-  const isReadOnly = initialIsReadOnly || request.status === 'released';
-
-  const formatRupiah = (amount: number) => {
+const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(amount);
-  };
+};
+
+
+export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false, triggerButton }: ApprovalDialogProps) {
+  const { user: managerUser } = useAuth();
+  const [comment, setComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [fundAccounts, setFundAccounts] = useState<FundAccount[]>([]);
+  const { toast } = useToast();
+  
+  useEffect(() => {
+    if (open) {
+      getFundAccounts().then(setFundAccounts);
+    }
+  }, [open]);
+
+  // A request is always read-only if its status is 'released' or if the initial prop says so.
+  const isReadOnly = initialIsReadOnly || request.status === 'released';
 
   const handleSubmit = async (status: 'approved' | 'rejected') => {
     if (isReadOnly || !managerUser?.profile) return;
 
     setIsSubmitting(true);
     try {
+        const batch = writeBatch(db);
         const requestRef = doc(db, 'requests', request.id);
-        await updateDoc(requestRef, {
+        batch.update(requestRef, {
             status,
             managerComment: comment,
             updatedAt: serverTimestamp(),
         });
 
-        // Create notification for the requester
-        const notificationData = {
+        const firstItemDesc = request.items[0]?.description || 'N/A';
+        const amountFormatted = formatRupiah(request.amount);
+
+        // Notify requester
+        const requesterNotification = {
             userId: request.requester.id,
             type: status === 'approved' ? 'request_approved' : 'request_rejected',
             title: `Permintaan ${status === 'approved' ? 'Disetujui' : 'Ditolak'}`,
-            message: `Permintaan Anda untuk "${request.items[0]?.description || 'N/A'}" telah di${status === 'approved' ? 'setujui' : 'tolak'}.`,
+            message: `Permintaan Anda untuk "${firstItemDesc}" (${amountFormatted}) telah di${status === 'approved' ? 'setujui' : 'tolak'} oleh ${managerUser.profile.name}.`,
             requestId: request.id,
             isRead: false,
             createdAt: serverTimestamp(),
@@ -79,8 +92,31 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                 avatarUrl: managerUser.profile.avatarUrl,
             }
         };
-        await addDoc(collection(db, 'notifications'), notificationData);
-
+        batch.set(doc(collection(db, 'notifications')), requesterNotification);
+        
+        // If approved, notify releasers
+        if (status === 'approved') {
+            const releaserQuery = query(collection(db, 'users'), where('roles', 'array-contains', 'Releaser'));
+            const releaserSnapshot = await getDocs(releaserQuery);
+            releaserSnapshot.forEach(releaserDoc => {
+                const releaserNotification = {
+                    userId: releaserDoc.id,
+                    type: 'ready_for_release' as const,
+                    title: 'Siap Dicairkan',
+                    message: `Permintaan dari ${request.requester.name} (${amountFormatted}) telah disetujui dan siap untuk dicairkan.`,
+                    requestId: request.id,
+                    isRead: false,
+                    createdAt: serverTimestamp(),
+                    createdBy: {
+                        id: managerUser.uid,
+                        name: managerUser.profile.name,
+                    }
+                };
+                batch.set(doc(collection(db, 'notifications')), releaserNotification);
+            });
+        }
+        
+        await batch.commit();
 
         toast({
             title: `Permintaan ${status === 'approved' ? 'Disetujui' : 'Ditolak'}`,

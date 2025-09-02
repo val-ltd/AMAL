@@ -107,7 +107,7 @@ export interface FundAccount {
 export interface Notification {
   id: string;
   userId: string; // The user who receives the notification
-  type: 'new_request' | 'request_approved' | 'request_rejected' | 'funds_released';
+  type: 'new_request' | 'request_approved' | 'request_rejected' | 'funds_released' | 'request_submitted' | 'ready_for_release';
   title: string;
   message: string;
   requestId: string;
