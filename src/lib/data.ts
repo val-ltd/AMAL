@@ -251,6 +251,32 @@ export async function getDepartments(): Promise<Department[]> {
     return departments;
 }
 
+export async function getDepartmentsByIds(ids: string[]): Promise<Department[]> {
+    if (!ids || ids.length === 0) {
+        return [];
+    }
+    // Firestore 'in' query can take up to 30 items. If more, split into chunks.
+    const chunks: string[][] = [];
+    for (let i = 0; i < ids.length; i += 30) {
+        chunks.push(ids.slice(i, i + 30));
+    }
+
+    const departmentPromises = chunks.map(chunk => 
+        getDocs(query(collection(db, 'departments'), where('__name__', 'in', chunk)))
+    );
+    
+    const querySnapshots = await Promise.all(departmentPromises);
+    
+    const departments: Department[] = [];
+    querySnapshots.forEach(snapshot => {
+        snapshot.forEach(doc => {
+            departments.push({ id: doc.id, ...doc.data() } as Department);
+        });
+    });
+
+    return departments;
+}
+
 export async function getBudgetCategories(): Promise<BudgetCategory[]> {
     const q = query(collection(db, 'budgetCategories'), orderBy('name'));
     const querySnapshot = await getDocs(q);

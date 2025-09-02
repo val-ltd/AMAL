@@ -5,26 +5,33 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, User as UserIcon, Landmark } from "lucide-react";
+import { LogOut, User as UserIcon, Landmark, Building, Layers, Briefcase, Dot } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { User } from "@/lib/types";
-import { getUser } from "@/lib/data";
+import type { User, Department } from "@/lib/types";
+import { getUser, getDepartmentsByIds } from "@/lib/data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { EditProfileDialog } from "@/components/profile/edit-profile-dialog";
+import { formatDepartment } from "@/lib/utils";
 
 export default function ProfilePage() {
     const { user: authUser, logout } = useAuth();
     const [profileData, setProfileData] = useState<User | null>(null);
+    const [departments, setDepartments] = useState<Department[]>([]);
     const [loading, setLoading] = useState(true);
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
     const fetchProfileData = async () => {
         if (authUser) {
             setLoading(true);
             const data = await getUser(authUser.uid);
             setProfileData(data);
+            if (data?.departmentIds && data.departmentIds.length > 0) {
+                const deptData = await getDepartmentsByIds(data.departmentIds);
+                setDepartments(deptData);
+            } else {
+                setDepartments([]);
+            }
             setLoading(false);
         }
     }
@@ -53,8 +60,8 @@ export default function ProfilePage() {
     const roles = Array.isArray(profileData.roles) ? profileData.roles : [profileData.roles].filter(Boolean);
 
     return (
-      <div className="flex justify-center items-start pt-8">
-        <Card className="w-full max-w-2xl">
+      <div className="mx-auto max-w-2xl space-y-8">
+        <Card>
             <CardHeader className="items-center text-center">
                 <Avatar className="h-24 w-24 mb-4">
                     <AvatarImage src={profileData.avatarUrl ?? ''} alt={profileData.name ?? ''} data-ai-hint="person" />
@@ -68,24 +75,12 @@ export default function ProfilePage() {
                     <h3 className="font-semibold text-lg text-center mb-4">Informasi Pengguna</h3>
                      <div className="grid md:grid-cols-2 gap-4">
                         <div className="flex justify-between">
-                            <p className="text-muted-foreground">Posisi</p>
-                            <p className="font-medium text-right">{profileData.position || 'N/A'}</p>
-                        </div>
-                        <div className="flex justify-between">
                             <p className="text-muted-foreground">Jenis Kelamin</p>
                             <p className="font-medium text-right">{profileData.gender || 'N/A'}</p>
                         </div>
                         <div className="flex justify-between">
-                            <p className="text-muted-foreground">Lembaga</p>
-                            <p className="font-medium text-right">{profileData.institution || 'N/A'}</p>
-                        </div>
-                         <div className="flex justify-between">
                             <p className="text-muted-foreground">Telepon</p>
                             <p className="font-medium text-right">{profileData.phoneNumber || 'N/A'}</p>
-                        </div>
-                        <div className="flex justify-between md:col-span-2">
-                            <p className="text-muted-foreground">Divisi</p>
-                            <p className="font-medium text-right">{profileData.division || 'N/A'}</p>
                         </div>
                         <div className="flex justify-between md:col-span-2">
                             <p className="text-muted-foreground">Alamat</p>
@@ -131,25 +126,58 @@ export default function ProfilePage() {
                      )}
                 </div>
                 
-                <EditProfileDialog 
-                    user={profileData} 
-                    onProfileUpdate={handleProfileUpdate}
-                />
-
-                <Button variant="destructive" className="w-full justify-start" onClick={logout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Keluar</span>
-                </Button>
+                <div className="flex flex-col gap-2">
+                    <EditProfileDialog 
+                        user={profileData} 
+                        onProfileUpdate={handleProfileUpdate}
+                    />
+                    <Button variant="destructive" className="w-full justify-start" onClick={logout}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Keluar</span>
+                    </Button>
+                </div>
             </CardContent>
         </Card>
+        
+        {departments.length > 0 && (
+            departments.map(dept => (
+                <Card key={dept.id}>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Informasi Departemen</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                        <div className="flex items-center gap-3">
+                            <Building className="w-4 h-4 text-muted-foreground" />
+                            <p><span className="text-muted-foreground">Lembaga:</span> {dept.lembaga}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Layers className="w-4 h-4 text-muted-foreground" />
+                            <p><span className="text-muted-foreground">Divisi:</span> {dept.divisi}</p>
+                        </div>
+                       {dept.bagian && (
+                         <div className="flex items-center gap-3">
+                            <Briefcase className="w-4 h-4 text-muted-foreground" />
+                            <p><span className="text-muted-foreground">Bagian:</span> {dept.bagian}</p>
+                        </div>
+                       )}
+                       {dept.unit && (
+                         <div className="flex items-center gap-3">
+                            <Dot className="w-4 h-4 text-muted-foreground" />
+                            <p><span className="text-muted-foreground">Unit:</span> {dept.unit}</p>
+                        </div>
+                       )}
+                    </CardContent>
+                </Card>
+            ))
+        )}
       </div>
     )
 }
 
 function ProfileSkeleton() {
     return (
-      <div className="flex justify-center items-start pt-8">
-        <Card className="w-full max-w-lg">
+      <div className="mx-auto max-w-2xl space-y-8">
+        <Card>
             <CardHeader className="items-center text-center">
                 <Skeleton className="h-24 w-24 rounded-full mb-4" />
                 <Skeleton className="h-8 w-48" />
@@ -173,6 +201,15 @@ function ProfileSkeleton() {
                     <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />
                 </div>
+            </CardContent>
+        </Card>
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-7 w-48" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-5 w-full" />
             </CardContent>
         </Card>
       </div>
