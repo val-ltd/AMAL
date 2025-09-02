@@ -5,12 +5,13 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 import { getDocs, collection, query, where, documentId } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { BudgetRequest } from '@/lib/types';
+import type { BudgetRequest, FundAccount } from '@/lib/types';
 import { ReleaseMemo } from '@/components/release/release-memo';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Frown, Printer, FileWarning } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getFundAccount } from '@/lib/data';
 
 // Group requests by Lembaga
 const groupRequestsByLembaga = (requests: BudgetRequest[]) => {
@@ -27,21 +28,27 @@ const groupRequestsByLembaga = (requests: BudgetRequest[]) => {
 function PrintPageContent() {
     const searchParams = useSearchParams();
     const [groupedRequests, setGroupedRequests] = useState<Record<string, BudgetRequest[]> | null>(null);
+    const [fundAccount, setFundAccount] = useState<FundAccount | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [totalRequestCount, setTotalRequestCount] = useState(0);
 
     useEffect(() => {
         const fetchRequests = async () => {
             const idsParam = searchParams.get('ids');
+            const fundSourceId = searchParams.get('fundSourceId');
+
             if (!idsParam) {
                 setError('Tidak ada ID permintaan yang diberikan.');
                 setLoading(false);
                 return;
             }
+            if (!fundSourceId) {
+                setError('Tidak ada sumber dana yang dipilih.');
+                setLoading(false);
+                return;
+            }
 
             const requestIds = idsParam.split(',');
-            setTotalRequestCount(requestIds.length);
             
             if (requestIds.length === 0) {
                  setError('Daftar ID permintaan kosong.');
@@ -50,6 +57,15 @@ function PrintPageContent() {
             }
 
             try {
+                const [fundSource] = await Promise.all([getFundAccount(fundSourceId)]);
+                
+                if (!fundSource) {
+                  setError('Sumber dana yang dipilih tidak ditemukan.');
+                  setLoading(false);
+                  return;
+                }
+                setFundAccount(fundSource);
+
                 const requests: BudgetRequest[] = [];
                 // Firestore 'in' query is limited to 30 elements. We need to batch the requests.
                 const idBatches: string[][] = [];
@@ -116,7 +132,7 @@ function PrintPageContent() {
         )
     }
 
-    if (!groupedRequests || Object.keys(groupedRequests).length === 0) {
+    if (!groupedRequests || Object.keys(groupedRequests).length === 0 || !fundAccount) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen gap-4">
                 <Frown className="w-16 h-16 text-muted-foreground" />
@@ -140,7 +156,7 @@ function PrintPageContent() {
           {Object.entries(groupedRequests).map(([lembaga, requests]) => (
             requests.length > 0 && (
                 <div key={lembaga} className="bg-white shadow-lg">
-                  <ReleaseMemo requests={requests} lembaga={lembaga} />
+                  <ReleaseMemo requests={requests} lembaga={lembaga} fundAccount={fundAccount} />
                 </div>
             )
           ))}

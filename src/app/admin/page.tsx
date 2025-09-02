@@ -2,7 +2,7 @@
 'use client'
 
 import { useEffect, useState } from "react";
-import { User, Department, BudgetCategory } from "@/lib/types";
+import { User, Department, BudgetCategory, FundAccount } from "@/lib/types";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,12 +15,15 @@ import { CategoryManagementTab } from "@/components/admin/category-management-ta
 import { SaveCategoryDialog } from "@/components/admin/save-category-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { FundAccountManagementTab } from "@/components/admin/fund-account-management-tab";
+import { SaveFundAccountDialog } from "@/components/admin/save-fund-account-dialog";
 
 export default function AdminPage() {
   const { user: authUser, loading: authLoading } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [categories, setCategories] = useState<BudgetCategory[]>([]);
+  const [fundAccounts, setFundAccounts] = useState<FundAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("users");
   
@@ -35,6 +38,7 @@ export default function AdminPage() {
         const usersQuery = query(collection(db, 'users'), orderBy('name', 'asc'));
         const departmentsQuery = query(collection(db, 'departments'), orderBy('lembaga', 'asc'), orderBy('divisi', 'asc'));
         const categoriesQuery = query(collection(db, 'budgetCategories'), orderBy('name', 'asc'));
+        const fundAccountsQuery = query(collection(db, 'fundAccounts'), orderBy('accountName', 'asc'));
 
         const unsubUsers = onSnapshot(usersQuery, (snapshot) => {
             setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)));
@@ -53,6 +57,12 @@ export default function AdminPage() {
             if(activeTab === 'categories') setLoading(false);
         });
         unsubscribers.push(unsubCategories);
+
+        const unsubFundAccounts = onSnapshot(fundAccountsQuery, (snapshot) => {
+            setFundAccounts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FundAccount)));
+            if(activeTab === 'fundAccounts') setLoading(false);
+        });
+        unsubscribers.push(unsubFundAccounts);
 
     } else if (!authLoading) {
       setLoading(false);
@@ -92,6 +102,8 @@ export default function AdminPage() {
         return <SaveDepartmentDialog />;
       case 'categories':
         return <SaveCategoryDialog />;
+      case 'fundAccounts':
+        return <SaveFundAccountDialog />;
       default:
         return null;
     }
@@ -105,10 +117,11 @@ export default function AdminPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(value) => { setLoading(true); setActiveTab(value); }}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="users">Pengguna</TabsTrigger>
           <TabsTrigger value="departments">Departemen</TabsTrigger>
           <TabsTrigger value="categories">Kategori Anggaran</TabsTrigger>
+          <TabsTrigger value="fundAccounts">Sumber Dana</TabsTrigger>
         </TabsList>
         <TabsContent value="users">
             <UserManagementTab users={users} loading={loading} departments={departments} />
@@ -118,6 +131,9 @@ export default function AdminPage() {
         </TabsContent>
         <TabsContent value="categories">
             <CategoryManagementTab categories={categories} loading={loading} />
+        </TabsContent>
+        <TabsContent value="fundAccounts">
+            <FundAccountManagementTab fundAccounts={fundAccounts} loading={loading} />
         </TabsContent>
       </Tabs>
     </div>

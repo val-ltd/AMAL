@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { BudgetRequest } from "@/lib/types";
+import type { BudgetRequest, FundAccount } from "@/lib/types";
 import Image from "next/image";
 import { Button } from "../ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
@@ -17,6 +17,7 @@ import { Separator } from "../ui/separator";
 interface ReleaseMemoProps {
     requests: BudgetRequest[];
     lembaga: string;
+    fundAccount: FundAccount;
 }
 
 const formatRupiah = (amount: number) => {
@@ -75,7 +76,7 @@ const numberToWords = (num: number): string => {
 };
 
 
-export function ReleaseMemo({ requests, lembaga }: ReleaseMemoProps) {
+export function ReleaseMemo({ requests, lembaga, fundAccount }: ReleaseMemoProps) {
     const { user } = useAuth();
     const { toast } = useToast();
     const [isReleasing, setIsReleasing] = useState(false);
@@ -93,11 +94,12 @@ export function ReleaseMemo({ requests, lembaga }: ReleaseMemoProps) {
         const requestIds = requests.map(req => req.id);
         
         try {
-            await markRequestsAsReleased(requestIds, { id: user.uid, name: user.displayName || 'Unknown Releaser' });
+            await markRequestsAsReleased(requestIds, { id: user.uid, name: user.displayName || 'Unknown Releaser' }, fundAccount.id);
             toast({
                 title: 'Dana Dicairkan',
                 description: `${requests.length} permintaan telah ditandai sebagai dicairkan.`,
             });
+            window.close(); // Close the print preview tab
         } catch (error) {
             console.error("Failed to release funds:", error);
             toast({ title: 'Gagal Mencairkan Dana', description: 'Terjadi kesalahan.', variant: 'destructive' });
@@ -207,10 +209,10 @@ export function ReleaseMemo({ requests, lembaga }: ReleaseMemoProps) {
             <Separator className="my-6" />
 
             <div className="text-sm space-y-2">
-                <p>Adapun sumber dana anggaran diatas dialokasikan dari rekening WISATA QUR'AN (WQ)</p>
-                <p><span className="font-semibold">Atas nama:</span> YASAQU WADI MUBARAK DAFTAR WQ</p>
-                <p><span className="font-semibold">No. Rekening:</span> 7114537998</p>
-                <p><span className="font-semibold">Nama Bank:</span> BANK SYARIAH INDONESIA (BSI) CABANG KK WARUNG JAMBU ( 451)</p>
+                <p>Adapun sumber dana anggaran diatas dialokasikan dari rekening {fundAccount.accountName}</p>
+                <p><span className="font-semibold">Atas nama:</span> {fundAccount.accountName}</p>
+                <p><span className="font-semibold">No. Rekening:</span> {fundAccount.accountNumber}</p>
+                <p><span className="font-semibold">Nama Bank:</span> {fundAccount.bankName}</p>
             </div>
             <p className="mt-4 text-sm">Dengan ini, Kami mohon kepada Kasir, agar dapat merealisasikan anggaran yang telah disetujui oleh Kepala Manajemen.</p>
 

@@ -16,7 +16,7 @@ import {
   deleteDoc,
   writeBatch,
 } from 'firebase/firestore';
-import type { BudgetRequest, User, Department, BudgetCategory } from './types';
+import type { BudgetRequest, User, Department, BudgetCategory, FundAccount } from './types';
 import { auth, db } from './firebase';
 
 // This function now returns an unsubscribe function for the real-time listener
@@ -177,7 +177,7 @@ export async function updateRequest(
     return undefined;
 }
 
-export async function markRequestsAsReleased(requestIds: string[], releasedBy: {id: string, name: string}): Promise<void> {
+export async function markRequestsAsReleased(requestIds: string[], releasedBy: {id: string, name: string}, fundSourceId: string): Promise<void> {
     const batch = writeBatch(db);
     
     requestIds.forEach(id => {
@@ -186,6 +186,7 @@ export async function markRequestsAsReleased(requestIds: string[], releasedBy: {
             status: 'released',
             releasedAt: serverTimestamp(),
             releasedBy: releasedBy,
+            fundSourceId: fundSourceId,
             updatedAt: serverTimestamp()
         });
     });
@@ -258,4 +259,24 @@ export async function getBudgetCategories(): Promise<BudgetCategory[]> {
         categories.push({ id: doc.id, ...doc.data() } as BudgetCategory);
     });
     return categories;
+}
+
+export async function getFundAccounts(): Promise<FundAccount[]> {
+    const q = query(collection(db, 'fundAccounts'), orderBy('accountName'));
+    const querySnapshot = await getDocs(q);
+    const accounts: FundAccount[] = [];
+    querySnapshot.forEach((doc) => {
+        accounts.push({ id: doc.id, ...doc.data() } as FundAccount);
+    });
+    return accounts;
+}
+
+export async function getFundAccount(id: string): Promise<FundAccount | null> {
+    if (!id) return null;
+    const docRef = doc(db, 'fundAccounts', id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as FundAccount;
+    }
+    return null;
 }

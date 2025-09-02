@@ -166,6 +166,13 @@ const budgetCategories = [
   { name: "22. Tunjangan Hari Raya (THR)" },
 ];
 
+const fundAccounts = [
+    { accountName: "YASAQU WADI MUBARAK DAFTAR WQ", accountNumber: "7114537998", bankName: "BANK SYARIAH INDONESIA (BSI) CABANG KK WARUNG JAMBU (451)" },
+    { accountName: "Rekening Operasional Utama", accountNumber: "1234567890", bankName: "Bank Central Asia (BCA)" },
+    { accountName: "Dana Sosial", accountNumber: "0987654321", bankName: "Bank Mandiri" }
+];
+
+
 // --- Seeding logic ---
 
 async function seed() {
@@ -253,6 +260,19 @@ async function seed() {
       console.log(`Added category: ${category.name}`);
     } else {
       console.log(`Category "${category.name}" already exists. Skipping.`);
+    }
+  }
+  
+  // Seed fund accounts
+  console.log('\nSeeding fund accounts...');
+  const fundAccountsCollection = db.collection('fundAccounts');
+  for (const account of fundAccounts) {
+    const querySnapshot = await fundAccountsCollection.where('accountNumber', '==', account.accountNumber).get();
+    if (querySnapshot.empty) {
+      await fundAccountsCollection.add(account);
+      console.log(`Added fund account: ${account.accountName}`);
+    } else {
+      console.log(`Fund account "${account.accountName}" already exists. Skipping.`);
     }
   }
 

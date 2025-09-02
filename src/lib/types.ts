@@ -1,4 +1,5 @@
 
+
 export type Role = 'Admin' | 'Manager' | 'Employee' | 'Super Admin' | 'Releaser';
 
 export interface User {
@@ -55,6 +56,7 @@ export interface BudgetRequest {
     name: string;
   };
   additionalInfo?: string;
+  fundSourceId?: string;
 }
 
 export interface Department {
@@ -68,4 +70,11 @@ export interface Department {
 export interface BudgetCategory {
     id: string;
     name: string;
+}
+
+export interface FundAccount {
+    id: string;
+    accountName: string;
+    accountNumber: string;
+    bankName: string;
 }

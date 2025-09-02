@@ -3,8 +3,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { getApprovedUnreleasedRequests } from "@/lib/data";
-import type { BudgetRequest } from "@/lib/types";
+import { getApprovedUnreleasedRequests, getFundAccounts } from "@/lib/data";
+import type { BudgetRequest, FundAccount } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DollarSign, ShieldAlert, FileText, Inbox, Printer } from "lucide-react";
@@ -15,6 +15,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { useRouter } from "next/navigation";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -28,8 +30,10 @@ export default function ReleasePage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [allRequests, setAllRequests] = useState<BudgetRequest[]>([]);
+  const [fundAccounts, setFundAccounts] = useState<FundAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
+  const [selectedFundAccountId, setSelectedFundAccountId] = useState<string>('');
   
   const userRoles = user?.profile?.roles;
   const isAuthorized = userRoles?.includes('Releaser') || userRoles?.includes('Admin') || userRoles?.includes('Super Admin');
@@ -38,6 +42,14 @@ export default function ReleasePage() {
     let unsubscribe: (() => void) | undefined;
     if (isAuthorized) {
       setLoading(true);
+      
+      getFundAccounts().then(accounts => {
+        setFundAccounts(accounts);
+        if (accounts.length > 0) {
+            setSelectedFundAccountId(accounts[0].id);
+        }
+      });
+      
       unsubscribe = getApprovedUnreleasedRequests((fetchedRequests) => {
         setAllRequests(fetchedRequests);
         setLoading(false);
@@ -52,8 +64,11 @@ export default function ReleasePage() {
   }, [isAuthorized, authLoading]);
 
   const handlePreviewMemo = () => {
-    if (selectedRequestIds.length > 0) {
-      const query = new URLSearchParams({ ids: selectedRequestIds.join(',') });
+    if (selectedRequestIds.length > 0 && selectedFundAccountId) {
+      const query = new URLSearchParams({ 
+          ids: selectedRequestIds.join(','),
+          fundSourceId: selectedFundAccountId 
+      });
       const url = `/release/print?${query.toString()}`;
       window.open(url, '_blank');
     }
@@ -101,12 +116,29 @@ export default function ReleasePage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between no-print">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 no-print">
         <h1 className="text-3xl font-bold tracking-tight">Pencairan Dana</h1>
-        <Button onClick={handlePreviewMemo} disabled={selectedRequestIds.length === 0}>
-            <Printer className="mr-2 h-4 w-4" />
-            Lihat Pratinjau Cetak ({selectedRequestIds.length})
-        </Button>
+        <div className="flex items-end gap-4 w-full sm:w-auto">
+            <div className="grid w-full max-w-sm items-center gap-1.5">
+                <Label htmlFor="fund-source">Sumber Dana</Label>
+                <Select value={selectedFundAccountId} onValueChange={setSelectedFundAccountId}>
+                    <SelectTrigger id="fund-source">
+                        <SelectValue placeholder="Pilih sumber dana..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {fundAccounts.map(account => (
+                            <SelectItem key={account.id} value={account.id}>
+                                {account.accountName} - {account.bankName} ({account.accountNumber})
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <Button onClick={handlePreviewMemo} disabled={selectedRequestIds.length === 0 || !selectedFundAccountId}>
+                <Printer className="mr-2 h-4 w-4" />
+                Lihat Pratinjau Cetak ({selectedRequestIds.length})
+            </Button>
+        </div>
       </div>
 
       <Card className="no-print">
