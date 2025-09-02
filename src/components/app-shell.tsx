@@ -67,15 +67,15 @@ function Header() {
   const showFullHeader = authUser && isVerified;
 
   return (
-    <header className="sticky top-0 z-10 hidden items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:flex h-16">
+    <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm h-16">
       <div className="flex items-center gap-6">
         <Logo />
         {showFullHeader && <DesktopNav userRoles={authUser.profile?.roles} />}
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         {showFullHeader && (
           <>
-            <Button asChild>
+            <Button asChild className="hidden sm:flex">
                 <Link href="/request/new">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Permintaan Baru
@@ -105,7 +105,7 @@ function DesktopNav({ userRoles }: { userRoles: AppUser['roles'] | undefined }) 
   );
 
   return (
-    <nav className="flex items-center gap-4">
+    <nav className="hidden sm:flex items-center gap-4">
       {availableNavItems.map((item) => (
         <Link
           key={item.href}
@@ -200,7 +200,7 @@ function NotificationBell() {
     return (
         <Popover>
             <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
+                <Button variant="ghost" size="icon" className="relative hidden sm:inline-flex">
                     <Bell className="h-5 w-5" />
                     {unreadCount > 0 && (
                         <div className="absolute top-1.5 right-1.5 flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 border-2 border-background rounded-full">
@@ -244,7 +244,7 @@ function UserMenu() {
               <span className="font-medium">{user.displayName}</span>
               <span className="text-xs text-muted-foreground">{user.email}</span>
             </div>
-            <ChevronDown className="ml-1 h-4 w-4 text-muted-foreground" />
+             <ChevronDown className="ml-1 h-4 w-4 text-muted-foreground hidden sm:inline" />
           </div>
         </Button>
       </DropdownMenuTrigger>
