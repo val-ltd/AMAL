@@ -211,7 +211,7 @@ export function NewRequestForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {profileData && (
           <Card className="bg-muted/50">
               <CardHeader>
