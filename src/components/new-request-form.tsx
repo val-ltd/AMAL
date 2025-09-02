@@ -6,11 +6,11 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, WalletCards } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import type { User, Department, BudgetCategory, RequestItem } from '@/lib/types';
+import type { User, Department, BudgetCategory, RequestItem, UserBankAccount } from '@/lib/types';
 import { getManagers, getUser, getBudgetCategories } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -22,6 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Label } from './ui/label';
 import { appendRequestToSheet } from '@/lib/sheets';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 
 const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -50,6 +51,8 @@ export function NewRequestForm() {
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [supervisorId, setSupervisorId] = useState('');
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Transfer'>('Cash');
+  const [reimbursementAccountId, setReimbursementAccountId] = useState<string>('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -68,6 +71,10 @@ export function NewRequestForm() {
                 setProfileData(userProfile);
                 setManagers(managerList);
                 setBudgetCategories(categoryList);
+                
+                if (userProfile?.bankAccounts && userProfile.bankAccounts.length > 0) {
+                    setReimbursementAccountId(userProfile.bankAccounts[0].accountNumber);
+                }
 
                 if(userProfile?.departmentIds && userProfile.departmentIds.length > 0) {
                   const deptPromises = userProfile.departmentIds.map(id => getDoc(doc(db, 'departments', id)));
@@ -133,6 +140,10 @@ export function NewRequestForm() {
         setFormError("Data pengguna tidak ditemukan. Silakan login kembali.");
         return;
     }
+    if (paymentMethod === 'Transfer' && !reimbursementAccountId) {
+        setFormError("Pilih rekening untuk pembayaran transfer.");
+        return;
+    }
 
     setIsSubmitting(true);
 
@@ -142,6 +153,8 @@ export function NewRequestForm() {
       
       const selectedDepartment = userDepartments.find(d => d.id === selectedDepartmentId);
       if(!selectedDepartment && userDepartments.length > 0) throw new Error("Departemen yang dipilih tidak valid.");
+
+      const reimbursementAccount = profileData.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
 
       const newRequestData = {
           items: items.map(({id, ...rest}) => rest), // Remove temporary frontend ID
@@ -164,6 +177,8 @@ export function NewRequestForm() {
               id: supervisor.id,
               name: supervisor.name,
           },
+          paymentMethod,
+          reimbursementAccount: paymentMethod === 'Transfer' ? reimbursementAccount : undefined,
           status: 'pending' as const,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -376,6 +391,49 @@ export function NewRequestForm() {
                 </div>
               </div>
           </CardFooter>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Metode Pembayaran</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+            <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)} className="flex space-x-4">
+                <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Cash" id="cash"/>
+                    <Label htmlFor="cash">Tunai</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Transfer" id="transfer"/>
+                    <Label htmlFor="transfer">Transfer</Label>
+                </div>
+            </RadioGroup>
+            {paymentMethod === 'Transfer' && (
+                <div>
+                    <Label htmlFor="reimbursementAccount">Rekening Penerima</Label>
+                    {(profileData?.bankAccounts && profileData.bankAccounts.length > 0) ? (
+                        <Select value={reimbursementAccountId} onValueChange={setReimbursementAccountId}>
+                            <SelectTrigger id="reimbursementAccount">
+                                <SelectValue placeholder="Pilih rekening..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {profileData.bankAccounts.map(acc => (
+                                    <SelectItem key={acc.accountNumber} value={acc.accountNumber}>
+                                        {acc.bankName} - {acc.accountNumber} (a/n {acc.accountHolderName})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    ) : (
+                         <Alert variant="destructive" className="mt-2">
+                            <WalletCards className="h-4 w-4" />
+                            <AlertTitle>Tidak Ada Rekening Bank</AlertTitle>
+                            <AlertDescription>
+                                Anda tidak memiliki rekening bank yang tersimpan. Silakan tambahkan satu di halaman profil Anda untuk menggunakan metode transfer.
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                </div>
+            )}
+        </CardContent>
       </Card>
       
       <div>

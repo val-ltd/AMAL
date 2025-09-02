@@ -122,13 +122,13 @@ export default function ReleasePage() {
             <div className="grid w-full max-w-sm items-center gap-1.5">
                 <Label htmlFor="fund-source">Sumber Dana</Label>
                 <Select value={selectedFundAccountId} onValueChange={setSelectedFundAccountId}>
-                    <SelectTrigger id="fund-source">
+                    <SelectTrigger id="fund-source" className="min-w-[300px]">
                         <SelectValue placeholder="Pilih sumber dana..." />
                     </SelectTrigger>
                     <SelectContent>
                         {fundAccounts.map(account => (
                             <SelectItem key={account.id} value={account.id}>
-                                {account.accountName} - {account.bankName} ({account.accountNumber})
+                                {account.accountName} ({account.accountNumber})
                             </SelectItem>
                         ))}
                     </SelectContent>

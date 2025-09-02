@@ -5,12 +5,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, User as UserIcon, Edit } from "lucide-react";
+import { LogOut, User as UserIcon, Edit, Home, Phone, Banknote, Landmark } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { User } from "@/lib/types";
 import { getUser } from "@/lib/data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 export default function ProfilePage() {
     const { user: authUser, logout } = useAuth();
@@ -45,7 +46,7 @@ export default function ProfilePage() {
 
     return (
       <div className="flex justify-center items-start pt-8">
-        <Card className="w-full max-w-lg">
+        <Card className="w-full max-w-2xl">
             <CardHeader className="items-center text-center">
                 <Avatar className="h-24 w-24 mb-4">
                     <AvatarImage src={profileData.avatarUrl ?? ''} alt={profileData.name ?? ''} data-ai-hint="person" />
@@ -57,27 +58,71 @@ export default function ProfilePage() {
             <CardContent className="space-y-6">
                 <div className="space-y-4 p-4 rounded-lg border text-sm">
                     <h3 className="font-semibold text-lg text-center mb-4">Informasi Pengguna</h3>
-                    <div className="flex justify-between">
-                        <p className="text-muted-foreground">Posisi</p>
-                        <p className="font-medium">{profileData.position || 'N/A'}</p>
-                    </div>
-                    <div className="flex justify-between">
-                        <p className="text-muted-foreground">Lembaga</p>
-                        <p className="font-medium">{profileData.institution || 'N/A'}</p>
-                    </div>
-                    <div className="flex justify-between">
-                        <p className="text-muted-foreground">Divisi</p>
-                        <p className="font-medium">{profileData.division || 'N/A'}</p>
-                    </div>
-                     <div className="flex justify-between items-center">
-                        <p className="text-muted-foreground">Peran</p>
-                        <div className="flex flex-wrap gap-1 justify-end">
-                            {roles.map(role => (
-                                <Badge key={role} variant="secondary">{role}</Badge>
-                            )) || <p className="font-medium">N/A</p>}
+                     <div className="grid md:grid-cols-2 gap-4">
+                        <div className="flex justify-between">
+                            <p className="text-muted-foreground">Posisi</p>
+                            <p className="font-medium text-right">{profileData.position || 'N/A'}</p>
                         </div>
-                    </div>
+                        <div className="flex justify-between">
+                            <p className="text-muted-foreground">Jenis Kelamin</p>
+                            <p className="font-medium text-right">{profileData.gender || 'N/A'}</p>
+                        </div>
+                        <div className="flex justify-between">
+                            <p className="text-muted-foreground">Lembaga</p>
+                            <p className="font-medium text-right">{profileData.institution || 'N/A'}</p>
+                        </div>
+                         <div className="flex justify-between">
+                            <p className="text-muted-foreground">Telepon</p>
+                            <p className="font-medium text-right">{profileData.phoneNumber || 'N/A'}</p>
+                        </div>
+                        <div className="flex justify-between md:col-span-2">
+                            <p className="text-muted-foreground">Divisi</p>
+                            <p className="font-medium text-right">{profileData.division || 'N/A'}</p>
+                        </div>
+                        <div className="flex justify-between md:col-span-2">
+                            <p className="text-muted-foreground">Alamat</p>
+                            <p className="font-medium text-right">{profileData.address || 'N/A'}</p>
+                        </div>
+                        <div className="flex justify-between items-center md:col-span-2">
+                            <p className="text-muted-foreground">Peran</p>
+                            <div className="flex flex-wrap gap-1 justify-end">
+                                {roles.map(role => (
+                                    <Badge key={role} variant="secondary">{role}</Badge>
+                                )) || <p className="font-medium">N/A</p>}
+                            </div>
+                        </div>
+                     </div>
                 </div>
+
+                <div className="space-y-4 p-4 rounded-lg border text-sm">
+                     <h3 className="font-semibold text-lg text-center mb-4">Rekening Bank</h3>
+                     {profileData.bankAccounts && profileData.bankAccounts.length > 0 ? (
+                        <div className="space-y-4">
+                            {profileData.bankAccounts.map((acc, index) => (
+                                <div key={index}>
+                                    <div className="grid md:grid-cols-2 gap-x-4 gap-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <Landmark className="w-4 h-4 text-muted-foreground" />
+                                            <p><span className="text-muted-foreground">Bank:</span> {acc.bankName}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <UserIcon className="w-4 h-4 text-muted-foreground" />
+                                            <p><span className="text-muted-foreground">A/N:</span> {acc.accountHolderName}</p>
+                                        </div>
+                                         <div className="flex items-center gap-2">
+                                            <Banknote className="w-4 h-4 text-muted-foreground" />
+                                            <p><span className="text-muted-foreground">No. Rek:</span> {acc.accountNumber}</p>
+                                        </div>
+                                    </div>
+                                    {index < profileData.bankAccounts!.length - 1 && <Separator className="my-4"/>}
+                                </div>
+                            ))}
+                        </div>
+                     ) : (
+                        <p className="text-muted-foreground text-center">Tidak ada rekening bank yang tersimpan.</p>
+                     )}
+                </div>
+
                 <div className="flex flex-col space-y-2">
                     <Button variant="outline" className="w-full justify-start">
                         <Edit className="mr-2 h-4 w-4" />
@@ -112,6 +157,10 @@ function ProfileSkeleton() {
                             <Skeleton className="h-5 w-1/2" />
                         </div>
                     ))}
+                </div>
+                 <div className="space-y-4 p-4 rounded-lg border">
+                     <Skeleton className="h-6 w-1/3 mx-auto mb-4" />
+                     <Skeleton className="h-10 w-full" />
                 </div>
                 <div className="flex flex-col space-y-2">
                     <Skeleton className="h-10 w-full" />

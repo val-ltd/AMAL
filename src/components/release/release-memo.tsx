@@ -108,7 +108,7 @@ export function ReleaseMemo({ requests, lembaga, fundAccount }: ReleaseMemoProps
         }
     };
     
-    const approverName = requests[0]?.supervisor?.name || '........................';
+    const approverName = fundAccount.pejabatNama || '........................';
     const firstRequesterName = requests[0]?.requester?.name || '........................';
     
     const allItems = requests.flatMap(req => 
@@ -139,10 +139,10 @@ export function ReleaseMemo({ requests, lembaga, fundAccount }: ReleaseMemoProps
 
             <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
                 <div>
-                    <span className="font-semibold">Dari:</span> {approverName} / Kepala Manajemen Perekonomian
+                    <span className="font-semibold">Dari:</span> {approverName} / {fundAccount.pejabatJabatan}
                 </div>
                  <div className="text-right">
-                    <span className="font-semibold">Kepada:</span> Kasir
+                    <span className="font-semibold">Kepada:</span> {fundAccount.petugas}
                 </div>
                 <div>
                      <span className="font-semibold">Lembaga:</span> {lembaga}
@@ -222,12 +222,12 @@ export function ReleaseMemo({ requests, lembaga, fundAccount }: ReleaseMemoProps
                 <div>
                     <p>Menyetujui,</p>
                     <p className="mt-20 font-semibold border-b border-black pb-1">{approverName}</p>
-                    <p>Kepala Manajemen</p>
+                    <p>{fundAccount.pejabatJabatan}</p>
                 </div>
                 <div>
                     <p>Mengetahui,</p>
-                     <p className="mt-20 font-semibold border-b border-black pb-1">{user?.displayName || '........................'}</p>
-                    <p>Pencair Dana</p>
+                     <p className="mt-20 font-semibold border-b border-black pb-1">{fundAccount.namaBendahara || '........................'}</p>
+                    <p>Bendahara</p>
                 </div>
                 <div>
                     <p>Pemohon,</p>

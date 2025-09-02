@@ -2,6 +2,13 @@
 
 export type Role = 'Admin' | 'Manager' | 'Employee' | 'Super Admin' | 'Releaser';
 
+export interface UserBankAccount {
+  bankName: string;
+  accountNumber: string;
+  accountHolderName: string;
+  bankCode?: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -17,6 +24,11 @@ export interface User {
   decider?: User;
   departmentIds?: string[];
   isVerified?: boolean;
+  // New fields
+  gender?: 'Male' | 'Female';
+  phoneNumber?: string;
+  address?: string;
+  bankAccounts?: UserBankAccount[];
 }
 
 export interface RequestItem {
@@ -57,6 +69,9 @@ export interface BudgetRequest {
   };
   additionalInfo?: string;
   fundSourceId?: string;
+  // New fields
+  paymentMethod?: 'Cash' | 'Transfer';
+  reimbursementAccount?: UserBankAccount;
 }
 
 export interface Department {
@@ -74,7 +89,17 @@ export interface BudgetCategory {
 
 export interface FundAccount {
     id: string;
-    accountName: string;
-    accountNumber: string;
-    bankName: string;
+    accountName: string; // NAMA REKENING
+    accountNumber: string; // NO. REK
+    bankName: string; // BANK
+    // New fields
+    namaLembaga: string;
+    cabang: string;
+    pejabatNama: string;
+    pejabatJabatan: string;
+    namaBendahara: string;
+    bankBendahara: string;
+    rekeningBendahara: string;
+    kodeBank?: string;
+    petugas: string;
 }

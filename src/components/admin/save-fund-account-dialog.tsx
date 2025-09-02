@@ -20,10 +20,26 @@ import type { FundAccount } from '@/lib/types';
 import { Edit, Loader2, PlusCircle } from 'lucide-react';
 import { addDoc, collection, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface SaveFundAccountDialogProps {
   account?: FundAccount;
 }
+
+const initialFormState = {
+    namaLembaga: '',
+    accountName: '',
+    accountNumber: '',
+    bankName: '',
+    cabang: '',
+    pejabatNama: '',
+    pejabatJabatan: '',
+    namaBendahara: '',
+    bankBendahara: '',
+    rekeningBendahara: '',
+    kodeBank: '',
+    petugas: '',
+};
 
 export function SaveFundAccountDialog({ account }: SaveFundAccountDialogProps) {
   const [open, setOpen] = useState(false);
@@ -31,21 +47,30 @@ export function SaveFundAccountDialog({ account }: SaveFundAccountDialogProps) {
   const { toast } = useToast();
   const isEditing = !!account;
 
-  const [formData, setFormData] = useState({
-    accountName: account?.accountName || '',
-    bankName: account?.bankName || '',
-    accountNumber: account?.accountNumber || ''
-  });
+  const [formData, setFormData] = useState(initialFormState);
   
   useEffect(() => {
     if (open) {
-      setFormData({
-        accountName: account?.accountName || '',
-        bankName: account?.bankName || '',
-        accountNumber: account?.accountNumber || ''
-      });
+      if (isEditing && account) {
+        setFormData({
+            namaLembaga: account.namaLembaga || '',
+            accountName: account.accountName || '',
+            accountNumber: account.accountNumber || '',
+            bankName: account.bankName || '',
+            cabang: account.cabang || '',
+            pejabatNama: account.pejabatNama || '',
+            pejabatJabatan: account.pejabatJabatan || '',
+            namaBendahara: account.namaBendahara || '',
+            bankBendahara: account.bankBendahara || '',
+            rekeningBendahara: account.rekeningBendahara || '',
+            kodeBank: account.kodeBank || '',
+            petugas: account.petugas || '',
+        });
+      } else {
+        setFormData(initialFormState);
+      }
     }
-  }, [open, account]);
+  }, [open, account, isEditing]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -56,8 +81,8 @@ export function SaveFundAccountDialog({ account }: SaveFundAccountDialogProps) {
     event.preventDefault();
     setIsSubmitting(true);
     
-    if (!formData.accountName || !formData.bankName || !formData.accountNumber) {
-      toast({ title: 'Semua kolom harus diisi', variant: 'destructive'});
+    if (!formData.accountName || !formData.bankName || !formData.accountNumber || !formData.namaLembaga) {
+      toast({ title: 'Nama Lembaga, Nama Rekening, Bank, dan No. Rekening harus diisi', variant: 'destructive'});
       setIsSubmitting(false);
       return;
     }
@@ -84,65 +109,77 @@ export function SaveFundAccountDialog({ account }: SaveFundAccountDialogProps) {
     }
   };
 
+  const formFields = [
+    { id: 'namaLembaga', label: 'Nama Lembaga', required: true },
+    { id: 'accountName', label: 'Nama Rekening', required: true },
+    { id: 'accountNumber', label: 'No. Rekening', required: true },
+    { id: 'bankName', label: 'Bank', required: true },
+    { id: 'cabang', label: 'Cabang' },
+    { id: 'pejabatNama', label: 'Nama Pejabat' },
+    { id: 'pejabatJabatan', label: 'Jabatan Pejabat' },
+    { id: 'namaBendahara', label: 'Nama Bendahara' },
+    { id: 'bankBendahara', label: 'Bank Bendahara' },
+    { id: 'rekeningBendahara', label: 'Rekening Bendahara' },
+    { id: 'kodeBank', label: 'Kode Bank' },
+    { id: 'petugas', label: 'Petugas' },
+  ];
+
   const Trigger = () => {
     if (isEditing) {
         return (
-            <DialogTrigger asChild>
-                <button className="flex items-center w-full text-left">
-                    <Edit className="mr-2 h-4 w-4" />
-                    Ubah Rekening
-                </button>
-            </DialogTrigger>
+            <button className="flex items-center w-full text-left">
+                <Edit className="mr-2 h-4 w-4" />
+                Ubah Rekening
+            </button>
         )
     }
     return (
-        <DialogTrigger asChild>
-            <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Tambah Sumber Dana
-            </Button>
-        </DialogTrigger>
+      <Button>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Tambah Sumber Dana
+      </Button>
     );
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Trigger />
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogTrigger asChild>
+        <Trigger />
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Ubah' : 'Tambah'} Sumber Dana</DialogTitle>
           <DialogDescription>
             {isEditing ? 'Ubah detail rekening sumber dana.' : 'Tambah rekening baru ke dalam sistem.'}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="accountName" className="text-right">
-              Nama Rek.
-            </Label>
-            <Input id="accountName" name="accountName" value={formData.accountName} onChange={handleInputChange} className="col-span-3" />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="bankName" className="text-right">
-              Nama Bank
-            </Label>
-            <Input id="bankName" name="bankName" value={formData.bankName} onChange={handleInputChange} className="col-span-3" />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="accountNumber" className="text-right">
-              No. Rek.
-            </Label>
-            <Input id="accountNumber" name="accountNumber" value={formData.accountNumber} onChange={handleInputChange} className="col-span-3" />
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-                <Button type="button" variant="outline">Batal</Button>
-            </DialogClose>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Simpan
-            </Button>
-          </DialogFooter>
+        <form onSubmit={handleSubmit}>
+            <ScrollArea className="h-96 w-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4 px-2">
+                    {formFields.map(field => (
+                         <div key={field.id} className="grid gap-2">
+                            <Label htmlFor={field.id}>
+                                {field.label}{field.required && '*'}
+                            </Label>
+                            <Input
+                                id={field.id}
+                                name={field.id}
+                                value={formData[field.id as keyof typeof formData]}
+                                onChange={handleInputChange}
+                            />
+                        </div>
+                    ))}
+                </div>
+            </ScrollArea>
+            <DialogFooter className="pt-4 mt-4 border-t">
+                <DialogClose asChild>
+                    <Button type="button" variant="outline">Batal</Button>
+                </DialogClose>
+                <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan
+                </Button>
+            </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

@@ -25,7 +25,18 @@ const users = [
     avatarUrl: 'https://i.pravatar.cc/150?u=aisha',
     position: 'Staff',
     institution: 'YAYASAN SAHABAT QURAN',
-    division: 'Divisi Dakwah'
+    division: 'Divisi Dakwah',
+    gender: 'Female',
+    phoneNumber: '081234567890',
+    address: 'Jl. Merdeka No. 1, Jakarta',
+    bankAccounts: [
+      {
+        bankName: 'Bank Central Asia (BCA)',
+        accountNumber: '1122334455',
+        accountHolderName: 'Aisha Lestari',
+        bankCode: '014',
+      }
+    ]
   },
   {
     id: 'manager1_uid',
@@ -167,9 +178,34 @@ const budgetCategories = [
 ];
 
 const fundAccounts = [
-    { accountName: "YASAQU WADI MUBARAK DAFTAR WQ", accountNumber: "7114537998", bankName: "BANK SYARIAH INDONESIA (BSI) CABANG KK WARUNG JAMBU (451)" },
-    { accountName: "Rekening Operasional Utama", accountNumber: "1234567890", bankName: "Bank Central Asia (BCA)" },
-    { accountName: "Dana Sosial", accountNumber: "0987654321", bankName: "Bank Mandiri" }
+    {
+        namaLembaga: 'REKENING OPERASIONAL BULANAN YICWM',
+        accountName: 'ISLAMIC CENTER WADI MUBARAK',
+        accountNumber: '1200008551',
+        bankName: 'Bank Syariah Indonesia (BSI)',
+        cabang: 'KCP Cisarua',
+        pejabatJabatan: 'KETUA YIC WADI MUBARAK',
+        pejabatNama: 'Muhamad Dede Sulaeman',
+        namaBendahara: 'Muhamad Dede Sulaeman',
+        bankBendahara: 'Bank Syariah Indonesia (BSI)',
+        rekeningBendahara: '1152308683',
+        kodeBank: '451',
+        petugas: 'Kasir',
+    },
+    {
+        namaLembaga: 'REKENING OPERASIONAL BULANAN YASAQU',
+        accountName: 'OPERASIONAL BULANAN YASAQU',
+        accountNumber: '7191267324',
+        bankName: 'Bank Syariah Indonesia (BSI)',
+        cabang: 'KCP Cisarua',
+        pejabatJabatan: 'KETUA YIC WADI MUBARAK',
+        pejabatNama: 'Muhamad Dede Sulaeman',
+        namaBendahara: 'Muhamad Dede Sulaeman',
+        bankBendahara: 'Bank Syariah Indonesia (BSI)',
+        rekeningBendahara: '1152308683',
+        kodeBank: '451',
+        petugas: 'Kasir',
+    },
 ];
 
 
@@ -193,14 +229,8 @@ async function seed() {
   const usersCollection = db.collection('users');
   for (const user of users) {
     const docRef = usersCollection.doc(user.id);
-    const doc = await docRef.get();
-    if (doc.exists) {
-      console.log(`User ${user.name} already exists. Updating roles.`);
-      await docRef.update({ roles: user.roles });
-    } else {
-      await docRef.set(user);
-      console.log(`Added user: ${user.name}`);
-    }
+    await docRef.set(user, { merge: true });
+    console.log(`Added/Updated user: ${user.name}`);
   }
 
   // Seed requests
