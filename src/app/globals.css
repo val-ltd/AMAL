@@ -84,22 +84,78 @@
   }
 }
 
+/* --- Print Styles --- */
 @media print {
   body {
     background: white;
   }
+  
   .no-print {
     display: none !important;
   }
+  
   .print-container {
-    box-shadow: none;
-    border: none;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100%;
   }
-  @page {
-    size: A4;
-    margin: 0.5in;
-  }
+  
   .memo-container {
-      page-break-after: always;
+    page-break-after: always;
+    position: relative;
+    padding-top: 100px; /* Space for the header */
+    padding-bottom: 50px; /* Space for the footer */
   }
+
+  .memo-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+  }
+
+  .memo-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    font-size: 0.8rem;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 1rem;
+  }
+
+  .page-number::after {
+    content: "Halaman " counter(page);
+  }
+
+  /* This forces the header to be displayed. We'll use a class on the print page to make it visible */
+  .printable-header {
+    display: block !important;
+  }
+}
+
+@page {
+  size: A4;
+  margin: 0.7cm;
+
+  @bottom-right {
+    content: "Halaman " counter(page) " dari " counter(pages);
+    font-size: 9pt;
+    color: #333;
+  }
+
+   @bottom-left {
+    content: "Nomor: M.XX / PT&PM-XXXX / VIII / 25";
+    font-size: 9pt;
+    color: #333;
+  }
+}
+
+html {
+  counter-reset: page;
 }

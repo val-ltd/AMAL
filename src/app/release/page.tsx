@@ -7,14 +7,14 @@ import { getApprovedUnreleasedRequests } from "@/lib/data";
 import type { BudgetRequest } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { DollarSign, ShieldAlert, FileText, Inbox } from "lucide-react";
-import { ReleaseMemo } from "@/components/release/release-memo";
+import { DollarSign, ShieldAlert, FileText, Inbox, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { useRouter } from "next/navigation";
 
 const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -24,25 +24,13 @@ const formatRupiah = (amount: number) => {
     }).format(amount);
 };
 
-// Group requests by Lembaga
-const groupRequestsByLembaga = (requests: BudgetRequest[]) => {
-  return requests.reduce((acc, request) => {
-    const key = request.institution || 'Lainnya';
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(request);
-    return acc;
-  }, {} as Record<string, BudgetRequest[]>);
-};
-
 export default function ReleasePage() {
   const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [allRequests, setAllRequests] = useState<BudgetRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
-  const [memosToGenerate, setMemosToGenerate] = useState<Record<string, BudgetRequest[]> | null>(null);
-
+  
   const userRoles = user?.profile?.roles;
   const isAuthorized = userRoles?.includes('Releaser') || userRoles?.includes('Admin') || userRoles?.includes('Super Admin');
 
@@ -63,10 +51,12 @@ export default function ReleasePage() {
     };
   }, [isAuthorized, authLoading]);
 
-  const handleGenerateMemo = () => {
-    const selectedRequests = allRequests.filter(req => selectedRequestIds.includes(req.id));
-    const groupedByLembaga = groupRequestsByLembaga(selectedRequests);
-    setMemosToGenerate(groupedByLembaga);
+  const handlePreviewMemo = () => {
+    if (selectedRequestIds.length > 0) {
+      const query = new URLSearchParams({ ids: selectedRequestIds.join(',') });
+      const url = `/release/print?${query.toString()}`;
+      window.open(url, '_blank');
+    }
   };
   
   const handleSelectionChange = (requestId: string) => {
@@ -113,9 +103,9 @@ export default function ReleasePage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between no-print">
         <h1 className="text-3xl font-bold tracking-tight">Pencairan Dana</h1>
-        <Button onClick={handleGenerateMemo} disabled={selectedRequestIds.length === 0}>
-            <FileText className="mr-2 h-4 w-4" />
-            Buat Memo untuk ({selectedRequestIds.length}) Permintaan Terpilih
+        <Button onClick={handlePreviewMemo} disabled={selectedRequestIds.length === 0}>
+            <Printer className="mr-2 h-4 w-4" />
+            Lihat Pratinjau Cetak ({selectedRequestIds.length})
         </Button>
       </div>
 
@@ -187,14 +177,6 @@ export default function ReleasePage() {
           </Table>
         </CardContent>
       </Card>
-      
-      {memosToGenerate && Object.entries(memosToGenerate).map(([lembaga, requests]) => (
-         requests.length > 0 && (
-            <div key={lembaga} className="memo-container print:mb-8 last:print:mb-0">
-                <ReleaseMemo requests={requests} lembaga={lembaga} />
-            </div>
-         )
-      ))}
     </div>
   );
 }

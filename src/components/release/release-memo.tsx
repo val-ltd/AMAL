@@ -113,25 +113,26 @@ export function ReleaseMemo({ requests, lembaga }: ReleaseMemoProps) {
         (Array.isArray(req.items) && req.items.length > 0) 
         ? req.items 
         : [{ 
-            description: (req as any).description, 
+            description: (req as any).description || "Item Permintaan Lama", 
             qty: 1, 
             unit: 'item', 
             price: req.amount, 
             total: req.amount,
-            category: (req as any).category
+            category: (req as any).category || "Lainnya"
           }]
     );
 
     return (
-        <div className="bg-card p-8 rounded-lg shadow-lg print-container">
-            <div className="flex items-center justify-between pb-4 border-b-4 border-black">
-                <Image src="/logo-wm.png" alt="Wadi Mubarak Logo" width={80} height={80} />
-                <div className="text-center">
-                    <h1 className="text-xl font-bold">MEMO PERMOHONAN PENCAIRAN DANA</h1>
-                    <h2 className="text-lg font-semibold">ANGGARAN BULANAN</h2>
-                    <p className="text-sm">Nomor: M.XX / PT&PM-XXXX / VIII / 25</p>
+        <div className="bg-white p-4 print-container memo-container">
+            <div className="memo-header hidden print:block">
+                <div className="flex items-center justify-between pb-4 border-b-4 border-black px-4">
+                    <Image src="/logo-wm.png" alt="Wadi Mubarak Logo" width={80} height={80} />
+                    <div className="text-center">
+                        <h1 className="text-xl font-bold">MEMO PERMOHONAN PENCAIRAN DANA</h1>
+                        <h2 className="text-lg font-semibold">ANGGARAN BULANAN</h2>
+                    </div>
+                    <Image src="/amal-logo.png" alt="Amal Logo" width={120} height={48} />
                 </div>
-                <Image src="/amal-logo.png" alt="Amal Logo" width={120} height={48} />
             </div>
 
             <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
@@ -235,14 +236,15 @@ export function ReleaseMemo({ requests, lembaga }: ReleaseMemoProps) {
 
 
             <div className="mt-8 flex justify-end gap-2 no-print">
-                 <Button variant="outline" onClick={() => window.print()}>
-                    <Printer className="mr-2 h-4 w-4" />
-                    Cetak Memo
-                </Button>
                 <Button onClick={handleRelease} disabled={isReleasing}>
                     {isReleasing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
-                    Tandai Sudah Dicairkan
+                    Tandai Sudah Dicairkan & Tutup
                 </Button>
+            </div>
+
+            <div className="memo-footer hidden print:flex">
+                <p>Nomor: M.XX / PT&PM-XXXX / VIII / 25</p>
+                <p className="page-number"></p>
             </div>
         </div>
     )
