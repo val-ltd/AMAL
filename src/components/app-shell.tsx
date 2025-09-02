@@ -145,60 +145,63 @@ function BottomNav() {
     { href: '/manager', label: 'Pengajuan', icon: Shield, requiredRoles: ['Manager', 'Admin', 'Super Admin'] },
     { href: '/release', label: 'Pencairan', icon: DollarSign, requiredRoles: ['Releaser', 'Admin', 'Super Admin'] },
     { href: '/admin', label: 'Admin', icon: Users, requiredRoles: ['Admin', 'Super Admin'] },
+    { href: '/notifications', label: 'Notifikasi', icon: Bell, requiredRoles: ['Employee', 'Manager', 'Admin', 'Super Admin', 'Releaser'] },
   ];
+  
+  const isEmployeeOnly = userRoles.length === 1 && userRoles.includes('Employee');
 
   const availableNavItems = navItems.filter(item =>
     item.requiredRoles.some(role => userRoles.includes(role))
   );
-
-  // Ensure we have up to 4 main items
-  const mainItems = availableNavItems.slice(0, 4);
+  
+  const mainItems = availableNavItems;
   const leftItems = mainItems.slice(0, 2);
-  const rightItems = mainItems.slice(2, 4);
+  const rightItems = mainItems.slice(2, 5);
+
 
   return (
-    <div className="fixed bottom-0 z-10 w-full border-t bg-background/95 backdrop-blur-sm sm:hidden">
-      <div className="relative grid h-16 grid-cols-5 items-center">
-        {leftItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex flex-col items-center gap-1 p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-              (pathname.startsWith(item.href) && item.href !== '/') || pathname === item.href ? "text-primary" : "text-muted-foreground"
-            )}
-          >
-            <item.icon className="h-5 w-5" />
-            <span>{item.label}</span>
-          </Link>
-        ))}
-        
-        {/* Placeholder for the FAB */}
-        <div /> 
+    <div className="fixed bottom-0 z-10 w-full sm:hidden">
+      {!isEmployeeOnly && (
+        <div className="relative grid h-16 grid-cols-5 items-stretch border-t bg-background/95 backdrop-blur-sm">
+          {leftItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+                (pathname.startsWith(item.href) && item.href !== '/') || pathname === item.href ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              <item.icon className="h-5 w-5" />
+              <span>{item.label}</span>
+            </Link>
+          ))}
+          
+          <div /> 
 
-        {rightItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex flex-col items-center gap-1 p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-              (pathname.startsWith(item.href) && item.href !== '/') || pathname === item.href ? "text-primary" : "text-muted-foreground"
-            )}
-          >
-            <item.icon className="h-5 w-5" />
-            <span>{item.label}</span>
-          </Link>
-        ))}
-
-        {/* Floating Action Button */}
-        <div className="absolute left-1/2 top-0 h-16 w-16 -translate-x-1/2 -translate-y-1/2">
-            <Button asChild className="h-full w-full rounded-full shadow-lg">
-                 <Link href="/request/new">
-                    <PlusCircle className="h-6 w-6" />
-                    <span className="sr-only">Permintaan Baru</span>
-                 </Link>
-            </Button>
+          {rightItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 p-2 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+                (pathname.startsWith(item.href) && item.href !== '/') || pathname === item.href ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              <item.icon className="h-5 w-5" />
+              <span>{item.label}</span>
+            </Link>
+          ))}
         </div>
+      )}
+      
+      <div className="absolute bottom-4 right-4 sm:bottom-auto sm:left-1/2 sm:top-0 sm:h-16 sm:w-16 sm:-translate-x-1/2 sm:-translate-y-1/2">
+          <Button asChild className="h-14 w-14 rounded-full shadow-lg sm:h-full sm:w-full">
+               <Link href="/request/new">
+                  <PlusCircle className="h-6 w-6" />
+                  <span className="sr-only">Permintaan Baru</span>
+               </Link>
+          </Button>
       </div>
     </div>
   );

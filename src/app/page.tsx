@@ -6,10 +6,17 @@ import { PlusCircle } from "lucide-react"
 import Link from "next/link"
 import { getMyRequests } from "@/lib/data"
 import RequestList from "@/components/request-list"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { BudgetRequest } from "@/lib/types"
 import { useAuth } from "@/hooks/use-auth"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import StatusBadge from "@/components/status-badge"
 
 export default function EmployeeDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -28,13 +35,30 @@ export default function EmployeeDashboard() {
         setLoading(false);
     }
 
-    // Cleanup subscription on component unmount or when auth state changes
     return () => {
       if (unsubscribe) {
         unsubscribe();
       }
     };
   }, [user, authLoading]);
+  
+  const groupedRequests = useMemo(() => {
+    return requests.reduce((acc, request) => {
+      const status = request.status;
+      if (!acc[status]) {
+        acc[status] = [];
+      }
+      acc[status].push(request);
+      return acc;
+    }, {} as Record<BudgetRequest['status'], BudgetRequest[]>);
+  }, [requests]);
+
+  const accordionItems = [
+    { status: 'pending', title: 'Tertunda' },
+    { status: 'approved', title: 'Disetujui' },
+    { status: 'rejected', title: 'Ditolak' },
+    { status: 'released', title: 'Dicairkan' },
+  ] as const;
 
   return (
     <div className="flex flex-col gap-8">
@@ -52,7 +76,33 @@ export default function EmployeeDashboard() {
         </div>
       )}
 
-      {loading ? <RequestListSkeleton /> : <RequestList requests={requests} />}
+      {loading ? (
+        <RequestListSkeleton /> 
+      ) : (
+        <Accordion type="multiple" defaultValue={['pending', 'approved']} className="w-full space-y-4">
+          {accordionItems.map(item => {
+            const requestsForStatus = groupedRequests[item.status] || [];
+            return (
+              <AccordionItem value={item.status} key={item.status} className="border-none">
+                <AccordionTrigger className="flex items-center justify-between w-full p-4 bg-card rounded-lg shadow-sm hover:no-underline">
+                  <div className="flex items-center gap-3">
+                     <StatusBadge status={item.status} />
+                     <span className="font-semibold">{item.title}</span>
+                     <span className="text-sm text-muted-foreground">({requestsForStatus.length} permintaan)</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-4">
+                  {requestsForStatus.length > 0 ? (
+                    <RequestList requests={requestsForStatus} />
+                  ) : (
+                    <div className="text-center text-muted-foreground py-8">Tidak ada permintaan dengan status ini.</div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
+      )}
     </div>
   )
 }
@@ -68,10 +118,11 @@ function HeaderSkeleton() {
 
 function RequestListSkeleton() {
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Skeleton className="h-56 w-full" />
-            <Skeleton className="h-56 w-full" />
-            <Skeleton className="h-56 w-full" />
+        <div className="space-y-4">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
         </div>
     )
 }
