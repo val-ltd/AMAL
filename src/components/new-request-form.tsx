@@ -157,11 +157,7 @@ export function NewRequestForm() {
       const selectedDepartment = userDepartments.find(d => d.id === selectedDepartmentId);
       if(!selectedDepartment && userDepartments.length > 0) throw new Error("Departemen yang dipilih tidak valid.");
 
-      let reimbursementAccount;
-      if (paymentMethod === 'Transfer') {
-          reimbursementAccount = profileData.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
-          if (!reimbursementAccount) throw new Error("Reimbursement account not found.");
-      }
+      const reimbursementAccount = profileData.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
 
       const newRequestData = {
           items: items.map(({id, ...rest}) => rest), // Remove temporary frontend ID

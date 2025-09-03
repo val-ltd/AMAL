@@ -131,15 +131,19 @@ export function getApprovedUnreleasedRequests(
 
 
 export async function createRequest(
-  data: Omit<BudgetRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>,
+  data: Omit<BudgetRequest, 'id' | 'createdAt' | 'updatedAt'>,
 ): Promise<BudgetRequest> {
 
-  const newRequestData = {
+  const newRequestData: any = {
     ...data,
     status: 'pending' as const,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
+
+  if (data.paymentMethod !== 'Transfer') {
+    delete newRequestData.reimbursementAccount;
+  }
 
   const docRef = await addDoc(collection(db, 'requests'), newRequestData);
   
