@@ -194,10 +194,8 @@ export async function updateRequest(
     
     const requestData = requestSnapshot.data() as BudgetRequest;
 
-    // Start a batch write
     const batch = writeBatch(db);
 
-    // 1. Update the request document
     batch.update(requestRef, {
         status,
         managerComment,
@@ -207,7 +205,6 @@ export async function updateRequest(
     const firstItemDesc = requestData.items[0]?.description || 'N/A';
     const amountFormatted = formatRupiah(requestData.amount);
 
-    // 2. Notify requester
     const requesterNotification = {
         userId: requestData.requester.id,
         type: status === 'approved' ? 'request_approved' : 'request_rejected',
@@ -224,11 +221,9 @@ export async function updateRequest(
     };
     batch.set(doc(collection(db, 'notifications')), requesterNotification);
     
-    // 3. If approved, notify releasers
     if (status === 'approved') {
-        const releaserQuery = query(collection(db, 'users'), where('roles', 'array-contains', 'Releaser'));
-        const releaserSnapshot = await getDocs(releaserQuery);
-        releaserSnapshot.forEach(releaserDoc => {
+        const releasersSnapshot = await getDocs(query(collection(db, 'users'), where('roles', 'array-contains', 'Releaser')));
+        releasersSnapshot.forEach(releaserDoc => {
             const releaserNotification = {
                 userId: releaserDoc.id,
                 type: 'ready_for_release' as const,
@@ -245,26 +240,28 @@ export async function updateRequest(
             batch.set(doc(collection(db, 'notifications')), releaserNotification);
         });
     }
-    
-    // Commit the batch
-    await batch.commit();
 
-    // 4. Update Google Sheet
-    if (requestData.sheetStartRow && requestData.sheetEndRow) {
-      await updateRequestInSheet(status, requestData.sheetStartRow, requestData.sheetEndRow);
-    } else {
-      console.warn(`Cannot update sheet for request ${id}: missing sheet row numbers.`);
+    try {
+        await batch.commit();
+
+        if (requestData.sheetStartRow && requestData.sheetEndRow) {
+            await updateRequestInSheet(status, requestData.sheetStartRow, requestData.sheetEndRow);
+        } else {
+            console.warn(`Cannot update sheet for request ${id}: missing sheet row numbers.`);
+        }
+
+        const updatedRequestForApp: BudgetRequest = {
+            ...requestData,
+            id: id,
+            status,
+            managerComment,
+            updatedAt: new Date().toISOString(),
+        };
+        return updatedRequestForApp;
+    } catch (error) {
+        console.error("Error committing batch or updating sheet:", error);
+        throw error;
     }
-
-    // Return the updated request object structure
-    const updatedRequestForApp: BudgetRequest = {
-        ...requestData,
-        id: id,
-        status,
-        managerComment,
-        updatedAt: new Date().toISOString(),
-    };
-    return updatedRequestForApp;
 }
 
 export async function markRequestsAsReleased(requestIds: string[], releasedBy: {id: string, name: string}, fundSourceId: string): Promise<void> {
