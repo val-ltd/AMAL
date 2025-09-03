@@ -93,45 +93,8 @@ function MemoHeader() {
 }
 
 export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false }: ReleaseMemoProps) {
-    const { user } = useAuth();
-    const { toast } = useToast();
-    const [isReleasing, setIsReleasing] = useState(false);
-
     const totalAmount = requests.reduce((sum, req) => sum + req.amount, 0);
     const totalInWords = numberToWords(totalAmount);
-
-    const handleRelease = async () => {
-        if (!user || !user.profile) {
-            toast({ title: 'Error', description: 'You must be logged in to perform this action.', variant: 'destructive' });
-            return;
-        }
-
-        setIsReleasing(true);
-        const requestIds = requests.map(req => req.id);
-        
-        try {
-            await markRequestsAsReleased(requestIds, { id: user.uid, name: user.displayName || 'Unknown Releaser' }, fundAccount.id);
-            toast({
-                title: 'Dana Dicairkan',
-                description: `${requests.length} permintaan telah ditandai sebagai dicairkan.`,
-            });
-            // Try to close the tab, will only work if script opened it
-            window.close();
-            // Fallback for when window.close() fails silently (e.g. user opened link manually)
-            // Navigate to a "safe" page if it's still open.
-            setTimeout(() => {
-                if(!window.closed) {
-                   window.location.href = '/release?status=released';
-                }
-            }, 500);
-
-        } catch (error) {
-            console.error("Failed to release funds:", error);
-            toast({ title: 'Gagal Mencairkan Dana', description: 'Terjadi kesalahan.', variant: 'destructive' });
-        } finally {
-            setIsReleasing(false);
-        }
-    };
     
     const approverName = fundAccount.pejabatNama || '........................';
     const firstRequesterName = requests[0]?.requester?.name || '........................';
@@ -253,16 +216,6 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
                     <p>Staff</p>
                 </div>
             </div>
-
-
-            {!isPreview && (
-              <div className="mt-8 flex justify-end gap-2 no-print">
-                  <Button onClick={handleRelease} disabled={isReleasing}>
-                      {isReleasing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
-                      Tandai Sudah Dicairkan & Tutup
-                  </Button>
-              </div>
-            )}
 
             <footer className="printable-footer pt-8 text-xs text-gray-500 flex justify-between">
                 <span>Nomor: M.XX / PT&PM-XXXX / VIII / 25</span>

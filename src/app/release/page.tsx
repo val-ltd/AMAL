@@ -3,11 +3,11 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { getApprovedUnreleasedRequests, getFundAccounts, getFundAccount } from "@/lib/data";
+import { getApprovedUnreleasedRequests, getFundAccounts, getFundAccount, markRequestsAsReleased } from "@/lib/data";
 import type { BudgetRequest, FundAccount } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Inbox, ShieldAlert, Printer, ArrowLeft } from "lucide-react";
+import { Inbox, ShieldAlert, Printer, ArrowLeft, Loader2, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
@@ -18,6 +18,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { ReleaseMemo } from "@/components/release/release-memo";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -42,9 +54,13 @@ const groupRequestsByLembaga = (requests: BudgetRequest[]) => {
 export default function ReleasePage() {
   const { user, loading: authLoading } = useAuth();
   const isMobile = useIsMobile();
+  const { toast } = useToast();
+  
   const [allRequests, setAllRequests] = useState<BudgetRequest[]>([]);
   const [fundAccounts, setFundAccounts] = useState<FundAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isReleasing, setIsReleasing] = useState(false);
+  
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
   const [selectedFundAccountId, setSelectedFundAccountId] = useState<string>('');
   
@@ -86,6 +102,30 @@ export default function ReleasePage() {
       }).toString();
       
       window.open(`/release/print?${queryParams}`, '_blank');
+    }
+  };
+
+  const handleReleaseFunds = async () => {
+    if (!user || !user.profile) {
+        toast({ title: 'Error', description: 'Anda harus login untuk melakukan tindakan ini.', variant: 'destructive' });
+        return;
+    }
+    
+    setIsReleasing(true);
+    const requestIds = selectedRequestIds;
+        
+    try {
+        await markRequestsAsReleased(requestIds, { id: user.uid, name: user.displayName || 'Unknown Releaser' }, selectedFundAccountId);
+        toast({
+            title: 'Dana Dicairkan',
+            description: `${requestIds.length} permintaan telah ditandai sebagai dicairkan.`,
+        });
+        setSelectedRequestIds([]); // Clear selection
+    } catch (error) {
+        console.error("Failed to release funds:", error);
+        toast({ title: 'Gagal Mencairkan Dana', description: 'Terjadi kesalahan.', variant: 'destructive' });
+    } finally {
+        setIsReleasing(false);
     }
   };
   
@@ -143,7 +183,7 @@ export default function ReleasePage() {
                 </Button>
                 <Button onClick={handleOpenPrintPage}>
                     <Printer className="mr-2 h-4 w-4" />
-                    Lanjutkan ke Halaman Cetak ({Object.keys(groupedRequests).length} Memo)
+                    Buka Halaman Cetak ({Object.keys(groupedRequests).length} Memo)
                 </Button>
             </div>
             {selectedFundAccount && Object.entries(groupedRequests).map(([lembaga, reqs], index) => (
@@ -161,7 +201,7 @@ export default function ReleasePage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Pencairan Dana</h1>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-4 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 w-full sm:w-auto">
             <div className="grid w-full max-w-sm items-center gap-1.5">
                 <Label htmlFor="fund-source">Sumber Dana</Label>
                 <Select value={selectedFundAccountId} onValueChange={setSelectedFundAccountId}>
@@ -177,10 +217,34 @@ export default function ReleasePage() {
                     </SelectContent>
                 </Select>
             </div>
-            <Button onClick={() => setShowPreview(true)} disabled={selectedRequestIds.length === 0 || !selectedFundAccountId}>
-                <Printer className="mr-2 h-4 w-4" />
-                Lihat Pratinjau Cetak ({selectedRequestIds.length})
-            </Button>
+            <div className="flex gap-2">
+                <Button onClick={() => setShowPreview(true)} disabled={selectedRequestIds.length === 0 || !selectedFundAccountId} variant="outline" className="flex-1">
+                    <Printer className="mr-2 h-4 w-4" />
+                    Pratinjau ({selectedRequestIds.length})
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button disabled={selectedRequestIds.length === 0 || !selectedFundAccountId || isReleasing} className="flex-1">
+                        {isReleasing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
+                        Cairkan ({selectedRequestIds.length})
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Konfirmasi Pencairan Dana</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Anda akan menandai {selectedRequestIds.length} permintaan sebagai dicairkan. Tindakan ini akan mengubah status di database dan Google Sheet, serta mengirim notifikasi. Pastikan dana telah disiapkan.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Batal</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleReleaseFunds}>
+                        Ya, Lanjutkan
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+            </div>
         </div>
       </div>
 
