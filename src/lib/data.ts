@@ -153,6 +153,7 @@ export async function createRequest(
     updatedAt: createdData?.updatedAt?.toDate().toISOString(),
   } as BudgetRequest;
   
+  // Await the sheet append operation
   await appendRequestToSheet(finalRequest);
 
   return finalRequest;

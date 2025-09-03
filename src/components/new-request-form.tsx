@@ -218,7 +218,7 @@ export function NewRequestForm() {
 
       toast({
           title: "Permintaan Terkirim",
-          description: "Permintaan anggaran Anda telah berhasil dibuat.",
+          description: "Permintaan anggaran Anda telah berhasil dibuat dan disimpan ke Google Sheets.",
       });
       router.push('/');
 
@@ -502,4 +502,3 @@ export function NewRequestForm() {
     </form>
   );
 }
-
