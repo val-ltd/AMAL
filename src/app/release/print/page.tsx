@@ -77,7 +77,7 @@ function PrintPageContent() {
             <div className="space-y-8 print:space-y-0">
                 {Object.entries(groupedRequests).map(([lembaga, reqs], index) => (
                     reqs.length > 0 && (
-                        <div key={lembaga} className="memo-wrapper">
+                        <div key={lembaga} className="memo-wrapper bg-white">
                             <ReleaseMemo requests={reqs} lembaga={lembaga} fundAccount={fundAccount} />
                         </div>
                     )
@@ -117,5 +117,3 @@ function PrintPageSkeleton() {
         </div>
     );
 }
-
-    

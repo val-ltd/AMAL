@@ -23,8 +23,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Building, Eye, Loader2, ThumbsDown, ThumbsUp, UserCheck } from 'lucide-react';
 import { formatDepartment } from '@/lib/utils';
 import { Separator } from '../ui/separator';
-import { doc, serverTimestamp, updateDoc, collection, addDoc, writeBatch, getDocs, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { useAuth } from '@/hooks/use-auth';
 import { getFundAccounts, updateRequest } from '@/lib/data';

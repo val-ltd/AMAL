@@ -54,7 +54,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       );
   }
 
-  if (pathname === '/login') {
+  if (pathname === '/login' || pathname === '/release/print') {
     return <>{children}</>
   }
   

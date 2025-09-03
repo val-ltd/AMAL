@@ -107,6 +107,7 @@
     margin: 0;
     box-shadow: none;
     border: none;
+    background-color: white !important;
   }
 
   .page-break-before {
