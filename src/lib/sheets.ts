@@ -17,12 +17,9 @@ function getGoogleAuth() {
   }
 
   try {
-    const parsedCredentials = JSON.parse(serviceAccountJson);
-    // Replace the escaped newlines in the private key
-    parsedCredentials.private_key = parsedCredentials.private_key.replace(/\\n/g, '\n');
-    
+    const credentials = JSON.parse(serviceAccountJson);
     return new google.auth.GoogleAuth({
-        credentials: parsedCredentials,
+        credentials,
         scopes: SCOPES,
     });
   } catch (e: any) {
