@@ -17,7 +17,8 @@ import { formatDepartment } from '@/lib/utils';
 import { Separator } from './ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
-import { Eye, ThumbsUp } from 'lucide-react';
+import { Eye, ThumbsUp, FileText } from 'lucide-react';
+import Link from 'next/link';
 
 interface RequestListProps {
   requests: BudgetRequest[];
@@ -47,12 +48,48 @@ export default function RequestList({ requests, isManagerView = false }: Request
     }).format(amount).replace('IDR', 'Rp');
   };
 
+  const ActionButton = ({ request }: { request: BudgetRequest }) => {
+    const isSupervisor = user?.uid === request.supervisor?.id;
+    const isActionable = isManagerView && isSupervisor && request.status === 'pending';
+    const isReportable = !isManagerView && request.status === 'released';
+
+    if (isActionable) {
+      return (
+        <ApprovalDialog 
+          request={request}
+          isReadOnly={false}
+          triggerButton={
+            <Button><ThumbsUp className="mr-2 h-4 w-4" />Tinjau</Button>
+          }
+        />
+      )
+    }
+
+    if (isReportable) {
+      return (
+        <Button asChild>
+          <Link href={`/request/${request.id}/report`}>
+            <FileText className="mr-2 h-4 w-4" />
+            Buat Laporan
+          </Link>
+        </Button>
+      )
+    }
+
+    return (
+       <ApprovalDialog 
+          request={request}
+          isReadOnly={true}
+          triggerButton={
+            <Button variant="outline"><Eye className="mr-2 h-4 w-4" />Lihat Detail</Button>
+          }
+        />
+    )
+  }
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {requests.map((request) => {
-        const isSupervisor = user?.uid === request.supervisor?.id;
-        const isActionable = isManagerView && isSupervisor && request.status === 'pending';
-        
         const hasItems = Array.isArray(request.items) && request.items.length > 0;
         const firstItemDescription = hasItems ? request.items[0].description : (request as any).description || 'Tidak ada item';
         const itemCount = hasItems ? request.items.length : 0;
@@ -94,15 +131,7 @@ export default function RequestList({ requests, isManagerView = false }: Request
                 <div className="text-xl font-bold">
                 {formatRupiah(request.amount)}
                 </div>
-                <ApprovalDialog 
-                    request={request}
-                    isReadOnly={!isActionable}
-                    triggerButton={
-                        <Button variant={isActionable ? 'default' : 'outline'}>
-                            {isActionable ? <><ThumbsUp className="mr-2 h-4 w-4" />Tinjau</> : <><Eye className="mr-2 h-4 w-4" />Lihat Detail</>}
-                        </Button>
-                    }
-                />
+                <ActionButton request={request} />
             </CardFooter>
             </Card>
         )

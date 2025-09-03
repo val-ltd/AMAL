@@ -1,8 +1,9 @@
+
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 interface StatusBadgeProps {
-  status: 'pending' | 'approved' | 'rejected' | 'released';
+  status: 'pending' | 'approved' | 'rejected' | 'released' | 'completed';
   className?: string;
 }
 
@@ -12,6 +13,7 @@ export default function StatusBadge({ status, className }: StatusBadgeProps) {
     approved: 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300',
     rejected: 'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300',
     released: 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-300',
+    completed: 'bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-900/50 dark:text-purple-300',
   };
 
   const statusText = {
@@ -19,6 +21,7 @@ export default function StatusBadge({ status, className }: StatusBadgeProps) {
     approved: 'Disetujui',
     rejected: 'Ditolak',
     released: 'Dicairkan',
+    completed: 'Selesai',
   }
 
   return (

@@ -42,6 +42,23 @@ export interface RequestItem {
   category: string;
 }
 
+export interface ReportAttachment {
+    url: string;
+    fileName: string;
+    type: string;
+}
+
+export interface ExpenseReport {
+    submittedBy: {
+        id: string;
+        name: string;
+    };
+    submittedAt: string; // ISO string
+    spentAmount: number;
+    notes: string;
+    attachments: ReportAttachment[];
+}
+
 export interface BudgetRequest {
   id: string;
   requester: {
@@ -51,7 +68,7 @@ export interface BudgetRequest {
   };
   items: RequestItem[];
   amount: number; // This will be the sum of all item totals
-  status: 'pending' | 'approved' | 'rejected' | 'released';
+  status: 'pending' | 'approved' | 'rejected' | 'released' | 'completed';
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
   managerComment?: string;
@@ -74,6 +91,7 @@ export interface BudgetRequest {
   // New fields
   paymentMethod?: 'Cash' | 'Transfer';
   reimbursementAccount?: UserBankAccount;
+  report?: ExpenseReport;
 }
 
 export interface Department {
