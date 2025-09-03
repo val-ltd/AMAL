@@ -16,7 +16,7 @@ import { getManagers, getUser, getBudgetCategories, getUnits } from '@/lib/data'
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { getDoc, doc, serverTimestamp, addDoc, collection, writeBatch } from 'firebase/firestore';
+import { getDoc, doc, serverTimestamp, addDoc, collection, writeBatch, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatDepartment } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -167,11 +167,12 @@ export function NewRequestForm() {
 
     const reimbursementAccount = profileData.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
     
-    // This is a temporary ID for the request object before it's saved.
-    const tempRequestId = doc(collection(db, 'requests')).id;
+    // Generate a new Firestore document reference to get a unique ID
+    const newRequestRef = doc(collection(db, 'requests'));
+    const newRequestId = newRequestRef.id;
 
     const requestObject: Omit<BudgetRequest, 'createdAt' | 'updatedAt' | 'releasedAt'> = {
-        id: tempRequestId,
+        id: newRequestId,
         items: items.map(({id, ...rest}) => rest), // Remove temporary frontend ID
         amount: totalAmount,
         additionalInfo,
@@ -201,14 +202,14 @@ export function NewRequestForm() {
     }
 
     try {
-      // Step 1: Append to Google Sheets first
+      // Step 1: Append to Google Sheets first, using the pre-generated ID
       const sheetUpdateResponse = await appendRequestToSheet({
           ...requestObject,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
       });
 
-      // Step 2: If sheet append is successful, save to Firestore
+      // Step 2: If sheet append is successful, save to Firestore with the same ID
       const requestDataForFirestore = {
           ...requestObject,
           sheetStartRow: sheetUpdateResponse.startRow,
@@ -217,8 +218,7 @@ export function NewRequestForm() {
           updatedAt: serverTimestamp(),
       };
       
-      // Use the temporary ID to create the document with a specific ID
-      await addDoc(collection(db, 'requests'), requestDataForFirestore);
+      await setDoc(newRequestRef, requestDataForFirestore);
       
       // Step 3: Create notifications
       const batch = writeBatch(db);
@@ -228,7 +228,7 @@ export function NewRequestForm() {
           type: 'new_request' as const,
           title: 'Permintaan Anggaran Baru',
           message: `${profileData.name} mengajukan permintaan baru (${formatRupiah(totalAmount)}) untuk ditinjau.`,
-          requestId: tempRequestId,
+          requestId: newRequestId,
           isRead: false,
           createdAt: serverTimestamp(),
           createdBy: requestObject.requester
@@ -241,7 +241,7 @@ export function NewRequestForm() {
           type: 'request_submitted' as const,
           title: 'Permintaan Terkirim',
           message: `Permintaan Anda (${formatRupiah(totalAmount)}) telah dikirim ke ${supervisor.name} untuk ditinjau.`,
-          requestId: tempRequestId,
+          requestId: newRequestId,
           isRead: false,
           createdAt: serverTimestamp(),
           createdBy: { id: 'system', name: 'System' }
@@ -536,3 +536,5 @@ export function NewRequestForm() {
     </form>
   );
 }
+
+    
