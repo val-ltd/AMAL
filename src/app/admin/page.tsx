@@ -123,18 +123,15 @@ function AdminPageContent({
     if (isMobile) {
         return (
              <Tabs defaultValue="users" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="users">Pengguna</TabsTrigger>
-                    <TabsTrigger value="departments">Departemen</TabsTrigger>
-                    <TabsTrigger value="settings">Lainnya</TabsTrigger>
+                    <TabsTrigger value="settings">Pengaturan</TabsTrigger>
                 </TabsList>
                 <TabsContent value="users" className="mt-4 flex-1">
                     <UserManagementTab users={users} loading={loading} departments={departments} />
                 </TabsContent>
-                <TabsContent value="departments" className="mt-4">
-                    <DepartmentManagementTab departments={departments} loading={loading} />
-                </TabsContent>
                 <TabsContent value="settings" className="mt-4 space-y-8">
+                     <DepartmentManagementTab departments={departments} loading={loading} />
                      <FundAccountManagementTab fundAccounts={fundAccounts} loading={loading} />
                      <CategoryManagementTab categories={categories} loading={loading} />
                      <BankManagement banks={banks} loading={loading} />
@@ -222,8 +219,6 @@ export default function AdminPage() {
         });
     });
 
-    // We can consider initial loading complete once listeners are attached.
-    // The individual components have their own loading states handled by the `loading` prop.
     setLoading(false);
 
     return () => unsubscribers.forEach(unsub => unsub());
