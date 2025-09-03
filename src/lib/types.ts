@@ -61,7 +61,7 @@ export interface BudgetRequest {
     id: string;
     name: string;
   };
-  department?: Department; // The specific department making the request
+  department?: Omit<Department, 'id' | 'isDeleted'>;
   sheetStartRow?: number;
   sheetEndRow?: number;
   releasedAt?: string; // ISO string
@@ -80,8 +80,8 @@ export interface Department {
     id: string;
     lembaga: string;
     divisi: string;
-    bagian?: string;
-    unit?: string;
+    bagian?: string | null;
+    unit?: string | null;
     isDeleted?: boolean;
 }
 

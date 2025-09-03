@@ -157,7 +157,11 @@ export function NewRequestForm() {
       const selectedDepartment = userDepartments.find(d => d.id === selectedDepartmentId);
       if(!selectedDepartment && userDepartments.length > 0) throw new Error("Departemen yang dipilih tidak valid.");
 
-      const reimbursementAccount = profileData.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
+      let reimbursementAccount;
+      if (paymentMethod === 'Transfer') {
+          reimbursementAccount = profileData.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
+          if (!reimbursementAccount) throw new Error("Reimbursement account not found.");
+      }
 
       const newRequestData = {
           items: items.map(({id, ...rest}) => rest), // Remove temporary frontend ID
@@ -168,8 +172,8 @@ export function NewRequestForm() {
           department: selectedDepartment ? {
               lembaga: selectedDepartment.lembaga,
               divisi: selectedDepartment.divisi,
-              bagian: selectedDepartment.bagian || '',
-              unit: selectedDepartment.unit || '',
+              bagian: selectedDepartment.bagian || null,
+              unit: selectedDepartment.unit || null,
           } : undefined,
           requester: {
               id: authUser.uid,
@@ -181,11 +185,12 @@ export function NewRequestForm() {
               name: supervisor.name,
           },
           paymentMethod,
-          reimbursementAccount: paymentMethod === 'Transfer' ? reimbursementAccount : undefined,
+          reimbursementAccount: reimbursementAccount,
           status: 'pending' as const,
       };
 
       const docRef = await createRequest(newRequestData as any);
+      
       const batch = writeBatch(db);
 
       // Create notification for supervisor
