@@ -29,7 +29,7 @@ const getSheetsApi = () => {
 const ensureHeaderRow = async (sheets: any, sheetId: string) => {
     const getResponse = await sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
-        range: 'Sheet1!A1:J1',
+        range: 'Sheet1!A1:N1',
     });
 
     if (!getResponse.data.values || getResponse.data.values.length === 0) {
@@ -41,15 +41,19 @@ const ensureHeaderRow = async (sheets: any, sheetId: string) => {
                 values: [
                     [
                         'ID',
-                        'Category',
+                        'Created At',
+                        'Requester',
+                        'Lembaga',
+                        'Divisi',
+                        'Supervisor',
                         'Amount',
                         'Status',
-                        'Requester',
-                        'Institution',
-                        'Division',
-                        'Supervisor',
-                        'Created At',
-                        'Description',
+                        'Item Description',
+                        'Category',
+                        'Qty',
+                        'Unit',
+                        'Price',
+                        'Total',
                     ],
                 ],
             },
@@ -57,7 +61,7 @@ const ensureHeaderRow = async (sheets: any, sheetId: string) => {
     }
 };
 
-export async function appendRequestToSheet(request: Omit<BudgetRequest, 'createdAt' | 'updatedAt'> & {createdAt: string, updatedAt: string}) {
+export async function appendRequestToSheet(request: BudgetRequest) {
   try {
     const sheets = getSheetsApi();
     const sheetId = process.env.GOOGLE_SHEET_ID;
@@ -69,21 +73,28 @@ export async function appendRequestToSheet(request: Omit<BudgetRequest, 'created
     await ensureHeaderRow(sheets, sheetId);
 
     const range = 'Sheet1!A1';
-
-    const values = [
-      [
-        request.id,
-        request.category,
-        request.amount,
-        request.status,
-        request.requester.name,
-        request.institution ?? '',
-        request.division ?? '',
-        request.supervisor?.name ?? '',
-        request.createdAt,
-        request.description,
-      ],
+    
+    const baseRow = [
+      request.id,
+      request.createdAt,
+      request.requester.name,
+      request.department?.lembaga ?? request.institution ?? '',
+      request.department?.divisi ?? request.division ?? '',
+      request.supervisor?.name ?? '',
+      request.amount,
+      request.status,
     ];
+
+    const itemRows = request.items.map(item => [
+        ...baseRow,
+        item.description,
+        item.category,
+        item.qty,
+        item.unit,
+        item.price,
+        item.total
+    ]);
+
 
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
@@ -91,19 +102,21 @@ export async function appendRequestToSheet(request: Omit<BudgetRequest, 'created
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       requestBody: {
-        values,
+        values: itemRows,
       },
     });
 
-    // Extract the range of the newly added row
     const updatedRange = response.data.updates?.updatedRange;
     if (updatedRange) {
         const match = updatedRange.match(/!A(\d+):/);
         if (match) {
-            const rowNumber = parseInt(match[1], 10);
-             // Update Firestore document with the sheet's row number
+            const startRow = parseInt(match[1], 10);
+            const endRow = startRow + itemRows.length - 1;
             const requestRef = doc(db, 'requests', request.id);
-            await updateDoc(requestRef, { sheetRowNumber: rowNumber });
+            await updateDoc(requestRef, { 
+              sheetStartRow: startRow,
+              sheetEndRow: endRow,
+            });
         }
     }
 
@@ -125,35 +138,19 @@ export async function updateRequestInSheet(request: BudgetRequest) {
         const requestRef = doc(db, 'requests', request.id);
         const requestSnap = await getDoc(requestRef);
         const requestData = requestSnap.data();
-        const rowNumber = requestData?.sheetRowNumber;
+        const startRow = requestData?.sheetStartRow;
+        const endRow = requestData?.sheetEndRow;
 
-        if (!rowNumber) {
+
+        if (!startRow || !endRow) {
             console.error(`Could not find sheetRowNumber for request ID ${request.id}. Appending as new row.`);
-            // The type for appendRequestToSheet is slightly different, so we need to ensure compatibility
-            await appendRequestToSheet({
-              ...request,
-              createdAt: new Date(request.createdAt).toISOString(),
-              updatedAt: new Date(request.updatedAt).toISOString()
-            });
+            await appendRequestToSheet(request);
             return;
         }
 
-        const rangeToUpdate = `Sheet1!A${rowNumber}:J${rowNumber}`;
+        const rangeToUpdate = `Sheet1!H${startRow}:H${endRow}`;
 
-        const values = [
-            [
-                request.id,
-                request.category,
-                request.amount,
-                request.status,
-                request.requester.name,
-                request.institution ?? '',
-                request.division ?? '',
-                request.supervisor?.name ?? '',
-                request.createdAt,
-                request.description,
-            ],
-        ];
+        const values = Array(endRow - startRow + 1).fill([request.status]);
 
         await sheets.spreadsheets.values.update({
             spreadsheetId: sheetId,

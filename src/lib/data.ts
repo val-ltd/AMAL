@@ -19,6 +19,7 @@ import {
 } from 'firebase/firestore';
 import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Notification, Role, Bank, Unit, MemoSubject } from './types';
 import { auth, db } from './firebase';
+import { appendRequestToSheet, updateRequestInSheet } from './sheets';
 
 // This function now returns an unsubscribe function for the real-time listener
 export function getMyRequests(
@@ -145,12 +146,16 @@ export async function createRequest(
   const newDoc = await getDoc(docRef);
   const createdData = newDoc.data();
 
-  return {
+  const finalRequest = {
     id: newDoc.id,
     ...createdData,
     createdAt: createdData?.createdAt?.toDate().toISOString(),
     updatedAt: createdData?.updatedAt?.toDate().toISOString(),
   } as BudgetRequest;
+  
+  await appendRequestToSheet(finalRequest);
+
+  return finalRequest;
 }
 
 export async function updateRequest(
@@ -168,12 +173,14 @@ export async function updateRequest(
     const updatedDoc = await getDoc(requestRef);
     if (updatedDoc.exists()) {
         const data = updatedDoc.data();
-        return {
+        const updatedRequest = {
             id: updatedDoc.id,
             ...data,
             createdAt: data.createdAt?.toDate().toISOString(),
             updatedAt: data.updatedAt?.toDate().toISOString(),
         } as BudgetRequest;
+        await updateRequestInSheet(updatedRequest);
+        return updatedRequest;
     }
     return undefined;
 }
@@ -185,17 +192,30 @@ export async function markRequestsAsReleased(requestIds: string[], releasedBy: {
       requestIds.map(id => getDoc(doc(db, 'requests', id)))
     );
 
+    const updatedRequestsForSheet: BudgetRequest[] = [];
+
     requestsToUpdate.forEach(requestDoc => {
         if (requestDoc.exists()) {
             const requestData = requestDoc.data() as BudgetRequest;
             const requestRef = doc(db, 'requests', requestDoc.id);
 
+            const releasedAt = new Date();
+
             batch.update(requestRef, {
                 status: 'released',
-                releasedAt: serverTimestamp(),
+                releasedAt: Timestamp.fromDate(releasedAt),
                 releasedBy: releasedBy,
                 fundSourceId: fundSourceId,
                 updatedAt: serverTimestamp()
+            });
+
+            updatedRequestsForSheet.push({
+                ...requestData,
+                id: requestDoc.id,
+                status: 'released',
+                releasedAt: releasedAt.toISOString(),
+                releasedBy: releasedBy,
+                fundSourceId: fundSourceId,
             });
 
             // Create notification for requester
@@ -218,6 +238,9 @@ export async function markRequestsAsReleased(requestIds: string[], releasedBy: {
     });
 
     await batch.commit();
+
+    // After successful commit, update all sheets
+    await Promise.all(updatedRequestsForSheet.map(req => updateRequestInSheet(req)));
 }
 
 
@@ -264,6 +287,7 @@ export async function getManagers(): Promise<User[]> {
 export async function getDepartments(): Promise<Department[]> {
     const q = query(
         collection(db, 'departments'),
+        where('isDeleted', 'in', [false, null]),
         orderBy('lembaga'),
         orderBy('divisi'),
         orderBy('bagian'),
@@ -304,7 +328,7 @@ export async function getDepartmentsByIds(ids: string[]): Promise<Department[]> 
 }
 
 export async function getCollection<T>(collectionName: string, orderField: string): Promise<T[]> {
-    const q = query(collection(db, collectionName), orderBy(orderField));
+    const q = query(collection(db, collectionName), where('isDeleted', 'in', [false, null]), orderBy(orderField));
     const querySnapshot = await getDocs(q);
     const items: T[] = [];
     querySnapshot.forEach((doc) => {

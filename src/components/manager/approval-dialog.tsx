@@ -27,7 +27,7 @@ import { doc, serverTimestamp, updateDoc, collection, addDoc, writeBatch, getDoc
 import { db } from '@/lib/firebase';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { useAuth } from '@/hooks/use-auth';
-import { getFundAccounts } from '@/lib/data';
+import { getFundAccounts, updateRequest } from '@/lib/data';
 
 interface ApprovalDialogProps {
   request: BudgetRequest;
@@ -66,13 +66,9 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
 
     setIsSubmitting(true);
     try {
+        const updatedRequest = await updateRequest(request.id, status, comment);
+        
         const batch = writeBatch(db);
-        const requestRef = doc(db, 'requests', request.id);
-        batch.update(requestRef, {
-            status,
-            managerComment: comment,
-            updatedAt: serverTimestamp(),
-        });
 
         const firstItemDesc = request.items[0]?.description || 'N/A';
         const amountFormatted = formatRupiah(request.amount);
@@ -149,7 +145,6 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
   }
 
   const items = Array.isArray(request.items) && request.items.length > 0 ? request.items : [];
-  const legacyDescription = (request as any).description; // For old data
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -209,7 +204,7 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
              ) : (
                 <div className="space-y-2">
                     <p className="font-medium">Deskripsi (Data Lama)</p>
-                    <p className="text-sm text-muted-foreground">{legacyDescription || 'Tidak ada deskripsi.'}</p>
+                    <p className="text-sm text-muted-foreground">Tidak ada deskripsi.</p>
                     <Separator />
                     <div className="flex justify-end font-bold">
                         <span>Total: {formatRupiah(request.amount)}</span>
@@ -281,3 +276,4 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
     </Dialog>
   );
 }
+

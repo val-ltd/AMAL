@@ -11,8 +11,8 @@ import { Loader2, Plus, Trash2, WalletCards } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import type { User, Department, BudgetCategory, RequestItem, UserBankAccount } from '@/lib/types';
-import { getManagers, getUser, getBudgetCategories } from '@/lib/data';
+import type { User, Department, BudgetCategory, RequestItem, UserBankAccount, Unit } from '@/lib/types';
+import { getManagers, getUser, getBudgetCategories, getUnits, createRequest } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -22,7 +22,6 @@ import { formatDepartment } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Label } from './ui/label';
-import { appendRequestToSheet } from '@/lib/sheets';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 
 const formatRupiah = (amount: number) => {
@@ -43,6 +42,7 @@ export function NewRequestForm() {
   const [managers, setManagers] = useState<User[]>([]);
   const [userDepartments, setUserDepartments] = useState<Department[]>([]);
   const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Form State
@@ -63,15 +63,17 @@ export function NewRequestForm() {
         if (authUser) {
             setLoading(true);
             try {
-                const [userProfile, managerList, categoryList] = await Promise.all([
+                const [userProfile, managerList, categoryList, unitList] = await Promise.all([
                   getUser(authUser.uid),
                   getManagers(),
-                  getBudgetCategories()
+                  getBudgetCategories(),
+                  getUnits()
                 ]);
 
                 setProfileData(userProfile);
                 setManagers(managerList);
                 setBudgetCategories(categoryList);
+                setUnits(unitList);
                 
                 if (userProfile?.bankAccounts && userProfile.bankAccounts.length > 0) {
                     setReimbursementAccountId(userProfile.bankAccounts[0].accountNumber);
@@ -133,8 +135,8 @@ export function NewRequestForm() {
       setFormError("Silakan pilih departemen untuk permintaan ini.");
       return;
     }
-    if (items.some(item => !item.description || item.qty <= 0 || !item.category)) {
-      setFormError("Setiap item harus memiliki Uraian, Kuantitas, dan Kategori.");
+    if (items.some(item => !item.description || item.qty <= 0 || !item.category || !item.unit)) {
+      setFormError("Setiap item harus memiliki Uraian, Kuantitas, Satuan dan Kategori.");
       return;
     }
     if (!profileData || !authUser) {
@@ -181,11 +183,9 @@ export function NewRequestForm() {
           paymentMethod,
           reimbursementAccount: paymentMethod === 'Transfer' ? reimbursementAccount : undefined,
           status: 'pending' as const,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
       };
 
-      const docRef = await addDoc(collection(db, 'requests'), newRequestData);
+      const docRef = await createRequest(newRequestData as any);
       const batch = writeBatch(db);
 
       // Create notification for supervisor
@@ -215,15 +215,6 @@ export function NewRequestForm() {
       batch.set(doc(collection(db, 'notifications')), requesterNotification);
       
       await batch.commit();
-
-      // We are not awaiting this. Let it run in the background.
-      appendRequestToSheet({
-        id: docRef.id,
-        ...newRequestData,
-        items: newRequestData.items.map(i => ({...i, id:''})),
-        createdAt: new Date().toISOString(), 
-        updatedAt: new Date().toISOString(),
-      });
 
       toast({
           title: "Permintaan Terkirim",
@@ -263,10 +254,15 @@ export function NewRequestForm() {
                     <Label htmlFor={`qty-mobile-${item.id}`}>Jml</Label>
                     <Input id={`qty-mobile-${item.id}`} type="number" value={item.qty} onChange={e => handleItemChange(index, 'qty', parseInt(e.target.value, 10) || 0)} />
                   </div>
-                  <div>
-                    <Label htmlFor={`unit-mobile-${item.id}`}>Satuan</Label>
-                    <Input id={`unit-mobile-${item.id}`} value={item.unit} onChange={e => handleItemChange(index, 'unit', e.target.value)} placeholder="Pcs" />
-                  </div>
+                   <div>
+                        <Label htmlFor={`unit-mobile-${item.id}`}>Satuan</Label>
+                        <Select value={item.unit} onValueChange={v => handleItemChange(index, 'unit', v)}>
+                          <SelectTrigger id={`unit-mobile-${item.id}`}><SelectValue placeholder="Pilih..." /></SelectTrigger>
+                          <SelectContent>
+                              {units.map(u => <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                    </div>
                 </div>
                 <div>
                   <Label htmlFor={`price-mobile-${item.id}`}>Harga/Sat.</Label>
@@ -319,7 +315,12 @@ export function NewRequestForm() {
                           <Input type="number" value={item.qty} onChange={e => handleItemChange(index, 'qty', parseInt(e.target.value, 10) || 0)} />
                       </TableCell>
                       <TableCell className="p-1">
-                          <Input value={item.unit} onChange={e => handleItemChange(index, 'unit', e.target.value)} placeholder="Pcs" />
+                           <Select value={item.unit} onValueChange={v => handleItemChange(index, 'unit', v)}>
+                              <SelectTrigger><SelectValue placeholder="Pilih..." /></SelectTrigger>
+                              <SelectContent>
+                                   {units.map(u => <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>)}
+                              </SelectContent>
+                          </Select>
                       </TableCell>
                        <TableCell className="p-1">
                           <Input type="number" value={item.price} onChange={e => handleItemChange(index, 'price', parseInt(e.target.value, 10) || 0)} placeholder="100000" />
@@ -501,3 +502,4 @@ export function NewRequestForm() {
     </form>
   );
 }
+

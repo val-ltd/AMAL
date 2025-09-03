@@ -24,6 +24,7 @@ export interface User {
   decider?: User;
   departmentIds?: string[];
   isVerified?: boolean;
+  isDeleted?: boolean;
   // New fields
   gender?: 'Male' | 'Female';
   phoneNumber?: string;
@@ -61,7 +62,8 @@ export interface BudgetRequest {
     name: string;
   };
   department?: Department; // The specific department making the request
-  sheetRowNumber?: number;
+  sheetStartRow?: number;
+  sheetEndRow?: number;
   releasedAt?: string; // ISO string
   releasedBy?: {
     id: string;
@@ -80,11 +82,13 @@ export interface Department {
     divisi: string;
     bagian?: string;
     unit?: string;
+    isDeleted?: boolean;
 }
 
 export interface BudgetCategory {
     id: string;
     name: string;
+    isDeleted?: boolean;
 }
 
 export interface FundAccount {
@@ -92,6 +96,7 @@ export interface FundAccount {
     accountName: string; // NAMA REKENING
     accountNumber: string; // NO. REK
     bankName: string; // BANK
+    isDeleted?: boolean;
     // New fields
     namaLembaga: string;
     cabang: string;
@@ -124,14 +129,17 @@ export interface Bank {
     id: string;
     name: string;
     code: string;
+    isDeleted?: boolean;
 }
 
 export interface Unit {
     id: string;
     name: string;
+    isDeleted?: boolean;
 }
 
 export interface MemoSubject {
     id: string;
     name: string;
+    isDeleted?: boolean;
 }
