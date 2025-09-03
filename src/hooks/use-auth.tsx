@@ -57,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 avatarUrl: firebaseUser.photoURL || '',
                 roles: ['Employee'],
                 isVerified: false,
+                isDeleted: false,
               };
               await setDoc(userDocRef, newUserProfile);
               setUser({ ...firebaseUser, profile: newUserProfile });
