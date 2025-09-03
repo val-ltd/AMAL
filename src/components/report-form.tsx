@@ -25,6 +25,48 @@ const formatRupiah = (amount: number) => {
     }).format(amount);
 };
 
+const MAX_FILE_SIZE_MB = 5;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+const compressImage = (file: File): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = document.createElement('img');
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1024;
+        const scaleSize = MAX_WIDTH / img.width;
+        canvas.width = MAX_WIDTH;
+        canvas.height = img.height * scaleSize;
+
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const newFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(newFile);
+            } else {
+              reject(new Error('Canvas to Blob conversion failed'));
+            }
+          },
+          'image/jpeg',
+          0.7 // 70% quality
+        );
+      };
+      img.onerror = reject;
+    };
+    reader.onerror = reject;
+  });
+};
+
 
 interface ReportFormProps {
     request: BudgetRequest;
@@ -39,11 +81,41 @@ export function ReportForm({ request }: ReportFormProps) {
     const [files, setFiles] = useState<File[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            setFiles(prev => [...prev, ...Array.from(e.target.files)]);
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files) return;
+
+        const selectedFiles = Array.from(e.target.files);
+        const processedFiles: File[] = [];
+
+        for (const file of selectedFiles) {
+            if (file.size > MAX_FILE_SIZE_BYTES) {
+                toast({
+                    title: 'File Terlalu Besar',
+                    description: `File "${file.name}" melebihi batas ukuran ${MAX_FILE_SIZE_MB}MB.`,
+                    variant: 'destructive',
+                });
+                continue;
+            }
+
+            if (file.type.startsWith('image/')) {
+                try {
+                    const compressedFile = await compressImage(file);
+                    processedFiles.push(compressedFile);
+                } catch (error) {
+                    console.error('Image compression error:', error);
+                    toast({
+                        title: 'Gagal Kompresi Gambar',
+                        description: `Gagal memproses file "${file.name}".`,
+                        variant: 'destructive'
+                    });
+                }
+            } else {
+                processedFiles.push(file);
+            }
         }
+        setFiles(prev => [...prev, ...processedFiles]);
     };
+
 
     const handleRemoveFile = (index: number) => {
         setFiles(prev => prev.filter((_, i) => i !== index));
@@ -145,7 +217,7 @@ export function ReportForm({ request }: ReportFormProps) {
                             />
                         </div>
                         <div className="space-y-4">
-                            <Label>Bukti Pembayaran</Label>
+                            <Label>Bukti Pembayaran (Maks {MAX_FILE_SIZE_MB}MB per file)</Label>
                             <div className="relative border-2 border-dashed border-muted-foreground/50 rounded-lg p-6 text-center hover:border-primary cursor-pointer">
                                 <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground"/>
                                 <p className="mt-2 text-sm text-muted-foreground">Tarik & Lepas file atau klik untuk menelusuri</p>
