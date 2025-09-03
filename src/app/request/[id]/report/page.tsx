@@ -16,8 +16,13 @@ export default async function ReportPage({ params }: ReportPageProps) {
         notFound();
     }
     
-    // You might want to add logic here to prevent creating a report
-    // if one already exists or if the status is not 'released'.
+    if (request.status !== 'released') {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <p>Hanya permintaan yang sudah dicairkan yang dapat dibuatkan laporannya.</p>
+            </div>
+        )
+    }
 
     return (
         <ReportForm request={request} />
