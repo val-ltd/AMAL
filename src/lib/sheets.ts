@@ -8,6 +8,8 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
+const SHEET_NAME = 'request';
+
 
 function getGoogleAuth() {
   const serviceAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
@@ -34,16 +36,43 @@ const getSheetsApi = () => {
     return google.sheets({ version: 'v4', auth });
 }
 
+const ensureSheetExists = async (sheets: any, spreadsheetId: string) => {
+    const response = await sheets.spreadsheets.get({
+        spreadsheetId,
+    });
+    const sheetExists = response.data.sheets.some(
+        (sheet: any) => sheet.properties.title === SHEET_NAME
+    );
+
+    if (!sheetExists) {
+        await sheets.spreadsheets.batchUpdate({
+            spreadsheetId,
+            requestBody: {
+                requests: [
+                    {
+                        addSheet: {
+                            properties: {
+                                title: SHEET_NAME,
+                            },
+                        },
+                    },
+                ],
+            },
+        });
+    }
+};
+
+
 const ensureHeaderRow = async (sheets: any, sheetId: string) => {
     const getResponse = await sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
-        range: 'Sheet1!A1:N1',
+        range: `${SHEET_NAME}!A1:N1`,
     });
 
     if (!getResponse.data.values || getResponse.data.values.length === 0) {
         await sheets.spreadsheets.values.update({
             spreadsheetId: sheetId,
-            range: 'Sheet1!A1',
+            range: `${SHEET_NAME}!A1`,
             valueInputOption: 'USER_ENTERED',
             requestBody: {
                 values: [
@@ -77,9 +106,10 @@ export async function appendRequestToSheet(request: BudgetRequest): Promise<{sta
       throw new Error('Missing GOOGLE_SHEET_ID env var.');
     }
     
+    await ensureSheetExists(sheets, sheetId);
     await ensureHeaderRow(sheets, sheetId);
 
-    const range = 'Sheet1!A1';
+    const range = `${SHEET_NAME}!A1`;
     
     const baseRow = [
       request.id,
@@ -115,6 +145,7 @@ export async function appendRequestToSheet(request: BudgetRequest): Promise<{sta
 
     const updatedRange = response.data.updates?.updatedRange;
     if (updatedRange) {
+        // Example updatedRange: 'request!A10:N11'
         const match = updatedRange.match(/!A(\d+):/);
         if (match) {
             const startRow = parseInt(match[1], 10);
@@ -147,7 +178,7 @@ export async function updateRequestInSheet(status: BudgetRequest['status'], star
             return;
         }
 
-        const rangeToUpdate = `Sheet1!H${startRow}:H${endRow}`;
+        const rangeToUpdate = `${SHEET_NAME}!H${startRow}:H${endRow}`;
 
         const values = Array(endRow - startRow + 1).fill([status]);
 
