@@ -192,34 +192,44 @@ export default function AdminPage() {
   const isAuthorized = userRoles?.includes('Admin') || userRoles?.includes('Super Admin');
   
   useEffect(() => {
+    if (authLoading) return; // Wait for auth to finish loading
+    
     if (!isAuthorized) {
-        if (!authLoading) setLoading(false);
+        setLoading(false);
         return;
     }
-    
+
     const createQuery = (collectionName: string, orderByField: string) => 
         query(collection(db, collectionName), where('isDeleted', 'in', [false, null]), orderBy(orderByField, 'asc'));
 
-    const unsubscribers = [
-      onSnapshot(query(collection(db, 'users'), where('isDeleted', 'in', [false, null]), orderBy('name', 'asc')), snapshot => 
-        setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)))),
-      onSnapshot(query(collection(db, 'departments'), where('isDeleted', 'in', [false, null]), orderBy('lembaga', 'asc'), orderBy('divisi', 'asc')), snapshot => 
-        setDepartments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Department)))),
-      onSnapshot(createQuery('budgetCategories', 'name'), snapshot => 
-        setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BudgetCategory)))),
-      onSnapshot(createQuery('fundAccounts', 'accountName'), snapshot => 
-        setFundAccounts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FundAccount)))),
-      onSnapshot(createQuery('banks', 'name'), snapshot =>
-        setBanks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Bank)))),
-      onSnapshot(createQuery('units', 'name'), snapshot =>
-        setUnits(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Unit)))),
-      onSnapshot(createQuery('memoSubjects', 'name'), snapshot =>
-        setMemoSubjects(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MemoSubject)))),
+    // Set up listeners and track their initial load state
+    const listeners = [
+        { loaded: false, unsub: onSnapshot(query(collection(db, 'users'), where('isDeleted', 'in', [false, null]), orderBy('name', 'asc')), s => { setUsers(s.docs.map(d => ({ id: d.id, ...d.data() } as User))); checkAllLoaded(); }) },
+        { loaded: false, unsub: onSnapshot(query(collection(db, 'departments'), where('isDeleted', 'in', [false, null]), orderBy('lembaga', 'asc'), orderBy('divisi', 'asc')), s => { setDepartments(s.docs.map(d => ({ id: d.id, ...d.data() } as Department))); checkAllLoaded(); }) },
+        { loaded: false, unsub: onSnapshot(createQuery('budgetCategories', 'name'), s => { setCategories(s.docs.map(d => ({ id: d.id, ...d.data() } as BudgetCategory))); checkAllLoaded(); }) },
+        { loaded: false, unsub: onSnapshot(createQuery('fundAccounts', 'accountName'), s => { setFundAccounts(s.docs.map(d => ({ id: d.id, ...d.data() } as FundAccount))); checkAllLoaded(); }) },
+        { loaded: false, unsub: onSnapshot(createQuery('banks', 'name'), s => { setBanks(s.docs.map(d => ({ id: d.id, ...d.data() } as Bank))); checkAllLoaded(); }) },
+        { loaded: false, unsub: onSnapshot(createQuery('units', 'name'), s => { setUnits(s.docs.map(d => ({ id: d.id, ...d.data() } as Unit))); checkAllLoaded(); }) },
+        { loaded: false, unsub: onSnapshot(createQuery('memoSubjects', 'name'), s => { setMemoSubjects(s.docs.map(d => ({ id: d.id, ...d.data() } as MemoSubject))); checkAllLoaded(); }) },
     ];
 
-    setLoading(false)
+    let initialLoadCompleted = false;
+    const checkAllLoaded = () => {
+        if (initialLoadCompleted) return;
+        // Mark the listener as loaded
+        const currentListener = listeners.find(l => !l.loaded);
+        if(currentListener) currentListener.loaded = true;
 
-    return () => unsubscribers.forEach(unsub => unsub());
+        if (listeners.every(l => l.loaded)) {
+            initialLoadCompleted = true;
+            setLoading(false);
+        }
+    };
+    
+    // Initial call in case some collections are empty and snapshot doesn't fire immediately
+    checkAllLoaded();
+    
+    return () => listeners.forEach(l => l.unsub());
   }, [isAuthorized, authLoading]);
 
   if (authLoading || (loading && isAuthorized)) {
@@ -256,7 +266,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
-
-    
