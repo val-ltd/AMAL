@@ -53,10 +53,11 @@ export interface ExpenseReport {
         id: string;
         name: string;
     };
-    submittedAt: string; // ISO string
+    submittedAt: any; // serverTimestamp()
     spentAmount: number;
     notes: string;
     attachments: ReportAttachment[];
+    requestId: string;
 }
 
 export interface BudgetRequest {

@@ -13,8 +13,7 @@ import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Paperclip, Trash2, UploadCloud, File as FileIcon } from 'lucide-react';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { submitReport } from '@/lib/data';
 import Image from 'next/image';
 
 const formatRupiah = (amount: number) => {
@@ -150,22 +149,16 @@ export function ReportForm({ request }: ReportFormProps) {
             const attachments = await Promise.all(attachmentUploadPromises);
 
             const reportData = {
-                report: {
-                    submittedBy: {
-                        id: user.uid,
-                        name: user.displayName || 'Unknown',
-                    },
-                    submittedAt: serverTimestamp(),
-                    spentAmount,
-                    notes,
-                    attachments,
+                submittedBy: {
+                    id: user.uid,
+                    name: user.displayName || 'Unknown',
                 },
-                status: 'completed',
-                updatedAt: serverTimestamp(),
+                spentAmount,
+                notes,
+                attachments,
             };
             
-            const requestRef = doc(db, 'requests', request.id);
-            await updateDoc(requestRef, reportData);
+            await submitReport(request.id, reportData);
 
             toast({
                 title: "Laporan Terkirim",
@@ -176,7 +169,7 @@ export function ReportForm({ request }: ReportFormProps) {
 
         } catch (error) {
             console.error("Error submitting report: ", error);
-            toast({ title: "Gagal Mengirim Laporan", variant: "destructive" });
+            toast({ title: "Gagal Mengirim Laporan", description: error instanceof Error ? error.message : "Terjadi kesalahan.", variant: "destructive" });
         } finally {
             setIsSubmitting(false);
         }

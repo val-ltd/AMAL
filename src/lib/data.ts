@@ -19,7 +19,7 @@ import {
   DocumentReference,
   setDoc,
 } from 'firebase/firestore';
-import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Notification, Role, Bank, Unit, MemoSubject } from './types';
+import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Notification, Role, Bank, Unit, MemoSubject, ExpenseReport } from './types';
 import { auth, db } from './firebase';
 import { appendRequestToSheet, updateRequestInSheet } from './sheets';
 
@@ -325,6 +325,24 @@ export async function markRequestsAsReleased(requestIds: string[], releasedBy: {
             updateRequestInSheet(req.status, req.sheetStartRow, req.sheetEndRow);
         }
     }));
+}
+
+export async function submitReport(requestId: string, reportData: Omit<ExpenseReport, 'submittedAt'>) {
+    const reportWithTimestamp = {
+        ...reportData,
+        requestId,
+        submittedAt: serverTimestamp(),
+    };
+    
+    // Create the new report document
+    await addDoc(collection(db, 'reports'), reportWithTimestamp);
+    
+    // Update the original request's status
+    const requestRef = doc(db, 'requests', requestId);
+    await updateDoc(requestRef, {
+        status: 'completed',
+        updatedAt: serverTimestamp(),
+    });
 }
 
 
