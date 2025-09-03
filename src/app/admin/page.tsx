@@ -198,13 +198,12 @@ export default function AdminPage() {
 
     const createListener = (collectionName: string, stateSetter: (data: any[]) => void, orderByFields: [string, "asc" | "desc"][], dataMapper: (doc: any) => any) => {
         const q = query(collection(db, collectionName), where('isDeleted', 'in', [false, null]), ...orderByFields.map(f => orderBy(f[0], f[1])));
-        const unsub = onSnapshot(q, (snapshot) => {
+        return onSnapshot(q, (snapshot) => {
             const data = snapshot.docs.map(dataMapper);
             stateSetter(data);
         }, (error) => {
             console.error(`Error fetching ${collectionName}:`, error);
         });
-        return unsub;
     };
     
     const unsubscribers = [
@@ -214,16 +213,17 @@ export default function AdminPage() {
         createListener('fundAccounts', setFundAccounts, [['accountName', 'asc']], d => ({ id: d.id, ...d.data() } as FundAccount)),
         createListener('banks', setBanks, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as Bank)),
         createListener('units', setUnits, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as Unit)),
-        createListener('memoSubjects', setMemoSubjects, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as MemoSubject)),
+        createListener('memoSubjects', setMemoSubjects, [['name', 'asc']], d => ({ id: d.id, ...d_data() } as MemoSubject)),
     ];
     
+    // Once all listeners are set up, we can consider initial loading complete.
     setLoading(false);
 
     return () => unsubscribers.forEach(unsub => unsub());
   }, [isAuthorized]);
 
-  if (authLoading || (loading && isAuthorized)) {
-    return <p>Memuat data administrasi...</p>
+  if (authLoading) {
+    return <p>Memuat data otentikasi...</p>
   }
   
   if (!isAuthorized) {
@@ -233,9 +233,13 @@ export default function AdminPage() {
             <AlertTitle>Akses Ditolak</AlertTitle>
             <AlertDescription>
                 Anda tidak memiliki izin untuk melihat halaman ini. Hanya Admin yang dapat mengakses halaman ini.
-            </AlertDescription>
+            </Alerte>
         </Alert>
     )
+  }
+
+  if (loading) {
+    return <p>Memuat data administrasi...</p>
   }
 
   return (
