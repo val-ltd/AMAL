@@ -1,3 +1,4 @@
+
 'use server';
 
 import { google } from 'googleapis';
@@ -8,19 +9,23 @@ import { db } from './firebase';
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 
 function getGoogleAuth() {
-  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-    throw new Error('Missing GOOGLE_SERVICE_ACCOUNT_JSON env var');
+  const serviceAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  if (!serviceAccountJson) {
+    throw new Error(
+      'The GOOGLE_SERVICE_ACCOUNT_JSON environment variable was not found. Please set it to the contents of your service account JSON file.'
+    );
   }
 
-  const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-
-  return new google.auth.GoogleAuth({
-    credentials: {
-      client_email: serviceAccount.client_email,
-      private_key: serviceAccount.private_key,
-    },
-    scopes: SCOPES,
-  });
+  try {
+    const credentials = JSON.parse(serviceAccountJson);
+    return new google.auth.GoogleAuth({
+        credentials,
+        scopes: SCOPES,
+    });
+  } catch (e: any) {
+     console.error("Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON:", e.message);
+     throw new Error("Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON. Make sure it's a valid JSON string.");
+  }
 }
 
 const getSheetsApi = () => {
