@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { deleteDoc, doc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 interface DeleteDataAlertProps {
@@ -32,7 +32,7 @@ export function DeleteDataAlert({ id, collection, name, children }: DeleteDataAl
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      await deleteDoc(doc(db, collection, id));
+      await updateDoc(doc(db, collection, id), { isDeleted: true });
       toast({ title: `${name} Dihapus`, description: `${name} telah berhasil dihapus.` });
     } catch (error) {
       console.error(`Error deleting ${name}:`, error);
@@ -54,7 +54,7 @@ export function DeleteDataAlert({ id, collection, name, children }: DeleteDataAl
         <AlertDialogHeader>
           <AlertDialogTitle>Apakah Anda benar-benar yakin?</AlertDialogTitle>
           <AlertDialogDescription>
-            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus {name.toLowerCase()} ini secara permanen.
+            Tindakan ini tidak akan menghapus data secara permanen, tetapi akan diarsipkan. Anda dapat menghubungi administrator untuk memulihkannya.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

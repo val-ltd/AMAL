@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -17,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Department } from '@/lib/types';
 import { Edit, Loader2, PlusCircle } from 'lucide-react';
-import { collection, getDocs, query, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, query, addDoc, doc, updateDoc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Combobox } from './combobox';
 
@@ -43,7 +44,7 @@ export function SaveDepartmentDialog({ department, onDepartmentAdded, triggerBut
   useEffect(() => {
     if (open) {
       const fetchDepts = async () => {
-        const q = query(collection(db, "departments"));
+        const q = query(collection(db, "departments"), where('isDeleted', '!=', true));
         const querySnapshot = await getDocs(q);
         const depts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Department));
         setAllDepartments(depts);
@@ -67,7 +68,7 @@ export function SaveDepartmentDialog({ department, onDepartmentAdded, triggerBut
     event.preventDefault();
     setIsSubmitting(true);
     
-    const data = { lembaga, divisi, bagian, unit };
+    const data = { lembaga, divisi, bagian, unit, isDeleted: false };
 
     if (!data.lembaga || !data.divisi) {
       toast({ title: 'Lembaga dan Divisi harus diisi', variant: 'destructive'});

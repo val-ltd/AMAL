@@ -58,7 +58,7 @@ export function SaveBankDialog({ bank, children }: SaveBankDialogProps) {
         await updateDoc(doc(db, 'banks', bank.id), data);
         toast({ title: `Bank Diperbarui` });
       } else {
-        await addDoc(collection(db, 'banks'), data);
+        await addDoc(collection(db, 'banks'), { ...data, isDeleted: false });
         toast({ title: `Bank Ditambahkan` });
       }
       setOpen(false);

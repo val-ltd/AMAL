@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -13,7 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { deleteDoc, doc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 interface DeleteUserAlertProps {
@@ -29,7 +30,7 @@ export function DeleteUserAlert({ userId, open, onOpenChange }: DeleteUserAlertP
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      await deleteDoc(doc(db, 'users', userId));
+      await updateDoc(doc(db, 'users', userId), { isDeleted: true });
       toast({ title: 'Pengguna Dihapus', description: 'Pengguna telah berhasil dihapus dari sistem.' });
       onOpenChange(false);
     } catch (error) {
@@ -51,7 +52,7 @@ export function DeleteUserAlert({ userId, open, onOpenChange }: DeleteUserAlertP
         <AlertDialogHeader>
           <AlertDialogTitle>Apakah Anda benar-benar yakin?</AlertDialogTitle>
           <AlertDialogDescription>
-            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data pengguna secara permanen dari basis data.
+            Tindakan ini tidak akan menghapus data secara permanen, tetapi akan diarsipkan. Anda dapat menghubungi administrator untuk memulihkannya.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

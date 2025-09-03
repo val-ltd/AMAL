@@ -93,7 +93,7 @@ export function SaveFundAccountDialog({ account, children }: SaveFundAccountDial
         await updateDoc(doc(db, 'fundAccounts', account.id), formData);
         toast({ title: `Sumber Dana Diperbarui`, description: `Rekening telah berhasil diperbarui.` });
       } else {
-        await addDoc(collection(db, 'fundAccounts'), formData);
+        await addDoc(collection(db, 'fundAccounts'), { ...formData, isDeleted: false });
         toast({ title: `Sumber Dana Ditambahkan`, description: `Rekening telah berhasil ditambahkan.` });
       }
       setOpen(false);

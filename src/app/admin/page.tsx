@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import type { User, Department, BudgetCategory, FundAccount, Bank, Unit, MemoSubject } from "@/lib/types";
-import { collection, onSnapshot, query, orderBy, doc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, doc, getDoc, updateDoc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { UserManagementTab } from "@/components/admin/user-management-tab";
 import { DepartmentManagementTab } from "@/components/admin/department-management-tab";
@@ -197,20 +197,23 @@ export default function AdminPage() {
         return;
     }
     
+    const createQuery = (collectionName: string, orderByField: string) => 
+        query(collection(db, collectionName), where('isDeleted', '!=', true), orderBy(orderByField, 'asc'));
+
     const unsubscribers = [
-      onSnapshot(query(collection(db, 'users'), orderBy('name', 'asc')), snapshot => 
+      onSnapshot(query(collection(db, 'users'), where('isDeleted', '!=', true), orderBy('name', 'asc')), snapshot => 
         setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)))),
-      onSnapshot(query(collection(db, 'departments'), orderBy('lembaga', 'asc'), orderBy('divisi', 'asc')), snapshot => 
+      onSnapshot(query(collection(db, 'departments'), where('isDeleted', '!=', true), orderBy('lembaga', 'asc'), orderBy('divisi', 'asc')), snapshot => 
         setDepartments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Department)))),
-      onSnapshot(query(collection(db, 'budgetCategories'), orderBy('name', 'asc')), snapshot => 
+      onSnapshot(createQuery('budgetCategories', 'name'), snapshot => 
         setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BudgetCategory)))),
-      onSnapshot(query(collection(db, 'fundAccounts'), orderBy('accountName', 'asc')), snapshot => 
+      onSnapshot(createQuery('fundAccounts', 'accountName'), snapshot => 
         setFundAccounts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FundAccount)))),
-      onSnapshot(query(collection(db, 'banks'), orderBy('name', 'asc')), snapshot =>
+      onSnapshot(createQuery('banks', 'name'), snapshot =>
         setBanks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Bank)))),
-      onSnapshot(query(collection(db, 'units'), orderBy('name', 'asc')), snapshot =>
+      onSnapshot(createQuery('units', 'name'), snapshot =>
         setUnits(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Unit)))),
-      onSnapshot(query(collection(db, 'memoSubjects'), orderBy('name', 'asc')), snapshot =>
+      onSnapshot(createQuery('memoSubjects', 'name'), snapshot =>
         setMemoSubjects(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MemoSubject)))),
     ];
 

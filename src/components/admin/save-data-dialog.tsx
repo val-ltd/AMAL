@@ -56,7 +56,7 @@ export function SaveDataDialog({ data, collection: collectionName, dialogTitle, 
         await updateDoc(doc(db, collectionName, data.id), { name });
         toast({ title: `${dialogTitle} Diperbarui` });
       } else {
-        await addDoc(collection(db, collectionName), { name });
+        await addDoc(collection(db, collectionName), { name, isDeleted: false });
         toast({ title: `${dialogTitle} Ditambahkan` });
       }
       setOpen(false);
