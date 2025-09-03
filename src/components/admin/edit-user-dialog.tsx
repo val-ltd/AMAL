@@ -8,13 +8,15 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { User, Department } from '@/lib/types';
 import { Loader2, PlusCircle, X, Search } from 'lucide-react';
-import { doc, updateDoc, collection, onSnapshot } from 'firebase/firestore';
+import { doc, updateDoc, collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatDepartment } from '@/lib/utils';
 import { SaveDepartmentDialog } from './save-department-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '../ui/dialog';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
+import { Command, CommandEmpty, CommandInput, CommandGroup, CommandItem, CommandList } from '../ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 type Role = 'Admin' | 'Manager' | 'Employee' | 'Super Admin' | 'Releaser';
 const ALL_ROLES: Role[] = ['Employee', 'Manager', 'Admin', 'Super Admin', 'Releaser'];
@@ -28,12 +30,11 @@ const ROLE_HIERARCHY: Record<Role, Role[]> = {
 
 interface EditUserDialogProps {
   user: User;
-  departments: Department[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function EditUserDialog({ user, departments: initialDepartments, open, onOpenChange }: EditUserDialogProps) {
+export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   
@@ -52,13 +53,14 @@ export function EditUserDialog({ user, departments: initialDepartments, open, on
       email: user.email,
   });
   const [selectedRoles, setSelectedRoles] = useState<Role[]>(getRolesArray(user.roles));
-  const [allDepartments, setAllDepartments] = useState(initialDepartments);
+  const [allDepartments, setAllDepartments] = useState<Department[]>([]);
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>(user.departmentIds || []);
   const [searchTerm, setSearchTerm] = useState('');
+  const [departmentPopoverOpen, setDepartmentPopoverOpen] = useState(false);
 
   // Use a snapshot listener to keep allDepartments up to date
   useEffect(() => {
-    const q = collection(db, "departments");
+    const q = query(collection(db, "departments"), where('isDeleted', '!=', true), orderBy('lembaga'), orderBy('divisi'));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const depts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Department));
         setAllDepartments(depts);
@@ -75,10 +77,9 @@ export function EditUserDialog({ user, departments: initialDepartments, open, on
       });
       setSelectedRoles(getRolesArray(user.roles));
       setSelectedDepartmentIds(user.departmentIds || []);
-      setAllDepartments(initialDepartments);
       setSearchTerm('');
     }
-  }, [open, user, initialDepartments]);
+  }, [open, user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -152,6 +153,7 @@ export function EditUserDialog({ user, departments: initialDepartments, open, on
   };
 
   const filteredDepartments = useMemo(() => {
+    if (!searchTerm) return allDepartments;
     return allDepartments.filter(d => formatDepartment(d).toLowerCase().includes(searchTerm.toLowerCase()));
   }, [allDepartments, searchTerm]);
 
@@ -197,8 +199,65 @@ export function EditUserDialog({ user, departments: initialDepartments, open, on
                         ))}
                     </div>
                 </div>
-                 <div className="grid gap-2">
-                    <Label>Departemen Terpilih</Label>
+            </div>
+
+            {/* Right Column: Department Selection */}
+            <div className="space-y-4 pt-2">
+                <div className="grid gap-2">
+                    <Label>Departemen</Label>
+                     <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
+                        <PopoverTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full justify-start font-normal"
+                            >
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Pilih atau Tambah Departemen
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                            <Command>
+                                <CommandInput 
+                                    placeholder="Cari departemen..." 
+                                    value={searchTerm}
+                                    onValueChange={setSearchTerm}
+                                />
+                                <CommandList>
+                                    <CommandEmpty>Tidak ada departemen ditemukan.</CommandEmpty>
+                                    <CommandGroup>
+                                        {filteredDepartments.map((dept) => (
+                                            <CommandItem
+                                                key={dept.id}
+                                                value={formatDepartment(dept)}
+                                                onSelect={() => {
+                                                    handleToggleDepartment(dept.id);
+                                                }}
+                                            >
+                                                <Checkbox
+                                                    className="mr-2"
+                                                    checked={selectedDepartmentIds.includes(dept.id)}
+                                                    onCheckedChange={() => handleToggleDepartment(dept.id)}
+                                                />
+                                                {formatDepartment(dept)}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                                 <CommandGroup className="border-t">
+                                    <SaveDepartmentDialog onDepartmentAdded={handleDepartmentAdded}>
+                                        <CommandItem 
+                                            className="w-full cursor-pointer"
+                                            onSelect={(e) => { e.preventDefault(); }}
+                                        >
+                                            <PlusCircle className="mr-2 h-4 w-4" />
+                                            Tambah Departemen Baru
+                                        </CommandItem>
+                                    </SaveDepartmentDialog>
+                                </CommandGroup>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
                     <ScrollArea className="h-52 w-full rounded-md border p-2">
                         <div className="space-y-2">
                         {selectedDepartmentIds.length > 0 ? (
@@ -227,46 +286,8 @@ export function EditUserDialog({ user, departments: initialDepartments, open, on
                     </ScrollArea>
                 </div>
             </div>
-
-            {/* Right Column: Department Selection */}
-            <div className="space-y-4 pt-2">
-                <div className="grid gap-2">
-                    <Label>Pilih Departemen</Label>
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Cari departemen..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10"
-                        />
-                    </div>
-                </div>
-                <ScrollArea className="h-[26.5rem] w-full rounded-md border">
-                    <div className="p-2 space-y-1">
-                        {filteredDepartments.map(dept => (
-                            <div key={dept.id} className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted">
-                                <Checkbox
-                                    id={`dept-${dept.id}`}
-                                    checked={selectedDepartmentIds.includes(dept.id)}
-                                    onCheckedChange={() => handleToggleDepartment(dept.id)}
-                                />
-                                <Label htmlFor={`dept-${dept.id}`} className="font-normal flex-1 cursor-pointer">
-                                    {formatDepartment(dept)}
-                                </Label>
-                            </div>
-                        ))}
-                    </div>
-                </ScrollArea>
-                <SaveDepartmentDialog onDepartmentAdded={handleDepartmentAdded}>
-                     <Button type="button" variant="outline" className="w-full">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Tambah Departemen Baru
-                    </Button>
-                </SaveDepartmentDialog>
-            </div>
             
-            <DialogFooter className="md:col-span-2 pt-4">
+            <DialogFooter className="md:col-span-2 pt-4 border-t">
                 <DialogClose asChild>
                     <Button type="button" variant="outline">Batal</Button>
                 </DialogClose>

@@ -165,7 +165,6 @@ function UserRow({ user, departments }: { user: User, departments: Department[]}
                     open={editUserDialogOpen} 
                     onOpenChange={setEditUserDialogOpen} 
                     user={user} 
-                    departments={departments} 
                 />
             )}
             {deleteUserAlertOpen && (
@@ -309,7 +308,6 @@ function UserCard({ user, departments }: { user: User, departments: Department[]
                     open={editUserDialogOpen} 
                     onOpenChange={setEditUserDialogOpen} 
                     user={user} 
-                    departments={departments} 
                 />
             )}
             {deleteUserAlertOpen && (
