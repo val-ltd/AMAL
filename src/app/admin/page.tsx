@@ -196,27 +196,34 @@ export default function AdminPage() {
         return;
     }
 
-    const createListener = (collectionName: string, stateSetter: (data: any[]) => void, orderByFields: [string, "asc" | "desc"][], dataMapper: (doc: any) => any) => {
-        const q = query(collection(db, collectionName), where('isDeleted', 'in', [false, null]), ...orderByFields.map(f => orderBy(f[0], f[1])));
-        return onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(dataMapper);
-            stateSetter(data);
-        }, (error) => {
-            console.error(`Error fetching ${collectionName}:`, error);
-        });
-    };
-    
-    const unsubscribers = [
-        createListener('users', setUsers, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as User)),
-        createListener('departments', setDepartments, [['lembaga', 'asc'], ['divisi', 'asc']], d => ({ id: d.id, ...d.data() } as Department)),
-        createListener('budgetCategories', setCategories, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as BudgetCategory)),
-        createListener('fundAccounts', setFundAccounts, [['accountName', 'asc']], d => ({ id: d.id, ...d.data() } as FundAccount)),
-        createListener('banks', setBanks, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as Bank)),
-        createListener('units', setUnits, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as Unit)),
-        createListener('memoSubjects', setMemoSubjects, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as MemoSubject)),
+    setLoading(true);
+
+    const collections = [
+        { name: 'users', setter: setUsers, orderBy: ['name', 'asc'] },
+        { name: 'departments', setter: setDepartments, orderBy: ['lembaga', 'asc'] },
+        { name: 'budgetCategories', setter: setCategories, orderBy: ['name', 'asc'] },
+        { name: 'fundAccounts', setter: setFundAccounts, orderBy: ['accountName', 'asc'] },
+        { name: 'banks', setter: setBanks, orderBy: ['name', 'asc'] },
+        { name: 'units', setter: setUnits, orderBy: ['name', 'asc'] },
+        { name: 'memoSubjects', setter: setMemoSubjects, orderBy: ['name', 'asc'] },
     ];
     
-    // Once all listeners are set up, we can consider initial loading complete.
+    const unsubscribers = collections.map(c => {
+        const q = query(
+            collection(db, c.name), 
+            where('isDeleted', 'in', [false, null]),
+            orderBy(c.orderBy[0], c.orderBy[1] as "asc" | "desc")
+        );
+        return onSnapshot(q, (snapshot) => {
+            const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            c.setter(data as any);
+        }, (error) => {
+            console.error(`Error fetching ${c.name}:`, error);
+        });
+    });
+
+    // We can consider initial loading complete once listeners are attached.
+    // The individual components have their own loading states handled by the `loading` prop.
     setLoading(false);
 
     return () => unsubscribers.forEach(unsub => unsub());
