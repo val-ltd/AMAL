@@ -14,9 +14,11 @@ function getGoogleAuth() {
 
   const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
 
-  return new google.auth.JWT({
-    email: serviceAccount.client_email,
-    key: serviceAccount.private_key,
+  return new google.auth.GoogleAuth({
+    credentials: {
+      client_email: serviceAccount.client_email,
+      private_key: serviceAccount.private_key,
+    },
     scopes: SCOPES,
   });
 }
@@ -123,6 +125,8 @@ export async function appendRequestToSheet(request: BudgetRequest) {
 
   } catch (error) {
     console.error('Error appending to Google Sheet:', error);
+    // Re-throw the error so the calling function knows about it
+    throw error;
   }
 }
 
@@ -144,6 +148,8 @@ export async function updateRequestInSheet(request: BudgetRequest) {
 
         if (!startRow || !endRow) {
             console.error(`Could not find sheetRowNumber for request ID ${request.id}. Appending as new row.`);
+            // This case might happen if the initial append failed.
+            // We'll try to append it again.
             await appendRequestToSheet(request);
             return;
         }
@@ -163,7 +169,7 @@ export async function updateRequestInSheet(request: BudgetRequest) {
 
     } catch (error) {
         console.error('Error updating Google Sheet:', error);
+        // Re-throw the error so the calling function knows about it
+        throw error;
     }
 }
-
-    
