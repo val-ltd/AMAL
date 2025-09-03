@@ -35,42 +35,45 @@ const numberToWords = (num: number): string => {
     const teens = ['Sepuluh', 'Sebelas', 'Dua Belas', 'Tiga Belas', 'Empat Belas', 'Lima Belas', 'Enam Belas', 'Tujuh Belas', 'Delapan Belas', 'Sembilan Belas'];
     const tens = ['', '', 'Dua Puluh', 'Tiga Puluh', 'Empat Puluh', 'Lima Puluh', 'Enam Puluh', 'Tujuh Puluh', 'Delapan Puluh', 'Sembilan Puluh'];
 
-    if (num === 0) return 'Nol';
+    const integerPart = Math.floor(num);
+    
+    if (integerPart === 0) return 'Nol';
 
     let words = '';
+    let currentNum = integerPart;
 
-    if (num >= 1000000000) {
-        words += numberToWords(Math.floor(num / 1000000000)) + ' Miliar ';
-        num %= 1000000000;
+    if (currentNum >= 1000000000) {
+        words += numberToWords(Math.floor(currentNum / 1000000000)) + ' Miliar ';
+        currentNum %= 1000000000;
     }
 
-    if (num >= 1000000) {
-        words += numberToWords(Math.floor(num / 1000000)) + ' Juta ';
-        num %= 1000000;
+    if (currentNum >= 1000000) {
+        words += numberToWords(Math.floor(currentNum / 1000000)) + ' Juta ';
+        currentNum %= 1000000;
     }
     
-    if (num >= 1000) {
-        if (num < 2000) words += 'Seribu ';
-        else words += numberToWords(Math.floor(num / 1000)) + ' Ribu ';
-        num %= 1000;
+    if (currentNum >= 1000) {
+        if (currentNum < 2000) words += 'Seribu ';
+        else words += numberToWords(Math.floor(currentNum / 1000)) + ' Ribu ';
+        currentNum %= 1000;
     }
 
-    if (num >= 100) {
-        if (num < 200) words += 'Seratus ';
-        else words += ones[Math.floor(num / 100)] + ' Ratus ';
-        num %= 100;
+    if (currentNum >= 100) {
+        if (currentNum < 200) words += 'Seratus ';
+        else words += ones[Math.floor(currentNum / 100)] + ' Ratus ';
+        currentNum %= 100;
     }
 
-    if (num >= 20) {
-        words += tens[Math.floor(num / 10)] + ' ';
-        num %= 10;
-    } else if (num >= 10) {
-        words += teens[num - 10] + ' ';
-        num = 0;
+    if (currentNum >= 20) {
+        words += tens[Math.floor(currentNum / 10)] + ' ';
+        currentNum %= 10;
+    } else if (currentNum >= 10) {
+        words += teens[currentNum - 10] + ' ';
+        currentNum = 0;
     }
 
-    if (num > 0) {
-        words += ones[num] + ' ';
+    if (currentNum > 0) {
+        words += ones[currentNum] + ' ';
     }
     
     return words.trim();
@@ -266,5 +269,3 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
         </div>
     )
 }
-
-    
