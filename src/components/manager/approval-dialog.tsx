@@ -66,54 +66,8 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
 
     setIsSubmitting(true);
     try {
-        const updatedRequest = await updateRequest(request.id, status, comment);
+        const updatedRequest = await updateRequest(request.id, status, comment, managerUser.profile);
         
-        const batch = writeBatch(db);
-
-        const firstItemDesc = request.items[0]?.description || 'N/A';
-        const amountFormatted = formatRupiah(request.amount);
-
-        // Notify requester
-        const requesterNotification = {
-            userId: request.requester.id,
-            type: status === 'approved' ? 'request_approved' : 'request_rejected',
-            title: `Permintaan ${status === 'approved' ? 'Disetujui' : 'Ditolak'}`,
-            message: `Permintaan Anda untuk "${firstItemDesc}" (${amountFormatted}) telah di${status === 'approved' ? 'setujui' : 'tolak'} oleh ${managerUser.profile.name}.`,
-            requestId: request.id,
-            isRead: false,
-            createdAt: serverTimestamp(),
-            createdBy: {
-                id: managerUser.uid,
-                name: managerUser.profile.name,
-                avatarUrl: managerUser.profile.avatarUrl,
-            }
-        };
-        batch.set(doc(collection(db, 'notifications')), requesterNotification);
-        
-        // If approved, notify releasers
-        if (status === 'approved') {
-            const releaserQuery = query(collection(db, 'users'), where('roles', 'array-contains', 'Releaser'));
-            const releaserSnapshot = await getDocs(releaserQuery);
-            releaserSnapshot.forEach(releaserDoc => {
-                const releaserNotification = {
-                    userId: releaserDoc.id,
-                    type: 'ready_for_release' as const,
-                    title: 'Siap Dicairkan',
-                    message: `Permintaan dari ${request.requester.name} (${amountFormatted}) telah disetujui dan siap untuk dicairkan.`,
-                    requestId: request.id,
-                    isRead: false,
-                    createdAt: serverTimestamp(),
-                    createdBy: {
-                        id: managerUser.uid,
-                        name: managerUser.profile.name,
-                    }
-                };
-                batch.set(doc(collection(db, 'notifications')), releaserNotification);
-            });
-        }
-        
-        await batch.commit();
-
         toast({
             title: `Permintaan ${status === 'approved' ? 'Disetujui' : 'Ditolak'}`,
             description: `Permintaan anggaran telah ${status === 'approved' ? 'disetujui' : 'ditolak'}.`,
@@ -276,4 +230,3 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
     </Dialog>
   );
 }
-

@@ -21,7 +21,7 @@ import {
 } from 'firebase/firestore';
 import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Notification, Role, Bank, Unit, MemoSubject } from './types';
 import { auth, db } from './firebase';
-import { updateRequestInSheet } from './sheets';
+import { appendRequestToSheet, updateRequestInSheet } from './sheets';
 
 // This function now returns an unsubscribe function for the real-time listener
 export function getMyRequests(
@@ -133,48 +133,127 @@ export function getApprovedUnreleasedRequests(
 
 
 export async function createRequest(
-  data: Omit<BudgetRequest, 'id' | 'createdAt' | 'updatedAt'>,
+  data: Omit<BudgetRequest, 'id' | 'createdAt' | 'updatedAt' | 'status'>,
 ): Promise<DocumentReference> {
 
   const newRequestData: any = {
     ...data,
+    status: 'pending',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
   
-  if (!newRequestData.paymentMethod || newRequestData.paymentMethod !== 'Transfer') {
+  if (newRequestData.paymentMethod !== 'Transfer') {
     delete newRequestData.reimbursementAccount;
   }
 
-  const docRef = await addDoc(collection(db, 'requests'), newRequestData);
-  return docRef;
+  // Generate a new Firestore document reference to get a unique ID
+  const newRequestRef = doc(collection(db, 'requests'));
+  const newRequestId = newRequestRef.id;
+  newRequestData.id = newRequestId;
+
+  try {
+    // Step 1: Append to Google Sheets first, using the pre-generated ID
+    const sheetUpdateResponse = await appendRequestToSheet({
+        ...newRequestData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+    });
+
+    // Step 2: If sheet append is successful, save to Firestore with the same ID
+    const requestDataForFirestore = {
+        ...newRequestData,
+        sheetStartRow: sheetUpdateResponse.startRow,
+        sheetEndRow: sheetUpdateResponse.endRow,
+    };
+    
+    await setDoc(newRequestRef, requestDataForFirestore);
+    return newRequestRef;
+  } catch (error) {
+    console.error("Error during request creation and sheet append:", error);
+    // Rethrow to be caught by the form handler
+    throw error;
+  }
 }
 
 export async function updateRequest(
   id: string,
   status: 'approved' | 'rejected',
-  managerComment: string
+  managerComment: string,
+  managerProfile: User
 ): Promise<BudgetRequest | undefined> {
     const requestRef = doc(db, 'requests', id);
-    await updateDoc(requestRef, {
+    const requestSnapshot = await getDoc(requestRef);
+    if (!requestSnapshot.exists()) {
+        throw new Error("No document to update: The request does not exist.");
+    }
+    
+    const requestData = requestSnapshot.data() as BudgetRequest;
+
+    // Start a batch write
+    const batch = writeBatch(db);
+
+    // 1. Update the request document
+    batch.update(requestRef, {
         status,
         managerComment,
         updatedAt: serverTimestamp(),
     });
 
-    const updatedDoc = await getDoc(requestRef);
-    if (updatedDoc.exists()) {
-        const data = updatedDoc.data();
-        const updatedRequest = {
-            id: updatedDoc.id,
-            ...data,
-            createdAt: data.createdAt?.toDate().toISOString(),
-            updatedAt: data.updatedAt?.toDate().toISOString(),
-        } as BudgetRequest;
-        await updateRequestInSheet(updatedRequest);
-        return updatedRequest;
+    const firstItemDesc = requestData.items[0]?.description || 'N/A';
+    const amountFormatted = formatRupiah(requestData.amount);
+
+    // 2. Notify requester
+    const requesterNotification = {
+        userId: requestData.requester.id,
+        type: status === 'approved' ? 'request_approved' : 'request_rejected',
+        title: `Permintaan ${status === 'approved' ? 'Disetujui' : 'Ditolak'}`,
+        message: `Permintaan Anda untuk "${firstItemDesc}" (${amountFormatted}) telah di${status === 'approved' ? 'setujui' : 'tolak'} oleh ${managerProfile.name}.`,
+        requestId: requestData.id,
+        isRead: false,
+        createdAt: serverTimestamp(),
+        createdBy: {
+            id: managerProfile.id,
+            name: managerProfile.name,
+            avatarUrl: managerProfile.avatarUrl,
+        }
+    };
+    batch.set(doc(collection(db, 'notifications')), requesterNotification);
+    
+    // 3. If approved, notify releasers
+    if (status === 'approved') {
+        const releaserQuery = query(collection(db, 'users'), where('roles', 'array-contains', 'Releaser'));
+        const releaserSnapshot = await getDocs(releaserQuery);
+        releaserSnapshot.forEach(releaserDoc => {
+            const releaserNotification = {
+                userId: releaserDoc.id,
+                type: 'ready_for_release' as const,
+                title: 'Siap Dicairkan',
+                message: `Permintaan dari ${requestData.requester.name} (${amountFormatted}) telah disetujui dan siap untuk dicairkan.`,
+                requestId: requestData.id,
+                isRead: false,
+                createdAt: serverTimestamp(),
+                createdBy: {
+                    id: managerProfile.id,
+                    name: managerProfile.name,
+                }
+            };
+            batch.set(doc(collection(db, 'notifications')), releaserNotification);
+        });
     }
-    return undefined;
+    
+    // Commit the batch
+    await batch.commit();
+
+    // 4. Update Google Sheet
+    const updatedRequestForSheet = {
+        ...requestData,
+        status,
+        updatedAt: new Date().toISOString(),
+    } as BudgetRequest;
+    await updateRequestInSheet(updatedRequestForSheet);
+
+    return updatedRequestForSheet;
 }
 
 export async function markRequestsAsReleased(requestIds: string[], releasedBy: {id: string, name: string}, fundSourceId: string): Promise<void> {
@@ -425,7 +504,7 @@ export async function markNotificationAsRead(notificationId: string) {
 
 
 export async function deleteNotification(notificationId: string) {
-  await deleteDoc(doc(db, 'notifications', notificationId));
+  await deleteDoc(doc(collection(db, 'notifications'), notificationId));
 }
 
 export async function deleteReadNotifications(userId: string) {
