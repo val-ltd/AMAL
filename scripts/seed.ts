@@ -36,7 +36,8 @@ const users = [
         accountHolderName: 'Aisha Lestari',
         bankCode: '014',
       }
-    ]
+    ],
+    isDeleted: false,
   },
   {
     id: 'manager1_uid',
@@ -46,7 +47,8 @@ const users = [
     avatarUrl: 'https://i.pravatar.cc/150?u=budi',
     position: 'Kepala Divisi',
     institution: 'YAYASAN SAHABAT QURAN',
-    division: 'Divisi Dakwah'
+    division: 'Divisi Dakwah',
+    isDeleted: false,
   },
   {
     id: 'admin1_uid',
@@ -56,7 +58,8 @@ const users = [
     avatarUrl: 'https://i.pravatar.cc/150?u=citra',
     position: 'System Administrator',
     institution: 'YAYASAN SAHABAT QURAN',
-    division: 'Divisi IT & Publikasi'
+    division: 'Divisi IT & Publikasi',
+    isDeleted: false,
   },
 ];
 
@@ -123,58 +126,58 @@ const requests = [
 ];
 
 const departments = [
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Dewan Direksi ICWM" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Keuangan", bagian: "Kasir" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Keuangan", bagian: "Infaq Bulanan Wali Santri" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Humas dan Tamu" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Administrasi WNA" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Konsumsi" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Transportasi" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Sarana-Prasarana & Inventaris" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Pembangunan" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Pertanian dan Perkebunan" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Keamanan" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Program Sosial", bagian: "Yayasan Mimbar Hidayah Qur'an (MHQ)", unit: "Bagian Hubungan Masyarakat (Humas)" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Program Sosial", bagian: "Yayasan Mimbar Hidayah Qur'an (MHQ)", unit: "Bagian Pengawasan Proyek" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Program Sosial", bagian: "Yayasan Mimbar Hidayah Qur'an (MHQ)", unit: "Bagian IT dan Dokumentasi" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Program Sosial", bagian: "LAZIS SaQu", unit: "Bagian IT dan Publikasi" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Ma'had Sabilul Qur'an (MSQ)" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Ma'had Sulthon Al-Islamy (MSI)" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Ma'had Tahfiz Imtiaz" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Mahabbah Boarding School" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "MAJELIS IDAROH" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Perekonomian", bagian: "Bagian Fotokopi" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Perekonomian", bagian: "Bagian Koperasi" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Perekonomian", bagian: "Bagian Kantin" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Perekonomian", bagian: "Bagian Sahabat Resto" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Perekonomian", bagian: "Bagian Peternakan dan Perikanan" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Pondok Cabang (PKM, SMA, SMP)", bagian: "Bagian Pengabdian dan Alumni" },
-    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Pelaksana Harian ICWM", bagian: "Manajemen SDM (Personalia dan PSMB)" },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Dewan Direksi ICWM", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Keuangan", bagian: "Kasir", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Keuangan", bagian: "Infaq Bulanan Wali Santri", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Humas dan Tamu", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Administrasi WNA", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Konsumsi", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Transportasi", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Sarana-Prasarana & Inventaris", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Pembangunan", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Pertanian dan Perkebunan", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Operasional", bagian: "Bagian Keamanan", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Program Sosial", bagian: "Yayasan Mimbar Hidayah Qur'an (MHQ)", unit: "Bagian Hubungan Masyarakat (Humas)", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Program Sosial", bagian: "Yayasan Mimbar Hidayah Qur'an (MHQ)", unit: "Bagian Pengawasan Proyek", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Program Sosial", bagian: "Yayasan Mimbar Hidayah Qur'an (MHQ)", unit: "Bagian IT dan Dokumentasi", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Divisi Manajemen Program Sosial", bagian: "LAZIS SaQu", unit: "Bagian IT dan Publikasi", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Ma'had Sabilul Qur'an (MSQ)", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Ma'had Sulthon Al-Islamy (MSI)", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Ma'had Tahfiz Imtiaz", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Mahabbah Boarding School", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "MAJELIS IDAROH", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Perekonomian", bagian: "Bagian Fotokopi", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Perekonomian", bagian: "Bagian Koperasi", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Perekonomian", bagian: "Bagian Kantin", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Perekonomian", bagian: "Bagian Sahabat Resto", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Perekonomian", bagian: "Bagian Peternakan dan Perikanan", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Manajemen Pondok Cabang (PKM, SMA, SMP)", bagian: "Bagian Pengabdian dan Alumni", isDeleted: false },
+    { lembaga: "ISLAMIC CENTER WADI MUBARAK", divisi: "Pelaksana Harian ICWM", bagian: "Manajemen SDM (Personalia dan PSMB)", isDeleted: false },
 ];
 
 const budgetCategories = [
-  { name: "01. ATK & Barang Cetakan" },
-  { name: "02. BBM Mobil" },
-  { name: "03. BBM Motor" },
-  { name: "04. Peralatan & Perlengkapan Kebersihan" },
-  { name: "05. Konsumsi Jamuan Tamu" },
-  { name: "06. Konsumsi Santri & Asatidz" },
-  { name: "07. Mukafaah Pengurus Pondok (W.M)" },
-  { name: "08. Rekening Telepon Dan Internet" },
-  { name: "09. Rekening Listrik" },
-  { name: "10. Tol Dan Parkir" },
-  { name: "11. Biaya Pajak Tanah" },
-  { name: "12. Biaya Pajak Mobil" },
-  { name: "13. Biaya Pajak Motor" },
-  { name: "14. Konsumsi Rapat & Kajian" },
-  { name: "15. Perkebunan" },
-  { name: "16. Perawatan Kendaraan" },
-  { name: "17. Biaya Administrasi Bank" },
-  { name: "18. Biaya Lainnya" },
-  { name: "19. Peralatan & Perlengkapan Pondok" },
-  { name: "20. Perbaikan Gedung" },
-  { name: "21. Perjalanan Dinas" },
-  { name: "22. Tunjangan Hari Raya (THR)" },
+  { name: "01. ATK & Barang Cetakan", isDeleted: false },
+  { name: "02. BBM Mobil", isDeleted: false },
+  { name: "03. BBM Motor", isDeleted: false },
+  { name: "04. Peralatan & Perlengkapan Kebersihan", isDeleted: false },
+  { name: "05. Konsumsi Jamuan Tamu", isDeleted: false },
+  { name: "06. Konsumsi Santri & Asatidz", isDeleted: false },
+  { name: "07. Mukafaah Pengurus Pondok (W.M)", isDeleted: false },
+  { name: "08. Rekening Telepon Dan Internet", isDeleted: false },
+  { name: "09. Rekening Listrik", isDeleted: false },
+  { name: "10. Tol Dan Parkir", isDeleted: false },
+  { name: "11. Biaya Pajak Tanah", isDeleted: false },
+  { name: "12. Biaya Pajak Mobil", isDeleted: false },
+  { name: "13. Biaya Pajak Motor", isDeleted: false },
+  { name: "14. Konsumsi Rapat & Kajian", isDeleted: false },
+  { name: "15. Perkebunan", isDeleted: false },
+  { name: "16. Perawatan Kendaraan", isDeleted: false },
+  { name: "17. Biaya Administrasi Bank", isDeleted: false },
+  { name: "18. Biaya Lainnya", isDeleted: false },
+  { name: "19. Peralatan & Perlengkapan Pondok", isDeleted: false },
+  { name: "20. Perbaikan Gedung", isDeleted: false },
+  { name: "21. Perjalanan Dinas", isDeleted: false },
+  { name: "22. Tunjangan Hari Raya (THR)", isDeleted: false },
 ];
 
 const fundAccounts = [
@@ -191,6 +194,7 @@ const fundAccounts = [
         rekeningBendahara: '1152308683',
         kodeBank: '451',
         petugas: 'Kasir',
+        isDeleted: false,
     },
     {
         namaLembaga: 'REKENING OPERASIONAL BULANAN YASAQU',
@@ -205,31 +209,32 @@ const fundAccounts = [
         rekeningBendahara: '1152308683',
         kodeBank: '451',
         petugas: 'Kasir',
+        isDeleted: false,
     },
 ];
 
 const banks = [
-    { name: 'Bank Syariah Indonesia (BSI)', code: '451' },
-    { name: 'Bank Central Asia (BCA)', code: '014' },
-    { name: 'Bank Mandiri', code: '008' },
-    { name: 'Bank Rakyat Indonesia (BRI)', code: '002' },
-    { name: 'Bank Negara Indonesia (BNI)', code: '009' },
+    { name: 'Bank Syariah Indonesia (BSI)', code: '451', isDeleted: false },
+    { name: 'Bank Central Asia (BCA)', code: '014', isDeleted: false },
+    { name: 'Bank Mandiri', code: '008', isDeleted: false },
+    { name: 'Bank Rakyat Indonesia (BRI)', code: '002', isDeleted: false },
+    { name: 'Bank Negara Indonesia (BNI)', code: '009', isDeleted: false },
 ];
 
 const units = [
-    { name: 'Pcs' },
-    { name: 'Unit' },
-    { name: 'Buah' },
-    { name: 'Rim' },
-    { name: 'Dus' },
-    { name: 'Liter' },
-    { name: 'Kg' },
+    { name: 'Pcs', isDeleted: false },
+    { name: 'Unit', isDeleted: false },
+    { name: 'Buah', isDeleted: false },
+    { name: 'Rim', isDeleted: false },
+    { name: 'Dus', isDeleted: false },
+    { name: 'Liter', isDeleted: false },
+    { name: 'Kg', isDeleted: false },
 ];
 
 const memoSubjects = [
-    { name: 'OPERASIONAL BULANAN' },
-    { name: 'KEBUTUHAN PROYEK' },
-    { name: 'ACARA KHUSUS' },
+    { name: 'OPERASIONAL BULANAN', isDeleted: false },
+    { name: 'KEBUTUHAN PROYEK', isDeleted: false },
+    { name: 'ACARA KHUSUS', isDeleted: false },
 ];
 
 // --- Seeding logic ---
@@ -344,3 +349,5 @@ async function seed() {
 seed().catch((error) => {
   console.error('Error seeding database:', error);
 });
+
+    

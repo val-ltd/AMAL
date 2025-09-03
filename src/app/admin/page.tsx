@@ -198,12 +198,12 @@ export default function AdminPage() {
     }
     
     const createQuery = (collectionName: string, orderByField: string) => 
-        query(collection(db, collectionName), where('isDeleted', '!=', true), orderBy(orderByField, 'asc'));
+        query(collection(db, collectionName), where('isDeleted', 'in', [false, null]), orderBy(orderByField, 'asc'));
 
     const unsubscribers = [
-      onSnapshot(query(collection(db, 'users'), where('isDeleted', '!=', true), orderBy('name', 'asc')), snapshot => 
+      onSnapshot(query(collection(db, 'users'), where('isDeleted', 'in', [false, null]), orderBy('name', 'asc')), snapshot => 
         setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)))),
-      onSnapshot(query(collection(db, 'departments'), where('isDeleted', '!=', true), orderBy('lembaga', 'asc'), orderBy('divisi', 'asc')), snapshot => 
+      onSnapshot(query(collection(db, 'departments'), where('isDeleted', 'in', [false, null]), orderBy('lembaga', 'asc'), orderBy('divisi', 'asc')), snapshot => 
         setDepartments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Department)))),
       onSnapshot(createQuery('budgetCategories', 'name'), snapshot => 
         setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BudgetCategory)))),
@@ -256,5 +256,7 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    
 
     
