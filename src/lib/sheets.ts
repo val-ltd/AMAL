@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { google } from 'googleapis';
@@ -132,7 +133,7 @@ export async function appendRequestToSheet(request: BudgetRequest): Promise<{sta
   }
 }
 
-export async function updateRequestInSheet(request: BudgetRequest) {
+export async function updateRequestInSheet(status: BudgetRequest['status'], startRow: number, endRow: number) {
     try {
         const sheets = getSheetsApi();
         const sheetId = process.env.GOOGLE_SHEET_ID;
@@ -141,21 +142,14 @@ export async function updateRequestInSheet(request: BudgetRequest) {
           return;
         }
 
-        const requestRef = doc(db, 'requests', request.id);
-        const requestSnap = await getDoc(requestRef);
-        const requestData = requestSnap.data();
-        const startRow = requestData?.sheetStartRow;
-        const endRow = requestData?.sheetEndRow;
-
-
         if (!startRow || !endRow) {
-            console.error(`Could not find sheetRowNumber for request ID ${request.id}. Cannot update sheet.`);
+            console.error(`Cannot update sheet: missing sheet row numbers.`);
             return;
         }
 
         const rangeToUpdate = `Sheet1!H${startRow}:H${endRow}`;
 
-        const values = Array(endRow - startRow + 1).fill([request.status]);
+        const values = Array(endRow - startRow + 1).fill([status]);
 
         await sheets.spreadsheets.values.update({
             spreadsheetId: sheetId,

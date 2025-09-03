@@ -135,38 +135,42 @@ export function getApprovedUnreleasedRequests(
 export async function createRequest(
   data: Omit<BudgetRequest, 'id' | 'createdAt' | 'updatedAt' | 'status'>,
 ): Promise<DocumentReference> {
-
-  const newRequestData: any = {
-    ...data,
-    status: 'pending',
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  };
-  
-  if (newRequestData.paymentMethod !== 'Transfer') {
-    delete newRequestData.reimbursementAccount;
-  }
-
-  // Generate a new Firestore document reference to get a unique ID
+  // Generate a new Firestore document reference to get a unique ID first
   const newRequestRef = doc(collection(db, 'requests'));
   const newRequestId = newRequestRef.id;
-  newRequestData.id = newRequestId;
+
+  const requestWithId = {
+    ...data,
+    id: newRequestId,
+    status: 'pending' as const,
+    createdAt: new Date().toISOString(), // Use ISO string for sheet
+    updatedAt: new Date().toISOString(),
+  };
+  
+  if (requestWithId.paymentMethod !== 'Transfer') {
+    delete requestWithId.reimbursementAccount;
+  }
 
   try {
     // Step 1: Append to Google Sheets first, using the pre-generated ID
-    const sheetUpdateResponse = await appendRequestToSheet({
-        ...newRequestData,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    });
+    const sheetUpdateResponse = await appendRequestToSheet(requestWithId as BudgetRequest);
 
     // Step 2: If sheet append is successful, save to Firestore with the same ID
     const requestDataForFirestore = {
-        ...newRequestData,
-        sheetStartRow: sheetUpdateResponse.startRow,
-        sheetEndRow: sheetUpdateResponse.endRow,
+      ...data, // Original data without the extra fields for the sheet
+      id: newRequestId,
+      status: 'pending',
+      sheetStartRow: sheetUpdateResponse.startRow,
+      sheetEndRow: sheetUpdateResponse.endRow,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     };
     
+    // Remove reimbursementAccount if not needed, to avoid Firestore undefined error
+    if (requestDataForFirestore.paymentMethod !== 'Transfer') {
+      delete (requestDataForFirestore as any).reimbursementAccount;
+    }
+
     await setDoc(newRequestRef, requestDataForFirestore);
     return newRequestRef;
   } catch (error) {
@@ -246,14 +250,21 @@ export async function updateRequest(
     await batch.commit();
 
     // 4. Update Google Sheet
-    const updatedRequestForSheet = {
-        ...requestData,
-        status,
-        updatedAt: new Date().toISOString(),
-    } as BudgetRequest;
-    await updateRequestInSheet(updatedRequestForSheet);
+    if (requestData.sheetStartRow && requestData.sheetEndRow) {
+      await updateRequestInSheet(status, requestData.sheetStartRow, requestData.sheetEndRow);
+    } else {
+      console.warn(`Cannot update sheet for request ${id}: missing sheet row numbers.`);
+    }
 
-    return updatedRequestForSheet;
+    // Return the updated request object structure
+    const updatedRequestForApp: BudgetRequest = {
+        ...requestData,
+        id: id,
+        status,
+        managerComment,
+        updatedAt: new Date().toISOString(),
+    };
+    return updatedRequestForApp;
 }
 
 export async function markRequestsAsReleased(requestIds: string[], releasedBy: {id: string, name: string}, fundSourceId: string): Promise<void> {
@@ -280,14 +291,15 @@ export async function markRequestsAsReleased(requestIds: string[], releasedBy: {
                 updatedAt: serverTimestamp()
             });
 
-            updatedRequestsForSheet.push({
+            const updatedRequestData = {
                 ...requestData,
                 id: requestDoc.id,
-                status: 'released',
+                status: 'released' as const,
                 releasedAt: releasedAt.toISOString(),
                 releasedBy: releasedBy,
                 fundSourceId: fundSourceId,
-            });
+            };
+            updatedRequestsForSheet.push(updatedRequestData);
 
             // Create notification for requester
             const notificationData = {
@@ -311,7 +323,11 @@ export async function markRequestsAsReleased(requestIds: string[], releasedBy: {
     await batch.commit();
 
     // After successful commit, update all sheets
-    await Promise.all(updatedRequestsForSheet.map(req => updateRequestInSheet(req)));
+    await Promise.all(updatedRequestsForSheet.map(req => {
+        if (req.sheetStartRow && req.sheetEndRow) {
+            updateRequestInSheet(req.status, req.sheetStartRow, req.sheetEndRow);
+        }
+    }));
 }
 
 
