@@ -213,7 +213,7 @@ export default function AdminPage() {
         createListener('fundAccounts', setFundAccounts, [['accountName', 'asc']], d => ({ id: d.id, ...d.data() } as FundAccount)),
         createListener('banks', setBanks, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as Bank)),
         createListener('units', setUnits, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as Unit)),
-        createListener('memoSubjects', setMemoSubjects, [['name', 'asc']], d => ({ id: d.id, ...d_data() } as MemoSubject)),
+        createListener('memoSubjects', setMemoSubjects, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as MemoSubject)),
     ];
     
     // Once all listeners are set up, we can consider initial loading complete.
@@ -233,7 +233,7 @@ export default function AdminPage() {
             <AlertTitle>Akses Ditolak</AlertTitle>
             <AlertDescription>
                 Anda tidak memiliki izin untuk melihat halaman ini. Hanya Admin yang dapat mengakses halaman ini.
-            </Alerte>
+            </AlertDescription>
         </Alert>
     )
   }
