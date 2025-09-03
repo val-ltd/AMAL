@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import type { User, Department, BudgetCategory, FundAccount, Bank, Unit, MemoSubject } from "@/lib/types";
-import { collection, onSnapshot, query, orderBy, doc, getDoc, updateDoc, where } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { UserManagementTab } from "@/components/admin/user-management-tab";
 import { DepartmentManagementTab } from "@/components/admin/department-management-tab";
@@ -191,28 +191,9 @@ export default function AdminPage() {
   const isAuthorized = userRoles?.includes('Admin') || userRoles?.includes('Super Admin');
   
   useEffect(() => {
-    if (authLoading) return; // Wait for auth to finish loading
-    
     if (!isAuthorized) {
         setLoading(false);
         return;
-    }
-
-    const listeners: {name: string, unsub: () => void}[] = [];
-    const loaded: Record<string, boolean> = {
-        users: false,
-        departments: false,
-        categories: false,
-        fundAccounts: false,
-        banks: false,
-        units: false,
-        memoSubjects: false,
-    };
-    
-    const checkAllLoaded = () => {
-        if(Object.values(loaded).every(Boolean)) {
-            setLoading(false);
-        }
     }
 
     const createListener = (collectionName: string, stateSetter: (data: any[]) => void, orderByFields: [string, "asc" | "desc"][], dataMapper: (doc: any) => any) => {
@@ -220,26 +201,26 @@ export default function AdminPage() {
         const unsub = onSnapshot(q, (snapshot) => {
             const data = snapshot.docs.map(dataMapper);
             stateSetter(data);
-            loaded[collectionName] = true;
-            checkAllLoaded();
         }, (error) => {
             console.error(`Error fetching ${collectionName}:`, error);
-            loaded[collectionName] = true;
-            checkAllLoaded();
         });
-        listeners.push({ name: collectionName, unsub });
+        return unsub;
     };
-
-    createListener('users', setUsers, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as User));
-    createListener('departments', setDepartments, [['lembaga', 'asc'], ['divisi', 'asc']], d => ({ id: d.id, ...d.data() } as Department));
-    createListener('budgetCategories', setCategories, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as BudgetCategory));
-    createListener('fundAccounts', setFundAccounts, [['accountName', 'asc']], d => ({ id: d.id, ...d.data() } as FundAccount));
-    createListener('banks', setBanks, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as Bank));
-    createListener('units', setUnits, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as Unit));
-    createListener('memoSubjects', setMemoSubjects, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as MemoSubject));
     
-    return () => listeners.forEach(l => l.unsub());
-  }, [isAuthorized, authLoading]);
+    const unsubscribers = [
+        createListener('users', setUsers, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as User)),
+        createListener('departments', setDepartments, [['lembaga', 'asc'], ['divisi', 'asc']], d => ({ id: d.id, ...d.data() } as Department)),
+        createListener('budgetCategories', setCategories, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as BudgetCategory)),
+        createListener('fundAccounts', setFundAccounts, [['accountName', 'asc']], d => ({ id: d.id, ...d.data() } as FundAccount)),
+        createListener('banks', setBanks, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as Bank)),
+        createListener('units', setUnits, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as Unit)),
+        createListener('memoSubjects', setMemoSubjects, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as MemoSubject)),
+    ];
+    
+    setLoading(false);
+
+    return () => unsubscribers.forEach(unsub => unsub());
+  }, [isAuthorized]);
 
   if (authLoading || (loading && isAuthorized)) {
     return <p>Memuat data administrasi...</p>
