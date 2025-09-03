@@ -23,6 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { appendRequestToSheet } from '@/lib/sheets';
 
 const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -159,7 +160,7 @@ export function NewRequestForm() {
 
       const reimbursementAccount = profileData.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
 
-      const newRequestData = {
+      const requestData: any = {
           items: items.map(({id, ...rest}) => rest), // Remove temporary frontend ID
           amount: totalAmount,
           additionalInfo,
@@ -181,11 +182,34 @@ export function NewRequestForm() {
               name: supervisor.name,
           },
           paymentMethod,
-          reimbursementAccount: reimbursementAccount,
           status: 'pending' as const,
       };
-
-      const docRef = await createRequest(newRequestData as any);
+      
+      if (paymentMethod === 'Transfer' && reimbursementAccount) {
+          requestData.reimbursementAccount = reimbursementAccount;
+      }
+      
+      const docRef = await createRequest(requestData);
+      
+      // We are not awaiting this. Let it run in the background.
+      // This way, if sheets fail, the app doesn't crash.
+      try {
+        const finalRequest = {
+            id: docRef.id,
+            ...docRef,
+            createdAt: new Date().toISOString(), 
+            updatedAt: new Date().toISOString(),
+        }
+        await appendRequestToSheet(finalRequest as any);
+      } catch (sheetError) {
+          console.error("Failed to append to Google Sheet, but request was saved to Firestore:", sheetError);
+          // Optionally, you can inform the user that the sheet sync failed but the request is safe.
+          toast({
+              title: "Permintaan Terkirim (Sheet Gagal)",
+              description: "Permintaan Anda berhasil disimpan, tetapi gagal disinkronkan ke Google Sheets.",
+              variant: "destructive"
+          })
+      }
       
       const batch = writeBatch(db);
 
@@ -198,7 +222,7 @@ export function NewRequestForm() {
           requestId: docRef.id,
           isRead: false,
           createdAt: serverTimestamp(),
-          createdBy: newRequestData.requester
+          createdBy: requestData.requester
       };
       batch.set(doc(collection(db, 'notifications')), supervisorNotification);
       
@@ -219,7 +243,7 @@ export function NewRequestForm() {
 
       toast({
           title: "Permintaan Terkirim",
-          description: "Permintaan anggaran Anda telah berhasil dibuat dan disimpan ke Google Sheets.",
+          description: "Permintaan anggaran Anda telah berhasil dibuat.",
       });
       router.push('/');
 

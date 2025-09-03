@@ -16,6 +16,7 @@ import {
   deleteDoc,
   writeBatch,
   Timestamp,
+  DocumentReference,
 } from 'firebase/firestore';
 import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Notification, Role, Bank, Unit, MemoSubject } from './types';
 import { auth, db } from './firebase';
@@ -132,35 +133,16 @@ export function getApprovedUnreleasedRequests(
 
 export async function createRequest(
   data: Omit<BudgetRequest, 'id' | 'createdAt' | 'updatedAt'>,
-): Promise<BudgetRequest> {
+): Promise<DocumentReference> {
 
   const newRequestData: any = {
     ...data,
-    status: 'pending' as const,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
 
-  if (data.paymentMethod !== 'Transfer') {
-    delete newRequestData.reimbursementAccount;
-  }
-
   const docRef = await addDoc(collection(db, 'requests'), newRequestData);
-  
-  const newDoc = await getDoc(docRef);
-  const createdData = newDoc.data();
-
-  const finalRequest = {
-    id: newDoc.id,
-    ...createdData,
-    createdAt: createdData?.createdAt?.toDate().toISOString(),
-    updatedAt: createdData?.updatedAt?.toDate().toISOString(),
-  } as BudgetRequest;
-  
-  // Await the sheet append operation
-  await appendRequestToSheet(finalRequest);
-
-  return finalRequest;
+  return docRef;
 }
 
 export async function updateRequest(
