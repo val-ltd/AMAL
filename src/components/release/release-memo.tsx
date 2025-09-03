@@ -120,7 +120,9 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
             // Fallback for when window.close() fails silently (e.g. user opened link manually)
             // Navigate to a "safe" page if it's still open.
             setTimeout(() => {
-                window.location.href = '/release?status=released';
+                if(!window.closed) {
+                   window.location.href = '/release?status=released';
+                }
             }, 500);
 
         } catch (error) {
