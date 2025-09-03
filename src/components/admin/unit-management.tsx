@@ -1,7 +1,7 @@
 
 'use client'
 
-import type { BudgetCategory } from "@/lib/types";
+import type { Unit } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -10,20 +10,23 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { SaveDataDialog } from "./save-data-dialog";
 import { DeleteDataAlert } from "./delete-data-alert";
 
-interface CategoryManagementTabProps {
-    categories: BudgetCategory[];
+interface UnitManagementProps {
+    units: Unit[];
     loading: boolean;
 }
 
-export function CategoryManagementTab({ categories, loading }: CategoryManagementTabProps) {
+export function UnitManagement({ units, loading }: UnitManagementProps) {
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-                 <div>
-                    <CardTitle>Kategori Anggaran</CardTitle>
-                    <CardDescription>Kelola kategori untuk item permintaan.</CardDescription>
+                <div>
+                    <CardTitle>Satuan Kuantitas</CardTitle>
+                    <CardDescription>Kelola satuan untuk item permintaan.</CardDescription>
                 </div>
-                <SaveDataDialog dialogTitle="Kategori Anggaran" collection="budgetCategories">
+                 <SaveDataDialog
+                    dialogTitle="Satuan"
+                    collection="units"
+                >
                     <Button size="sm" className="flex gap-2">
                         <PlusCircle /> Tambah
                     </Button>
@@ -33,23 +36,23 @@ export function CategoryManagementTab({ categories, loading }: CategoryManagemen
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Nama Kategori</TableHead>
+                            <TableHead>Nama Satuan</TableHead>
                             <TableHead className="text-right">Aksi</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={2} className="text-center">Memuat data kategori...</TableCell>
+                                <TableCell colSpan={2} className="text-center">Memuat data satuan...</TableCell>
                             </TableRow>
-                        ) : categories.length === 0 ? (
+                        ) : units.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={2} className="text-center h-24">Tidak ada kategori ditemukan.</TableCell>
+                                <TableCell colSpan={2} className="text-center h-24">Tidak ada satuan ditemukan.</TableCell>
                             </TableRow>
                         ) : (
-                            categories.map((cat) => (
-                                <TableRow key={cat.id}>
-                                    <TableCell className="font-medium">{cat.name}</TableCell>
+                            units.map((unit) => (
+                                <TableRow key={unit.id}>
+                                    <TableCell className="font-medium">{unit.name}</TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -58,11 +61,11 @@ export function CategoryManagementTab({ categories, loading }: CategoryManagemen
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <SaveDataDialog dialogTitle="Kategori Anggaran" collection="budgetCategories" data={cat}>
+                                                <SaveDataDialog dialogTitle="Satuan" collection="units" data={unit}>
                                                   <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Ubah</DropdownMenuItem>
                                                 </SaveDataDialog>
-                                                <DeleteDataAlert id={cat.id} collection="budgetCategories" name="Kategori Anggaran">
-                                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">Hapus</DropdownMenuItem>
+                                                <DeleteDataAlert id={unit.id} collection="units" name="Satuan">
+                                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">Hapus</DropdownMenuItem>
                                                 </DeleteDataAlert>
                                             </DropdownMenuContent>
                                         </DropdownMenu>

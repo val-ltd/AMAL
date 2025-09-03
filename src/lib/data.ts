@@ -17,7 +17,7 @@ import {
   writeBatch,
   Timestamp,
 } from 'firebase/firestore';
-import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Notification, Role } from './types';
+import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Notification, Role, Bank, Unit, MemoSubject } from './types';
 import { auth, db } from './firebase';
 
 // This function now returns an unsubscribe function for the real-time listener
@@ -303,25 +303,36 @@ export async function getDepartmentsByIds(ids: string[]): Promise<Department[]> 
     return departments;
 }
 
-export async function getBudgetCategories(): Promise<BudgetCategory[]> {
-    const q = query(collection(db, 'budgetCategories'), orderBy('name'));
+export async function getCollection<T>(collectionName: string, orderField: string): Promise<T[]> {
+    const q = query(collection(db, collectionName), orderBy(orderField));
     const querySnapshot = await getDocs(q);
-    const categories: BudgetCategory[] = [];
+    const items: T[] = [];
     querySnapshot.forEach((doc) => {
-        categories.push({ id: doc.id, ...doc.data() } as BudgetCategory);
+        items.push({ id: doc.id, ...doc.data() } as T);
     });
-    return categories;
+    return items;
+}
+
+export async function getBudgetCategories(): Promise<BudgetCategory[]> {
+    return getCollection<BudgetCategory>('budgetCategories', 'name');
 }
 
 export async function getFundAccounts(): Promise<FundAccount[]> {
-    const q = query(collection(db, 'fundAccounts'), orderBy('accountName'));
-    const querySnapshot = await getDocs(q);
-    const accounts: FundAccount[] = [];
-    querySnapshot.forEach((doc) => {
-        accounts.push({ id: doc.id, ...doc.data() } as FundAccount);
-    });
-    return accounts;
+    return getCollection<FundAccount>('fundAccounts', 'accountName');
 }
+
+export async function getBanks(): Promise<Bank[]> {
+    return getCollection<Bank>('banks', 'name');
+}
+
+export async function getUnits(): Promise<Unit[]> {
+    return getCollection<Unit>('units', 'name');
+}
+
+export async function getMemoSubjects(): Promise<MemoSubject[]> {
+    return getCollection<MemoSubject>('memoSubjects', 'name');
+}
+
 
 export async function getFundAccount(id: string): Promise<FundAccount | null> {
     if (!id) return null;

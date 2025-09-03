@@ -208,8 +208,45 @@ const fundAccounts = [
     },
 ];
 
+const banks = [
+    { name: 'Bank Syariah Indonesia (BSI)', code: '451' },
+    { name: 'Bank Central Asia (BCA)', code: '014' },
+    { name: 'Bank Mandiri', code: '008' },
+    { name: 'Bank Rakyat Indonesia (BRI)', code: '002' },
+    { name: 'Bank Negara Indonesia (BNI)', code: '009' },
+];
+
+const units = [
+    { name: 'Pcs' },
+    { name: 'Unit' },
+    { name: 'Buah' },
+    { name: 'Rim' },
+    { name: 'Dus' },
+    { name: 'Liter' },
+    { name: 'Kg' },
+];
+
+const memoSubjects = [
+    { name: 'OPERASIONAL BULANAN' },
+    { name: 'KEBUTUHAN PROYEK' },
+    { name: 'ACARA KHUSUS' },
+];
 
 // --- Seeding logic ---
+async function seedCollection(db: any, collectionName: string, data: any[], uniqueField: string) {
+    console.log(`\nSeeding ${collectionName}...`);
+    const collectionRef = db.collection(collectionName);
+    let addedCount = 0;
+    for (const item of data) {
+        const querySnapshot = await collectionRef.where(uniqueField, '==', item[uniqueField]).get();
+        if (querySnapshot.empty) {
+            await collectionRef.add(item);
+            addedCount++;
+        }
+    }
+    console.log(`Added ${addedCount} new documents to ${collectionName}.`);
+}
+
 
 async function seed() {
   console.log('--- Starting Database Seed ---');
@@ -280,32 +317,26 @@ async function seed() {
     }
   }
 
-  // Seed budget categories
-  console.log('\nSeeding budget categories...');
-  const categoriesCollection = db.collection('budgetCategories');
-  for (const category of budgetCategories) {
-    const querySnapshot = await categoriesCollection.where('name', '==', category.name).get();
-    if (querySnapshot.empty) {
-      await categoriesCollection.add(category);
-      console.log(`Added category: ${category.name}`);
-    } else {
-      console.log(`Category "${category.name}" already exists. Skipping.`);
-    }
-  }
+  // Seed system data
+  await seedCollection(db, 'budgetCategories', budgetCategories, 'name');
+  await seedCollection(db, 'fundAccounts', fundAccounts, 'accountNumber');
+  await seedCollection(db, 'banks', banks, 'name');
+  await seedCollection(db, 'units', units, 'name');
+  await seedCollection(db, 'memoSubjects', memoSubjects, 'name');
   
-  // Seed fund accounts
-  console.log('\nSeeding fund accounts...');
-  const fundAccountsCollection = db.collection('fundAccounts');
-  for (const account of fundAccounts) {
-    const querySnapshot = await fundAccountsCollection.where('accountNumber', '==', account.accountNumber).get();
-    if (querySnapshot.empty) {
-      await fundAccountsCollection.add(account);
-      console.log(`Added fund account: ${account.accountName}`);
-    } else {
-      console.log(`Fund account "${account.accountName}" already exists. Skipping.`);
-    }
+  // Seed app settings
+  console.log('\nSeeding app settings...');
+  const settingsRef = db.collection('settings').doc('transfer');
+  const settingsDoc = await settingsRef.get();
+  if (!settingsDoc.exists) {
+      await settingsRef.set({
+          fee: 6500,
+          notes: 'Biaya transfer antar bank.'
+      });
+      console.log('Added default transfer fee setting.');
+  } else {
+      console.log('Transfer fee setting already exists. Skipping.');
   }
-
 
   console.log('\n--- Database Seed Complete ---');
 }

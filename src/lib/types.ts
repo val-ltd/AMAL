@@ -119,3 +119,19 @@ export interface Notification {
     avatarUrl?: string;
   };
 }
+
+export interface Bank {
+    id: string;
+    name: string;
+    code: string;
+}
+
+export interface Unit {
+    id: string;
+    name: string;
+}
+
+export interface MemoSubject {
+    id: string;
+    name: string;
+}

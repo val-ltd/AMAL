@@ -1,55 +1,57 @@
 
 'use client'
 
-import type { BudgetCategory } from "@/lib/types";
+import type { Bank } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, PlusCircle } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { SaveDataDialog } from "./save-data-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { SaveBankDialog } from "./save-bank-dialog";
 import { DeleteDataAlert } from "./delete-data-alert";
 
-interface CategoryManagementTabProps {
-    categories: BudgetCategory[];
+interface BankManagementProps {
+    banks: Bank[];
     loading: boolean;
 }
 
-export function CategoryManagementTab({ categories, loading }: CategoryManagementTabProps) {
+export function BankManagement({ banks, loading }: BankManagementProps) {
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-                 <div>
-                    <CardTitle>Kategori Anggaran</CardTitle>
-                    <CardDescription>Kelola kategori untuk item permintaan.</CardDescription>
+                <div>
+                    <CardTitle>Daftar Bank</CardTitle>
+                    <CardDescription>Kelola bank dan kode transfer.</CardDescription>
                 </div>
-                <SaveDataDialog dialogTitle="Kategori Anggaran" collection="budgetCategories">
+                <SaveBankDialog>
                     <Button size="sm" className="flex gap-2">
                         <PlusCircle /> Tambah
                     </Button>
-                </SaveDataDialog>
+                </SaveBankDialog>
             </CardHeader>
             <CardContent>
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Nama Kategori</TableHead>
+                            <TableHead>Nama Bank</TableHead>
+                            <TableHead>Kode</TableHead>
                             <TableHead className="text-right">Aksi</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={2} className="text-center">Memuat data kategori...</TableCell>
+                                <TableCell colSpan={3} className="text-center">Memuat data bank...</TableCell>
                             </TableRow>
-                        ) : categories.length === 0 ? (
+                        ) : banks.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={2} className="text-center h-24">Tidak ada kategori ditemukan.</TableCell>
+                                <TableCell colSpan={3} className="text-center h-24">Tidak ada bank ditemukan.</TableCell>
                             </TableRow>
                         ) : (
-                            categories.map((cat) => (
-                                <TableRow key={cat.id}>
-                                    <TableCell className="font-medium">{cat.name}</TableCell>
+                            banks.map((bank) => (
+                                <TableRow key={bank.id}>
+                                    <TableCell className="font-medium">{bank.name}</TableCell>
+                                    <TableCell>{bank.code}</TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -58,11 +60,16 @@ export function CategoryManagementTab({ categories, loading }: CategoryManagemen
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <SaveDataDialog dialogTitle="Kategori Anggaran" collection="budgetCategories" data={cat}>
+                                                <SaveBankDialog bank={bank}>
                                                   <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Ubah</DropdownMenuItem>
-                                                </SaveDataDialog>
-                                                <DeleteDataAlert id={cat.id} collection="budgetCategories" name="Kategori Anggaran">
-                                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">Hapus</DropdownMenuItem>
+                                                </SaveBankDialog>
+                                                <DropdownMenuSeparator />
+                                                <DeleteDataAlert 
+                                                    id={bank.id} 
+                                                    collection="banks"
+                                                    name="Bank"
+                                                >
+                                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">Hapus</DropdownMenuItem>
                                                 </DeleteDataAlert>
                                             </DropdownMenuContent>
                                         </DropdownMenu>

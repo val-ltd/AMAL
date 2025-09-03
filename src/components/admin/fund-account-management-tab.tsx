@@ -5,11 +5,11 @@ import type { FundAccount } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit } from "lucide-react";
+import { MoreHorizontal, Edit, PlusCircle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SaveFundAccountDialog } from "./save-fund-account-dialog";
-import { DeleteFundAccountAlert } from "./delete-fund-account-alert";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { DeleteDataAlert } from "./delete-data-alert";
 
 export function FundAccountManagementTab({ fundAccounts, loading }: { fundAccounts: FundAccount[], loading: boolean }) {
     const isMobile = useIsMobile();
@@ -17,15 +17,22 @@ export function FundAccountManagementTab({ fundAccounts, loading }: { fundAccoun
     if (isMobile) {
         return (
              <Card>
-                <CardHeader>
-                    <CardTitle>Daftar Sumber Dana</CardTitle>
-                    <CardDescription>Kelola rekening yang digunakan sebagai sumber dana untuk pencairan.</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Sumber Dana</CardTitle>
+                        <CardDescription>Kelola rekening untuk pencairan.</CardDescription>
+                    </div>
+                     <SaveFundAccountDialog>
+                        <Button size="sm" className="flex gap-2">
+                            <PlusCircle /> Tambah
+                        </Button>
+                    </SaveFundAccountDialog>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {loading ? (
                         <p className="text-center">Memuat data...</p>
                     ) : fundAccounts.length === 0 ? (
-                         <p className="text-center text-muted-foreground h-24 flex items-center justify-center">Tidak ada sumber dana ditemukan.</p>
+                         <p className="text-center text-muted-foreground h-24 flex items-center justify-center">Tidak ada sumber dana.</p>
                     ) : (
                         fundAccounts.map((account) => (
                              <Card key={account.id} className="p-4 space-y-2">
@@ -40,11 +47,12 @@ export function FundAccountManagementTab({ fundAccounts, loading }: { fundAccoun
                                         <DropdownMenuContent align="end">
                                             <SaveFundAccountDialog account={account}>
                                                 <DropdownMenuItem onSelect={e => e.preventDefault()} className="flex items-center">
-                                                    <Edit className="mr-2 h-4 w-4" />
                                                     Ubah
                                                 </DropdownMenuItem>
                                             </SaveFundAccountDialog>
-                                            <DropdownMenuItem onSelect={e => e.preventDefault()} className="text-red-500"><DeleteFundAccountAlert accountId={account.id} /></DropdownMenuItem>
+                                            <DeleteDataAlert id={account.id} collection="fundAccounts" name="Sumber Dana">
+                                                <DropdownMenuItem onSelect={e => e.preventDefault()} className="text-red-500">Hapus</DropdownMenuItem>
+                                            </DeleteDataAlert>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </div>
@@ -64,9 +72,16 @@ export function FundAccountManagementTab({ fundAccounts, loading }: { fundAccoun
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle>Daftar Sumber Dana</CardTitle>
-                <CardDescription>Kelola rekening yang digunakan sebagai sumber dana untuk pencairan.</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+                 <div>
+                    <CardTitle>Sumber Dana</CardTitle>
+                    <CardDescription>Kelola rekening yang digunakan sebagai sumber dana untuk pencairan.</CardDescription>
+                </div>
+                 <SaveFundAccountDialog>
+                    <Button size="sm" className="flex gap-2">
+                        <PlusCircle /> Tambah
+                    </Button>
+                </SaveFundAccountDialog>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -104,21 +119,19 @@ export function FundAccountManagementTab({ fundAccounts, loading }: { fundAccoun
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="ghost" size="icon">
                                                     <MoreHorizontal className="h-4 w-4" />
-                                                    <span className="sr-only">Menu</span>
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Aksi</DropdownMenuLabel>
                                                  <SaveFundAccountDialog account={account}>
-                                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex items-center">
-                                                        <Edit className="mr-2 h-4 w-4" />
+                                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                                         Ubah
                                                     </DropdownMenuItem>
                                                 </SaveFundAccountDialog>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
-                                                    <DeleteFundAccountAlert accountId={account.id} />
-                                                </DropdownMenuItem>
+                                                <DeleteDataAlert id={account.id} collection="fundAccounts" name="Sumber Dana">
+                                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
+                                                        Hapus
+                                                    </DropdownMenuItem>
+                                                </DeleteDataAlert>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
