@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { useEffect, useState } from "react";
@@ -8,14 +9,11 @@ import { db } from "@/lib/firebase";
 import { UserManagementTab } from "@/components/admin/user-management-tab";
 import { DepartmentManagementTab } from "@/components/admin/department-management-tab";
 import { Button } from "@/components/ui/button";
-import { Edit, PlusCircle, Save, ShieldAlert, X } from "lucide-react";
-import { SaveDepartmentDialog } from "@/components/admin/save-department-dialog";
+import { Edit, Save, ShieldAlert, X } from "lucide-react";
 import { CategoryManagementTab } from "@/components/admin/category-management-tab";
-import { SaveCategoryDialog } from "@/components/admin/save-category-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FundAccountManagementTab } from "@/components/admin/fund-account-management-tab";
-import { SaveFundAccountDialog } from "@/components/admin/save-fund-account-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BankManagement } from "@/components/admin/bank-management";
 import { UnitManagement } from "@/components/admin/unit-management";
@@ -23,109 +21,36 @@ import { MemoSubjectManagement } from "@/components/admin/memo-subject-managemen
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-export default function AdminPage() {
-  const { user: authUser, loading: authLoading } = useAuth();
-  const { toast } = useToast();
-  
-  const [users, setUsers] = useState<User[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [categories, setCategories] = useState<BudgetCategory[]>([]);
-  const [fundAccounts, setFundAccounts] = useState<FundAccount[]>([]);
-  const [banks, setBanks] = useState<Bank[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [memoSubjects, setMemoSubjects] = useState<MemoSubject[]>([]);
-  
-  const [transferFee, setTransferFee] = useState<number>(0);
-  const [isEditingFee, setIsEditingFee] = useState(false);
+function TransferFeeCard() {
+    const { toast } = useToast();
+    const [transferFee, setTransferFee] = useState<number>(0);
+    const [isEditingFee, setIsEditingFee] = useState(false);
 
-  const [loading, setLoading] = useState(true);
-  
-  const userRoles = authUser?.profile?.roles;
-  const isAuthorized = userRoles?.includes('Admin') || userRoles?.includes('Super Admin');
-  
-  useEffect(() => {
-    if (!isAuthorized) {
-        if (!authLoading) setLoading(false);
-        return;
-    }
+    useEffect(() => {
+        const unsub = onSnapshot(doc(db, 'settings', 'transfer'), docSnap => {
+            if (docSnap.exists()) {
+                setTransferFee(docSnap.data().fee);
+            }
+        });
+        return () => unsub();
+    }, []);
+
+    const handleSaveFee = async () => {
+        try {
+            await updateDoc(doc(db, 'settings', 'transfer'), { fee: transferFee });
+            toast({ title: "Biaya Transfer Diperbarui" });
+            setIsEditingFee(false);
+        } catch (error) {
+            toast({ title: "Gagal menyimpan", variant: "destructive" });
+        }
+    };
     
-    const unsubscribers = [
-      onSnapshot(query(collection(db, 'users'), orderBy('name', 'asc')), snapshot => 
-        setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)))),
-      onSnapshot(query(collection(db, 'departments'), orderBy('lembaga', 'asc'), orderBy('divisi', 'asc')), snapshot => 
-        setDepartments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Department)))),
-      onSnapshot(query(collection(db, 'budgetCategories'), orderBy('name', 'asc')), snapshot => 
-        setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BudgetCategory)))),
-      onSnapshot(query(collection(db, 'fundAccounts'), orderBy('accountName', 'asc')), snapshot => 
-        setFundAccounts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FundAccount)))),
-      onSnapshot(query(collection(db, 'banks'), orderBy('name', 'asc')), snapshot =>
-        setBanks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Bank)))),
-      onSnapshot(query(collection(db, 'units'), orderBy('name', 'asc')), snapshot =>
-        setUnits(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Unit)))),
-      onSnapshot(query(collection(db, 'memoSubjects'), orderBy('name', 'asc')), snapshot =>
-        setMemoSubjects(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MemoSubject)))),
-      onSnapshot(doc(db, 'settings', 'transfer'), docSnap => {
-          if (docSnap.exists()) {
-              setTransferFee(docSnap.data().fee);
-          }
-      })
-    ];
-
-    Promise.all(unsubscribers).then(() => setLoading(false));
-
-    return () => unsubscribers.forEach(unsub => unsub());
-  }, [isAuthorized, authLoading]);
-  
-  const handleSaveFee = async () => {
-      try {
-        await updateDoc(doc(db, 'settings', 'transfer'), { fee: transferFee });
-        toast({ title: "Biaya Transfer Diperbarui" });
-        setIsEditingFee(false);
-      } catch (error) {
-        toast({ title: "Gagal menyimpan", variant: "destructive" });
-      }
-  };
-
-  if (authLoading || (loading && isAuthorized)) {
-    return <p>Memuat data administrasi...</p>
-  }
-  
-  if (!isAuthorized) {
     return (
-        <Alert variant="destructive">
-            <ShieldAlert className="h-4 w-4" />
-            <AlertTitle>Akses Ditolak</AlertTitle>
-            <AlertDescription>
-                Anda tidak memiliki izin untuk melihat halaman ini. Hanya Admin yang dapat mengakses halaman ini.
-            </AlertDescription>
-        </Alert>
-    )
-  }
-
-  return (
-    <div className="flex flex-col gap-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Manajemen Administrasi</h1>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 xl:col-span-3">
-            <UserManagementTab users={users} loading={loading} departments={departments} />
-        </div>
-        <div className="lg:col-span-2 xl:col-span-3">
-            <DepartmentManagementTab departments={departments} loading={loading} />
-        </div>
-        <div className="lg:col-span-2 xl:col-span-3">
-            <FundAccountManagementTab fundAccounts={fundAccounts} loading={loading} />
-        </div>
-        
-        <CategoryManagementTab categories={categories} loading={loading} />
-        <BankManagement banks={banks} loading={loading} />
-        <UnitManagement units={units} loading={loading} />
-        <MemoSubjectManagement subjects={memoSubjects} loading={loading} />
-        
-        <Card>
+         <Card>
             <CardHeader>
                 <CardTitle>Pengaturan Aplikasi</CardTitle>
                 <CardDescription>Kelola pengaturan global untuk aplikasi.</CardDescription>
@@ -161,7 +86,172 @@ export default function AdminPage() {
                 </div>
             </CardContent>
         </Card>
+    )
+}
+
+function AdminPageContent({
+    users,
+    departments,
+    categories,
+    fundAccounts,
+    banks,
+    units,
+    memoSubjects,
+    loading
+}: {
+    users: User[],
+    departments: Department[],
+    categories: BudgetCategory[],
+    fundAccounts: FundAccount[],
+    banks: Bank[],
+    units: Unit[],
+    memoSubjects: MemoSubject[],
+    loading: boolean
+}) {
+    const isMobile = useIsMobile();
+
+    const sections = [
+        { id: "users", title: "Pengguna", component: <UserManagementTab users={users} loading={loading} departments={departments} /> },
+        { id: "departments", title: "Departemen", component: <DepartmentManagementTab departments={departments} loading={loading} /> },
+        { id: "fund-accounts", title: "Sumber Dana", component: <FundAccountManagementTab fundAccounts={fundAccounts} loading={loading} /> },
+        { id: "categories", title: "Kategori Anggaran", component: <CategoryManagementTab categories={categories} loading={loading} /> },
+        { id: "banks", title: "Bank", component: <BankManagement banks={banks} loading={loading} /> },
+        { id: "units", title: "Satuan", component: <UnitManagement units={units} loading={loading} /> },
+        { id: "memo-subjects", title: "Perihal Memo", component: <MemoSubjectManagement subjects={memoSubjects} loading={loading} /> },
+        { id: "app-settings", title: "Pengaturan Aplikasi", component: <TransferFeeCard /> }
+    ];
+
+    if (isMobile) {
+        return (
+             <Tabs defaultValue="users" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="users">Pengguna</TabsTrigger>
+                    <TabsTrigger value="departments">Departemen</TabsTrigger>
+                    <TabsTrigger value="settings">Lainnya</TabsTrigger>
+                </TabsList>
+                <TabsContent value="users" className="mt-4">
+                    <UserManagementTab users={users} loading={loading} departments={departments} />
+                </TabsContent>
+                <TabsContent value="departments" className="mt-4">
+                    <DepartmentManagementTab departments={departments} loading={loading} />
+                </TabsContent>
+                <TabsContent value="settings" className="mt-4 space-y-8">
+                     <FundAccountManagementTab fundAccounts={fundAccounts} loading={loading} />
+                     <CategoryManagementTab categories={categories} loading={loading} />
+                     <BankManagement banks={banks} loading={loading} />
+                     <UnitManagement units={units} loading={loading} />
+                     <MemoSubjectManagement subjects={memoSubjects} loading={loading} />
+                     <TransferFeeCard />
+                </TabsContent>
+            </Tabs>
+        )
+    }
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-8">
+            <aside className="sticky top-20 self-start h-[calc(100vh-10rem)]">
+                <h3 className="text-lg font-semibold mb-4">Navigasi</h3>
+                <ScrollArea className="h-full pr-4">
+                    <ul className="space-y-2">
+                        {sections.map(section => (
+                            <li key={section.id}>
+                                <a href={`#${section.id}`} className="text-muted-foreground hover:text-foreground text-sm">
+                                    {section.title}
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                </ScrollArea>
+            </aside>
+            <main className="space-y-8">
+                {sections.map(section => (
+                    <section key={section.id} id={section.id}>
+                        {section.component}
+                    </section>
+                ))}
+            </main>
+        </div>
+    )
+}
+
+
+export default function AdminPage() {
+  const { user: authUser, loading: authLoading } = useAuth();
+  
+  const [users, setUsers] = useState<User[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [categories, setCategories] = useState<BudgetCategory[]>([]);
+  const [fundAccounts, setFundAccounts] = useState<FundAccount[]>([]);
+  const [banks, setBanks] = useState<Bank[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [memoSubjects, setMemoSubjects] = useState<MemoSubject[]>([]);
+  
+  const [loading, setLoading] = useState(true);
+  
+  const userRoles = authUser?.profile?.roles;
+  const isAuthorized = userRoles?.includes('Admin') || userRoles?.includes('Super Admin');
+  
+  useEffect(() => {
+    if (!isAuthorized) {
+        if (!authLoading) setLoading(false);
+        return;
+    }
+    
+    const unsubscribers = [
+      onSnapshot(query(collection(db, 'users'), orderBy('name', 'asc')), snapshot => 
+        setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)))),
+      onSnapshot(query(collection(db, 'departments'), orderBy('lembaga', 'asc'), orderBy('divisi', 'asc')), snapshot => 
+        setDepartments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Department)))),
+      onSnapshot(query(collection(db, 'budgetCategories'), orderBy('name', 'asc')), snapshot => 
+        setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BudgetCategory)))),
+      onSnapshot(query(collection(db, 'fundAccounts'), orderBy('accountName', 'asc')), snapshot => 
+        setFundAccounts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FundAccount)))),
+      onSnapshot(query(collection(db, 'banks'), orderBy('name', 'asc')), snapshot =>
+        setBanks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Bank)))),
+      onSnapshot(query(collection(db, 'units'), orderBy('name', 'asc')), snapshot =>
+        setUnits(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Unit)))),
+      onSnapshot(query(collection(db, 'memoSubjects'), orderBy('name', 'asc')), snapshot =>
+        setMemoSubjects(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MemoSubject)))),
+    ];
+
+    setLoading(false)
+
+    return () => unsubscribers.forEach(unsub => unsub());
+  }, [isAuthorized, authLoading]);
+
+  if (authLoading || (loading && isAuthorized)) {
+    return <p>Memuat data administrasi...</p>
+  }
+  
+  if (!isAuthorized) {
+    return (
+        <Alert variant="destructive">
+            <ShieldAlert className="h-4 w-4" />
+            <AlertTitle>Akses Ditolak</AlertTitle>
+            <AlertDescription>
+                Anda tidak memiliki izin untuk melihat halaman ini. Hanya Admin yang dapat mengakses halaman ini.
+            </AlertDescription>
+        </Alert>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-8">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Manajemen Administrasi</h1>
       </div>
+        <AdminPageContent 
+            users={users}
+            departments={departments}
+            categories={categories}
+            fundAccounts={fundAccounts}
+            banks={banks}
+            units={units}
+            memoSubjects={memoSubjects}
+            loading={loading}
+        />
     </div>
   );
 }
+
+    
