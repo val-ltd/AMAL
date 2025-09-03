@@ -1,5 +1,4 @@
 
-
 'use client'
 
 import { useEffect, useState } from "react";
@@ -199,35 +198,45 @@ export default function AdminPage() {
         return;
     }
 
-    const createQuery = (collectionName: string, orderByField: string) => 
-        query(collection(db, collectionName), where('isDeleted', 'in', [false, null]), orderBy(orderByField, 'asc'));
-
-    // Set up listeners and track their initial load state
-    const listeners = [
-        { loaded: false, unsub: onSnapshot(query(collection(db, 'users'), where('isDeleted', 'in', [false, null]), orderBy('name', 'asc')), s => { setUsers(s.docs.map(d => ({ id: d.id, ...d.data() } as User))); checkAllLoaded(); }) },
-        { loaded: false, unsub: onSnapshot(query(collection(db, 'departments'), where('isDeleted', 'in', [false, null]), orderBy('lembaga', 'asc'), orderBy('divisi', 'asc')), s => { setDepartments(s.docs.map(d => ({ id: d.id, ...d.data() } as Department))); checkAllLoaded(); }) },
-        { loaded: false, unsub: onSnapshot(createQuery('budgetCategories', 'name'), s => { setCategories(s.docs.map(d => ({ id: d.id, ...d.data() } as BudgetCategory))); checkAllLoaded(); }) },
-        { loaded: false, unsub: onSnapshot(createQuery('fundAccounts', 'accountName'), s => { setFundAccounts(s.docs.map(d => ({ id: d.id, ...d.data() } as FundAccount))); checkAllLoaded(); }) },
-        { loaded: false, unsub: onSnapshot(createQuery('banks', 'name'), s => { setBanks(s.docs.map(d => ({ id: d.id, ...d.data() } as Bank))); checkAllLoaded(); }) },
-        { loaded: false, unsub: onSnapshot(createQuery('units', 'name'), s => { setUnits(s.docs.map(d => ({ id: d.id, ...d.data() } as Unit))); checkAllLoaded(); }) },
-        { loaded: false, unsub: onSnapshot(createQuery('memoSubjects', 'name'), s => { setMemoSubjects(s.docs.map(d => ({ id: d.id, ...d.data() } as MemoSubject))); checkAllLoaded(); }) },
-    ];
-
-    let initialLoadCompleted = false;
-    const checkAllLoaded = () => {
-        if (initialLoadCompleted) return;
-        // Mark the listener as loaded
-        const currentListener = listeners.find(l => !l.loaded);
-        if(currentListener) currentListener.loaded = true;
-
-        if (listeners.every(l => l.loaded)) {
-            initialLoadCompleted = true;
-            setLoading(false);
-        }
+    const listeners: {name: string, unsub: () => void}[] = [];
+    const loaded: Record<string, boolean> = {
+        users: false,
+        departments: false,
+        categories: false,
+        fundAccounts: false,
+        banks: false,
+        units: false,
+        memoSubjects: false,
     };
     
-    // Initial call in case some collections are empty and snapshot doesn't fire immediately
-    checkAllLoaded();
+    const checkAllLoaded = () => {
+        if(Object.values(loaded).every(Boolean)) {
+            setLoading(false);
+        }
+    }
+
+    const createListener = (collectionName: string, stateSetter: (data: any[]) => void, orderByFields: [string, "asc" | "desc"][], dataMapper: (doc: any) => any) => {
+        const q = query(collection(db, collectionName), where('isDeleted', 'in', [false, null]), ...orderByFields.map(f => orderBy(f[0], f[1])));
+        const unsub = onSnapshot(q, (snapshot) => {
+            const data = snapshot.docs.map(dataMapper);
+            stateSetter(data);
+            loaded[collectionName] = true;
+            checkAllLoaded();
+        }, (error) => {
+            console.error(`Error fetching ${collectionName}:`, error);
+            loaded[collectionName] = true;
+            checkAllLoaded();
+        });
+        listeners.push({ name: collectionName, unsub });
+    };
+
+    createListener('users', setUsers, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as User));
+    createListener('departments', setDepartments, [['lembaga', 'asc'], ['divisi', 'asc']], d => ({ id: d.id, ...d.data() } as Department));
+    createListener('budgetCategories', setCategories, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as BudgetCategory));
+    createListener('fundAccounts', setFundAccounts, [['accountName', 'asc']], d => ({ id: d.id, ...d.data() } as FundAccount));
+    createListener('banks', setBanks, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as Bank));
+    createListener('units', setUnits, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as Unit));
+    createListener('memoSubjects', setMemoSubjects, [['name', 'asc']], d => ({ id: d.id, ...d.data() } as MemoSubject));
     
     return () => listeners.forEach(l => l.unsub());
   }, [isAuthorized, authLoading]);
