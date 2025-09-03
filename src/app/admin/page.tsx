@@ -193,6 +193,7 @@ export default function AdminPage() {
         return;
     }
 
+    console.log('[AdminPage] Setting up listeners...');
     setLoading(true);
 
     const collections = [
@@ -208,11 +209,15 @@ export default function AdminPage() {
     const unsubscribers = collections.map(c => {
         const q = query(
             collection(db, c.name), 
-            where('isDeleted', 'in', [false, null]),
+            where('isDeleted', '!=', true),
+            orderBy('isDeleted'), // Firestore requires an inequality filter to be on the first orderBy clause
             orderBy(c.orderBy[0], c.orderBy[1] as "asc" | "desc")
         );
+        console.log(`[AdminPage] Querying collection: ${c.name}`);
         return onSnapshot(q, (snapshot) => {
+            console.log(`[AdminPage] Received snapshot for ${c.name}, docs count: ${snapshot.docs.length}`);
             const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            console.log(`[AdminPage] Data for ${c.name}:`, data);
             c.setter(data as any);
         }, (error) => {
             console.error(`Error fetching ${c.name}:`, error);
@@ -221,7 +226,10 @@ export default function AdminPage() {
 
     setLoading(false);
 
-    return () => unsubscribers.forEach(unsub => unsub());
+    return () => {
+        console.log('[AdminPage] Cleaning up listeners.');
+        unsubscribers.forEach(unsub => unsub())
+    };
   }, [isAuthorized]);
 
   if (authLoading) {
@@ -239,6 +247,8 @@ export default function AdminPage() {
         </Alert>
     )
   }
+  
+  console.log(`[AdminPage] Rendering with loading=${loading}, users=${users.length}, depts=${departments.length}`);
 
   if (loading) {
     return <p>Memuat data administrasi...</p>
