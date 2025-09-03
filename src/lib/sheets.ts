@@ -68,13 +68,12 @@ const ensureHeaderRow = async (sheets: any, sheetId: string) => {
     }
 };
 
-export async function appendRequestToSheet(request: BudgetRequest) {
+export async function appendRequestToSheet(request: BudgetRequest): Promise<{startRow: number, endRow: number}> {
   try {
     const sheets = getSheetsApi();
     const sheetId = process.env.GOOGLE_SHEET_ID;
     if (!sheetId) {
-      console.log('Missing GOOGLE_SHEET_ID env var, skipping sheet append.');
-      return;
+      throw new Error('Missing GOOGLE_SHEET_ID env var.');
     }
     
     await ensureHeaderRow(sheets, sheetId);
@@ -119,14 +118,12 @@ export async function appendRequestToSheet(request: BudgetRequest) {
         if (match) {
             const startRow = parseInt(match[1], 10);
             const endRow = startRow + itemRows.length - 1;
-            const requestRef = doc(db, 'requests', request.id);
-            await updateDoc(requestRef, { 
-              sheetStartRow: startRow,
-              sheetEndRow: endRow,
-            });
+            return { startRow, endRow };
         }
     }
 
+    // Fallback if range parsing fails, though it shouldn't.
+    throw new Error("Could not determine the updated row range from Google Sheets response.");
 
   } catch (error) {
     console.error('Error appending to Google Sheet:', error);
@@ -152,10 +149,7 @@ export async function updateRequestInSheet(request: BudgetRequest) {
 
 
         if (!startRow || !endRow) {
-            console.error(`Could not find sheetRowNumber for request ID ${request.id}. Appending as new row.`);
-            // This case might happen if the initial append failed.
-            // We'll try to append it again.
-            await appendRequestToSheet(request);
+            console.error(`Could not find sheetRowNumber for request ID ${request.id}. Cannot update sheet.`);
             return;
         }
 

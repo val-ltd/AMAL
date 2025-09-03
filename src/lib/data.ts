@@ -17,10 +17,11 @@ import {
   writeBatch,
   Timestamp,
   DocumentReference,
+  setDoc,
 } from 'firebase/firestore';
 import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Notification, Role, Bank, Unit, MemoSubject } from './types';
 import { auth, db } from './firebase';
-import { appendRequestToSheet, updateRequestInSheet } from './sheets';
+import { updateRequestInSheet } from './sheets';
 
 // This function now returns an unsubscribe function for the real-time listener
 export function getMyRequests(
@@ -140,6 +141,10 @@ export async function createRequest(
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
+  
+  if (!newRequestData.paymentMethod || newRequestData.paymentMethod !== 'Transfer') {
+    delete newRequestData.reimbursementAccount;
+  }
 
   const docRef = await addDoc(collection(db, 'requests'), newRequestData);
   return docRef;
@@ -314,7 +319,7 @@ export async function getDepartmentsByIds(ids: string[]): Promise<Department[]> 
     return departments;
 }
 
-export async function getCollection<T>(collectionName: string, orderField: string): Promise<T[]> {
+export async function getCollectionData<T>(collectionName: string, orderField: string): Promise<T[]> {
     const q = query(collection(db, collectionName), where('isDeleted', 'in', [false, null]), orderBy(orderField));
     const querySnapshot = await getDocs(q);
     const items: T[] = [];
@@ -325,23 +330,23 @@ export async function getCollection<T>(collectionName: string, orderField: strin
 }
 
 export async function getBudgetCategories(): Promise<BudgetCategory[]> {
-    return getCollection<BudgetCategory>('budgetCategories', 'name');
+    return getCollectionData<BudgetCategory>('budgetCategories', 'name');
 }
 
 export async function getFundAccounts(): Promise<FundAccount[]> {
-    return getCollection<FundAccount>('fundAccounts', 'accountName');
+    return getCollectionData<FundAccount>('fundAccounts', 'accountName');
 }
 
 export async function getBanks(): Promise<Bank[]> {
-    return getCollection<Bank>('banks', 'name');
+    return getCollectionData<Bank>('banks', 'name');
 }
 
 export async function getUnits(): Promise<Unit[]> {
-    return getCollection<Unit>('units', 'name');
+    return getCollectionData<Unit>('units', 'name');
 }
 
 export async function getMemoSubjects(): Promise<MemoSubject[]> {
-    return getCollection<MemoSubject>('memoSubjects', 'name');
+    return getCollectionData<MemoSubject>('memoSubjects', 'name');
 }
 
 

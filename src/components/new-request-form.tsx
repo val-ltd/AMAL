@@ -11,8 +11,8 @@ import { Loader2, Plus, Trash2, WalletCards } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import type { User, Department, BudgetCategory, RequestItem, UserBankAccount, Unit } from '@/lib/types';
-import { getManagers, getUser, getBudgetCategories, getUnits, createRequest } from '@/lib/data';
+import type { User, Department, BudgetCategory, RequestItem, UserBankAccount, Unit, BudgetRequest } from '@/lib/types';
+import { getManagers, getUser, getBudgetCategories, getUnits } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -151,78 +151,87 @@ export function NewRequestForm() {
 
     setIsSubmitting(true);
 
+    const supervisor = managers.find(m => m.id === supervisorId);
+    if (!supervisor) {
+        setFormError("Supervisor yang dipilih tidak valid.");
+        setIsSubmitting(false);
+        return;
+    }
+    
+    const selectedDepartment = userDepartments.find(d => d.id === selectedDepartmentId);
+    if(!selectedDepartment && userDepartments.length > 0) {
+        setFormError("Departemen yang dipilih tidak valid.");
+        setIsSubmitting(false);
+        return;
+    }
+
+    const reimbursementAccount = profileData.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
+    
+    // This is a temporary ID for the request object before it's saved.
+    const tempRequestId = doc(collection(db, 'requests')).id;
+
+    const requestObject: Omit<BudgetRequest, 'createdAt' | 'updatedAt' | 'releasedAt'> = {
+        id: tempRequestId,
+        items: items.map(({id, ...rest}) => rest), // Remove temporary frontend ID
+        amount: totalAmount,
+        additionalInfo,
+        institution: selectedDepartment?.lembaga || profileData.institution || '',
+        division: selectedDepartment?.divisi || profileData.division || '',
+        department: selectedDepartment ? {
+            lembaga: selectedDepartment.lembaga,
+            divisi: selectedDepartment.divisi,
+            bagian: selectedDepartment.bagian || null,
+            unit: selectedDepartment.unit || null,
+        } : undefined,
+        requester: {
+            id: authUser.uid,
+            name: profileData.name || 'Unknown User',
+            avatarUrl: profileData.avatarUrl || '',
+        },
+        supervisor: {
+            id: supervisor.id,
+            name: supervisor.name,
+        },
+        paymentMethod,
+        status: 'pending' as const,
+    };
+
+    if (paymentMethod === 'Transfer' && reimbursementAccount) {
+        requestObject.reimbursementAccount = reimbursementAccount;
+    }
+
     try {
-      const supervisor = managers.find(m => m.id === supervisorId);
-      if (!supervisor) throw new Error("Supervisor yang dipilih tidak valid.");
-      
-      const selectedDepartment = userDepartments.find(d => d.id === selectedDepartmentId);
-      if(!selectedDepartment && userDepartments.length > 0) throw new Error("Departemen yang dipilih tidak valid.");
+      // Step 1: Append to Google Sheets first
+      const sheetUpdateResponse = await appendRequestToSheet({
+          ...requestObject,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+      });
 
-      const reimbursementAccount = profileData.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
-
-      const requestData: any = {
-          items: items.map(({id, ...rest}) => rest), // Remove temporary frontend ID
-          amount: totalAmount,
-          additionalInfo,
-          institution: selectedDepartment?.lembaga || profileData.institution || '',
-          division: selectedDepartment?.divisi || profileData.division || '',
-          department: selectedDepartment ? {
-              lembaga: selectedDepartment.lembaga,
-              divisi: selectedDepartment.divisi,
-              bagian: selectedDepartment.bagian || null,
-              unit: selectedDepartment.unit || null,
-          } : undefined,
-          requester: {
-              id: authUser.uid,
-              name: profileData.name || 'Unknown User',
-              avatarUrl: profileData.avatarUrl || '',
-          },
-          supervisor: {
-              id: supervisor.id,
-              name: supervisor.name,
-          },
-          paymentMethod,
-          status: 'pending' as const,
+      // Step 2: If sheet append is successful, save to Firestore
+      const requestDataForFirestore = {
+          ...requestObject,
+          sheetStartRow: sheetUpdateResponse.startRow,
+          sheetEndRow: sheetUpdateResponse.endRow,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
       };
       
-      if (paymentMethod === 'Transfer' && reimbursementAccount) {
-          requestData.reimbursementAccount = reimbursementAccount;
-      }
+      // Use the temporary ID to create the document with a specific ID
+      await addDoc(collection(db, 'requests'), requestDataForFirestore);
       
-      const docRef = await createRequest(requestData);
-      
-      // We are not awaiting this. Let it run in the background.
-      // This way, if sheets fail, the app doesn't crash.
-      try {
-        const finalRequest = {
-            id: docRef.id,
-            ...docRef,
-            createdAt: new Date().toISOString(), 
-            updatedAt: new Date().toISOString(),
-        }
-        await appendRequestToSheet(finalRequest as any);
-      } catch (sheetError) {
-          console.error("Failed to append to Google Sheet, but request was saved to Firestore:", sheetError);
-          // Optionally, you can inform the user that the sheet sync failed but the request is safe.
-          toast({
-              title: "Permintaan Terkirim (Sheet Gagal)",
-              description: "Permintaan Anda berhasil disimpan, tetapi gagal disinkronkan ke Google Sheets.",
-              variant: "destructive"
-          })
-      }
-      
+      // Step 3: Create notifications
       const batch = writeBatch(db);
-
       // Create notification for supervisor
       const supervisorNotification = {
           userId: supervisor.id,
           type: 'new_request' as const,
           title: 'Permintaan Anggaran Baru',
           message: `${profileData.name} mengajukan permintaan baru (${formatRupiah(totalAmount)}) untuk ditinjau.`,
-          requestId: docRef.id,
+          requestId: tempRequestId,
           isRead: false,
           createdAt: serverTimestamp(),
-          createdBy: requestData.requester
+          createdBy: requestObject.requester
       };
       batch.set(doc(collection(db, 'notifications')), supervisorNotification);
       
@@ -232,7 +241,7 @@ export function NewRequestForm() {
           type: 'request_submitted' as const,
           title: 'Permintaan Terkirim',
           message: `Permintaan Anda (${formatRupiah(totalAmount)}) telah dikirim ke ${supervisor.name} untuk ditinjau.`,
-          requestId: docRef.id,
+          requestId: tempRequestId,
           isRead: false,
           createdAt: serverTimestamp(),
           createdBy: { id: 'system', name: 'System' }
@@ -243,18 +252,18 @@ export function NewRequestForm() {
 
       toast({
           title: "Permintaan Terkirim",
-          description: "Permintaan anggaran Anda telah berhasil dibuat.",
+          description: "Permintaan anggaran Anda telah berhasil dibuat dan disimpan di Google Sheets.",
       });
       router.push('/');
 
     } catch (error) {
         console.error("Error creating request:", error);
-        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tak terduga.';
+        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tak terduga. Periksa koneksi Anda dan coba lagi.';
         setFormError(errorMessage);
         toast({
             variant: 'destructive',
             title: 'Gagal Membuat Permintaan',
-            description: errorMessage,
+            description: `Gagal menyimpan ke Google Sheets. Permintaan tidak dibuat. Kesalahan: ${errorMessage}`,
         });
     } finally {
         setIsSubmitting(false);
