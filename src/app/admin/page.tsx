@@ -129,7 +129,7 @@ function AdminPageContent({
                     <TabsTrigger value="departments">Departemen</TabsTrigger>
                     <TabsTrigger value="settings">Lainnya</TabsTrigger>
                 </TabsList>
-                <TabsContent value="users" className="mt-4">
+                <TabsContent value="users" className="mt-4 flex-1">
                     <UserManagementTab users={users} loading={loading} departments={departments} />
                 </TabsContent>
                 <TabsContent value="departments" className="mt-4">
