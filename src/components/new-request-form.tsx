@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Copy, Loader2, Plus, Trash2, WalletCards } from 'lucide-react';
+import { Copy, Loader2, Plus, Save, Trash2, WalletCards } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { useAuth } from '@/hooks/use-auth';
@@ -16,7 +16,7 @@ import { getManagers, getUser, getBudgetCategories, getUnits, getRequest, getMem
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { getDoc, doc, serverTimestamp, addDoc, collection, writeBatch, setDoc } from 'firebase/firestore';
+import { getDoc, doc, serverTimestamp, addDoc, collection, writeBatch, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatDepartment } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -41,6 +41,7 @@ export function NewRequestForm() {
   const isMobile = useIsMobile();
   
   const duplicateRequestId = searchParams.get('duplicate');
+  const draftId = searchParams.get('draft');
 
   const [profileData, setProfileData] = useState<User | null>(null);
   const [managers, setManagers] = useState<User[]>([]);
@@ -69,13 +70,14 @@ export function NewRequestForm() {
         if (authUser) {
             setLoading(true);
             try {
-                const [userProfile, managerList, categoryList, unitList, subjectList, duplicateRequest] = await Promise.all([
+                const idToFetch = draftId || duplicateRequestId;
+                const [userProfile, managerList, categoryList, unitList, subjectList, requestToLoad] = await Promise.all([
                   getUser(authUser.uid),
                   getManagers(),
                   getBudgetCategories(),
                   getUnits(),
                   getMemoSubjects(),
-                  duplicateRequestId ? getRequest(duplicateRequestId) : Promise.resolve(null),
+                  idToFetch ? getRequest(idToFetch) : Promise.resolve(null),
                 ]);
 
                 setProfileData(userProfile);
@@ -96,18 +98,20 @@ export function NewRequestForm() {
                   // Do not set a default department
                 }
                 
-                if (duplicateRequest) {
-                  setSubject(duplicateRequest.subject || '');
-                  setItems(duplicateRequest.items.map((item, index) => ({...item, id: `${Date.now()}-${index}`})));
-                  setAdditionalInfo(duplicateRequest.additionalInfo || '');
-                  setSupervisorId(duplicateRequest.supervisor?.id || '');
-                  const duplicatedDept = userDepartments.find(d => d.lembaga === duplicateRequest.institution && d.divisi === duplicateRequest.division);
-                  if (duplicatedDept) {
-                      setSelectedDepartmentId(duplicatedDept.id);
+                if (requestToLoad) {
+                  setSubject(requestToLoad.subject || '');
+                  setItems(requestToLoad.items.map((item, index) => ({...item, id: `${Date.now()}-${index}`})));
+                  setAdditionalInfo(requestToLoad.additionalInfo || '');
+                  setSupervisorId(requestToLoad.supervisor?.id || '');
+                  const loadedDept = userDepartments.find(d => d.lembaga === requestToLoad.institution && d.divisi === requestToLoad.division);
+                  if (loadedDept) {
+                      setSelectedDepartmentId(loadedDept.id);
                   }
-                  setPaymentMethod(duplicateRequest.paymentMethod || 'Cash');
-                  setReimbursementAccountId(duplicateRequest.reimbursementAccount?.accountNumber || '');
-                  toast({title: "Permintaan Diduplikasi", description: "Data dari permintaan sebelumnya telah dimuat. Silakan periksa dan kirim."});
+                  setPaymentMethod(requestToLoad.paymentMethod || 'Cash');
+                  setReimbursementAccountId(requestToLoad.reimbursementAccount?.accountNumber || '');
+                  
+                  const message = draftId ? "Draf dimuat." : "Permintaan diduplikasi.";
+                  toast({title: message, description: "Data dari permintaan sebelumnya telah dimuat. Silakan periksa dan kirim."});
                 }
 
 
@@ -120,7 +124,7 @@ export function NewRequestForm() {
         }
     }
     fetchInitialData();
-  }, [authUser, duplicateRequestId, toast]);
+  }, [authUser, duplicateRequestId, draftId, toast]);
   
   const handleItemChange = (index: number, field: keyof RequestItem, value: any) => {
     const newItems = [...items];
@@ -145,59 +149,30 @@ export function NewRequestForm() {
 
   const totalAmount = useMemo(() => items.reduce((sum, item) => sum + item.total, 0), [items]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>, status: 'pending' | 'draft') => {
     e.preventDefault();
     setFormError(null);
 
     // Validation
-    if (!subject) {
-      setFormError("Perihal Memo harus diisi.");
-      return;
+    const isSubmittingForApproval = status === 'pending';
+    if (isSubmittingForApproval) {
+        if (!subject) { setFormError("Perihal Memo harus diisi."); return; }
+        if (!supervisorId) { setFormError("Nama Atasan harus diisi."); return; }
+        if (userDepartments.length > 0 && !selectedDepartmentId) { setFormError("Silakan pilih departemen untuk permintaan ini."); return; }
+        if (items.some(item => !item.description || item.qty <= 0 || !item.category || !item.unit)) { setFormError("Setiap item harus memiliki Uraian, Kuantitas, Satuan dan Kategori."); return; }
+        if (paymentMethod === 'Transfer' && !reimbursementAccountId) { setFormError("Pilih rekening untuk pembayaran transfer."); return; }
     }
-    if (!supervisorId) {
-      setFormError("Nama Atasan harus diisi.");
-      return;
-    }
-     if (userDepartments.length > 0 && !selectedDepartmentId) {
-      setFormError("Silakan pilih departemen untuk permintaan ini.");
-      return;
-    }
-    if (items.some(item => !item.description || item.qty <= 0 || !item.category || !item.unit)) {
-      setFormError("Setiap item harus memiliki Uraian, Kuantitas, Satuan dan Kategori.");
-      return;
-    }
-    if (!profileData || !authUser) {
-        setFormError("Data pengguna tidak ditemukan. Silakan login kembali.");
-        return;
-    }
-    if (paymentMethod === 'Transfer' && !reimbursementAccountId) {
-        setFormError("Pilih rekening untuk pembayaran transfer.");
-        return;
-    }
+     if (!profileData || !authUser) { setFormError("Data pengguna tidak ditemukan. Silakan login kembali."); return; }
+
 
     setIsSubmitting(true);
 
     const supervisor = managers.find(m => m.id === supervisorId);
-    if (!supervisor) {
-        setFormError("Supervisor yang dipilih tidak valid.");
-        setIsSubmitting(false);
-        return;
-    }
-    
     const selectedDepartment = userDepartments.find(d => d.id === selectedDepartmentId);
-    if(!selectedDepartment && userDepartments.length > 0) {
-        setFormError("Departemen yang dipilih tidak valid.");
-        setIsSubmitting(false);
-        return;
-    }
-
     const reimbursementAccount = profileData.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
     
-    const newRequestRef = doc(collection(db, 'requests'));
-    const newRequestId = newRequestRef.id;
-
     const requestObject: Omit<BudgetRequest, 'createdAt' | 'updatedAt' | 'releasedAt'> = {
-        id: newRequestId,
+        id: draftId || doc(collection(db, 'requests')).id,
         subject,
         items: items.map(({id, ...rest}) => rest),
         amount: totalAmount,
@@ -215,12 +190,9 @@ export function NewRequestForm() {
             name: profileData.name || 'Unknown User',
             avatarUrl: profileData.avatarUrl || '',
         },
-        supervisor: {
-            id: supervisor.id,
-            name: supervisor.name,
-        },
+        supervisor: supervisor ? { id: supervisor.id, name: supervisor.name } : undefined,
         paymentMethod,
-        status: 'pending' as const,
+        status: status,
     };
 
     if (paymentMethod === 'Transfer' && reimbursementAccount) {
@@ -228,64 +200,48 @@ export function NewRequestForm() {
     }
 
     try {
-      const sheetUpdateResponse = await appendRequestToSheet({
-          ...requestObject,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-      });
+        const isUpdatingDraft = !!draftId;
 
-      const requestDataForFirestore = {
-          ...requestObject,
-          sheetStartRow: sheetUpdateResponse.startRow,
-          sheetEndRow: sheetUpdateResponse.endRow,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-      };
-      
-      await setDoc(newRequestRef, requestDataForFirestore);
-      
-      const batch = writeBatch(db);
-      const supervisorNotification = {
-          userId: supervisor.id,
-          type: 'new_request' as const,
-          title: 'Permintaan Anggaran Baru',
-          message: `${profileData.name} mengajukan permintaan baru (${formatRupiah(totalAmount)}) untuk ditinjau.`,
-          requestId: newRequestId,
-          isRead: false,
-          createdAt: serverTimestamp(),
-          createdBy: requestObject.requester
-      };
-      batch.set(doc(collection(db, 'notifications')), supervisorNotification);
-      
-      const requesterNotification = {
-          userId: authUser.uid,
-          type: 'request_submitted' as const,
-          title: 'Permintaan Terkirim',
-          message: `Permintaan Anda (${formatRupiah(totalAmount)}) telah dikirim ke ${supervisor.name} untuk ditinjau.`,
-          requestId: newRequestId,
-          isRead: false,
-          createdAt: serverTimestamp(),
-          createdBy: { id: 'system', name: 'System' }
-      };
-      batch.set(doc(collection(db, 'notifications')), requesterNotification);
-      
-      await batch.commit();
+        if (isSubmittingForApproval) {
+            // Logic for submitting for approval
+            const sheetUpdateResponse = await appendRequestToSheet({ ...requestObject, id: requestObject.id, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+            const requestDataForFirestore = { ...requestObject, sheetStartRow: sheetUpdateResponse.startRow, sheetEndRow: sheetUpdateResponse.endRow, updatedAt: serverTimestamp() };
+            
+            if (isUpdatingDraft) {
+                await updateDoc(doc(db, 'requests', draftId), requestDataForFirestore);
+            } else {
+                await setDoc(doc(db, 'requests', requestObject.id), { ...requestDataForFirestore, createdAt: serverTimestamp() });
+            }
 
-      toast({
-          title: "Permintaan Terkirim",
-          description: "Permintaan anggaran Anda telah berhasil dibuat dan disimpan di Google Sheets.",
-      });
-      router.push('/');
+            const batch = writeBatch(db);
+            const supervisorNotification = { userId: supervisor!.id, type: 'new_request' as const, title: 'Permintaan Anggaran Baru', message: `${profileData.name} mengajukan permintaan baru (${formatRupiah(totalAmount)}) untuk ditinjau.`, requestId: requestObject.id, isRead: false, createdAt: serverTimestamp(), createdBy: requestObject.requester };
+            batch.set(doc(collection(db, 'notifications')), supervisorNotification);
+            const requesterNotification = { userId: authUser.uid, type: 'request_submitted' as const, title: 'Permintaan Terkirim', message: `Permintaan Anda (${formatRupiah(totalAmount)}) telah dikirim ke ${supervisor!.name} untuk ditinjau.`, requestId: requestObject.id, isRead: false, createdAt: serverTimestamp(), createdBy: { id: 'system', name: 'System' } };
+            batch.set(doc(collection(db, 'notifications')), requesterNotification);
+            await batch.commit();
+
+            toast({ title: "Permintaan Terkirim", description: "Permintaan anggaran Anda telah berhasil dibuat dan disimpan di Google Sheets." });
+
+        } else {
+            // Logic for saving as draft
+            const draftData = { ...requestObject, updatedAt: serverTimestamp() };
+             if (isUpdatingDraft) {
+                await updateDoc(doc(db, 'requests', draftId), draftData);
+            } else {
+                await setDoc(doc(db, 'requests', requestObject.id), { ...draftData, createdAt: serverTimestamp() });
+            }
+            toast({ title: "Draf Disimpan", description: "Permintaan Anda telah disimpan sebagai draf." });
+        }
+        
+        router.push('/');
 
     } catch (error) {
-        console.error("Error creating request:", error);
-        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tak terduga. Periksa koneksi Anda dan coba lagi.';
+        console.error("Error creating/updating request:", error);
+        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tak terduga.';
         setFormError(errorMessage);
-        toast({
-            variant: 'destructive',
-            title: 'Gagal Membuat Permintaan',
-            description: `Gagal menyimpan ke Google Sheets. Permintaan tidak dibuat. Kesalahan: ${errorMessage}`,
-        });
+        const title = isSubmittingForApproval ? 'Gagal Membuat Permintaan' : 'Gagal Menyimpan Draf';
+        const description = isSubmittingForApproval ? `Gagal menyimpan ke Google Sheets. Permintaan tidak dibuat. Kesalahan: ${errorMessage}` : errorMessage;
+        toast({ variant: 'destructive', title, description });
     } finally {
         setIsSubmitting(false);
     }
@@ -415,7 +371,7 @@ export function NewRequestForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form className="space-y-6">
       {profileData && (
           <Card className="bg-muted/50">
               <CardHeader>
@@ -564,10 +520,27 @@ export function NewRequestForm() {
           </Alert>
       )}
 
-      <Button type="submit" disabled={!isFormReady || isSubmitting || !selectedDepartmentId} className="w-full">
-          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Kirim Permintaan
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-2 mt-8">
+            <Button
+                type="button"
+                variant="outline"
+                onClick={(e) => handleSubmit(e as any, 'draft')}
+                disabled={isSubmitting}
+                className="w-full sm:w-auto"
+            >
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Simpan sebagai Draf
+            </Button>
+            <Button
+                type="button"
+                onClick={(e) => handleSubmit(e as any, 'pending')}
+                disabled={!isFormReady || isSubmitting || !selectedDepartmentId}
+                className="w-full sm:flex-1"
+            >
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Kirim Permintaan
+            </Button>
+      </div>
     </form>
   );
 }

@@ -70,7 +70,7 @@ export interface BudgetRequest {
   subject: string; // New field for the memo subject/title
   items: RequestItem[];
   amount: number; // This will be the sum of all item totals
-  status: 'pending' | 'approved' | 'rejected' | 'released' | 'completed';
+  status: 'pending' | 'approved' | 'rejected' | 'released' | 'completed' | 'draft';
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
   managerComment?: string;

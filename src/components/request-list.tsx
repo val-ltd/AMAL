@@ -17,7 +17,7 @@ import { formatDepartment } from '@/lib/utils';
 import { Separator } from './ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
-import { Eye, ThumbsUp, FileText, Copy } from 'lucide-react';
+import { Eye, ThumbsUp, FileText, Copy, Edit } from 'lucide-react';
 import Link from 'next/link';
 
 interface RequestListProps {
@@ -52,6 +52,18 @@ export default function RequestList({ requests, isManagerView = false }: Request
     const isSupervisor = user?.uid === request.supervisor?.id;
     const isActionable = isManagerView && isSupervisor && request.status === 'pending';
     const isReportable = !isManagerView && request.status === 'released';
+    const isDraft = request.status === 'draft';
+
+    if (isDraft) {
+      return (
+        <Button asChild>
+          <Link href={`/request/new?draft=${request.id}`}>
+            <Edit className="mr-2 h-4 w-4" />
+            Ubah Draf
+          </Link>
+        </Button>
+      );
+    }
 
     return (
       <div className="flex items-center gap-2">

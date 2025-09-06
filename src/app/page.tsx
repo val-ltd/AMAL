@@ -4,7 +4,7 @@
 import { Button } from "@/components/ui/button"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, ThumbsUp, XCircle, CheckCircle, FilePlus, List } from 'lucide-react';
+import { Clock, ThumbsUp, XCircle, CheckCircle, FilePlus, List, FileSignature } from 'lucide-react';
 import Link from "next/link"
 import { getMyRequests } from "@/lib/data"
 import RequestList from "@/components/request-list"
@@ -38,6 +38,7 @@ const statusIcons = {
     rejected: <XCircle className="h-6 w-6 text-red-500" />,
     released: <CheckCircle className="h-6 w-6 text-blue-500" />,
     completed: <CheckCircle className="h-6 w-6 text-purple-500" />,
+    draft: <FileSignature className="h-6 w-6 text-gray-500" />,
 }
 
 const statusText = {
@@ -46,6 +47,7 @@ const statusText = {
     rejected: 'Ditolak',
     released: 'Dicairkan',
     completed: 'Selesai',
+    draft: 'Draf',
 }
 
 
@@ -80,6 +82,7 @@ export default function EmployeeDashboard() {
       rejected: { count: 0, amount: 0 },
       released: { count: 0, amount: 0 },
       completed: { count: 0, amount: 0 },
+      draft: { count: 0, amount: 0 },
     };
     requests.forEach(req => {
       const statusKey = req.status;
@@ -118,6 +121,7 @@ export default function EmployeeDashboard() {
   }, [requests]);
 
   const accordionItems: { status: BudgetRequest['status'], title: string }[] = [
+    { status: 'draft', title: 'Draf' },
     { status: 'pending', title: 'Tertunda' },
     { status: 'approved', title: 'Disetujui' },
     { status: 'rejected', title: 'Ditolak' },
@@ -232,7 +236,7 @@ export default function EmployeeDashboard() {
 
         <div id="request-list">
              <h2 className="text-2xl font-bold tracking-tight my-4">Daftar Permintaan Anda</h2>
-             <Accordion type="multiple" defaultValue={['pending', 'approved']} className="w-full space-y-4">
+             <Accordion type="multiple" defaultValue={['draft', 'pending', 'approved']} className="w-full space-y-4">
               {accordionItems.map(item => {
                 const requestsForStatus = groupedRequests[item.status] || [];
                 if (requestsForStatus.length === 0) return null;
