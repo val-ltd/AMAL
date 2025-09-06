@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -6,7 +5,7 @@ service cloud.firestore {
 
     // --- Helper Functions ---
     function isExistingUser(userId) {
-      return exists(/databases/$(database)/documents/users/$(userId));
+      return exists(path('/databases/$(database)/documents/users/' + userId));
     }
 
     function isOwner(userId) {
@@ -14,100 +13,68 @@ service cloud.firestore {
     }
     
     function isVerified() {
-      return isExistingUser(request.auth.uid) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isVerified == true;
+      let userPath = path('/databases/$(database)/documents/users/' + request.auth.uid);
+      return isExistingUser(request.auth.uid) && get(userPath).data.isVerified == true;
     }
-
+    
     function isAdmin() {
-      return isVerified() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny(['Admin', 'Super Admin']);
+      let userPath = path('/databases/$(database)/documents/users/' + request.auth.uid);
+      // Use 'in' to check for role in array
+      return isVerified() && ('Admin' in get(userPath).data.roles || 'Super Admin' in get(userPath).data.roles);
     }
     
-    function isReleaser() {
-      return isVerified() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny(['Releaser', 'Admin', 'Super Admin']);
-    }
-
-    // --- Collection Rules ---
-
-    // Default catch-all: Deny all reads and writes unless specified below
+    // --- Default Read Rule ---
+    // Allow any verified user to read data from any collection.
+    // This simplifies client-side queries. Write rules below will secure the data.
     match /{document=**} {
-      allow read, write: if false;
+        allow read: if isVerified();
     }
 
-    // USERS
-    // Anyone verified can read user profiles (for names, avatars, etc.)
-    // Only the user themselves can create or update their own profile.
+    // --- Write Rules (Specific & Secure) ---
+
+    // Users Collection
     match /users/{userId} {
-      allow read: if isVerified();
+      // A user can create their own profile or update it.
       allow create, update: if isOwner(userId);
+      // Admins can also update user profiles (e.g., roles, verification).
+      allow update: if isAdmin();
     }
-    
-    // REQUESTS
-    // Verified users can read requests (necessary for lists, manager views, etc.)
-    // Verified users can create requests for themselves.
-    // Updates are highly restricted.
+
+    // Requests Collection
     match /requests/{requestId} {
-      allow read: if isVerified();
+      // A verified user can create a request for themselves.
       allow create: if isVerified() && request.resource.data.requester.id == request.auth.uid;
-      allow update: if isVerified() && 
-        (
-          // Supervisor can approve/reject
-          (request.resource.data.status == 'approved' || request.resource.data.status == 'rejected') && resource.data.supervisor.id == request.auth.uid
-        ) ||
-        (
-          // Releaser can mark as released
-          request.resource.data.status == 'released' && isReleaser()
-        ) ||
-        (
-          // Requester can submit a report after release
-          request.resource.data.status == 'completed' && resource.data.requester.id == request.auth.uid
-        );
+      
+      // An update is allowed if:
+      // 1. The user is the assigned supervisor (approving/rejecting).
+      // 2. The user is the requester and the request is 'released' (for submitting a report).
+      // 3. The user is a releaser.
+      // 4. The user is an admin.
+      allow update: if isVerified() && (
+        request.auth.uid == resource.data.supervisor.id ||
+        (request.auth.uid == resource.data.requester.id && resource.data.status == 'released') ||
+        get(path('/databases/$(database)/documents/users/' + request.auth.uid)).data.roles.hasAny(['Releaser', 'Admin', 'Super Admin'])
+      );
     }
     
-    // REPORTS
-    // A user can create a report if they are verified.
-    // (Read/update can be added later if a "view report" feature is built)
+    // Reports Collection
     match /reports/{reportId} {
         allow create: if isVerified();
     }
     
-    // NOTIFICATIONS
-    // Users can only read, update (mark as read), or delete their own notifications.
-    // Any verified user can create notifications (system/supervisors create them for others).
+    // Notifications Collection
     match /notifications/{notificationId} {
-      allow read, update, delete: if isOwner(resource.data.userId);
+      allow read, delete: if isOwner(resource.data.userId);
       allow create: if isVerified();
     }
     
-    // SETTINGS, DEPARTMENTS, CATEGORIES, etc.
-    // These are system-level collections.
-    // Any verified user can read them (to populate dropdowns, etc.).
-    // Only Admins can write to them.
-    match /settings/{docId} {
-      allow read: if isVerified();
-      allow write: if isAdmin();
-    }
-    match /departments/{docId} {
-      allow read: if isVerified();
-      allow write: if isAdmin();
-    }
-    match /budgetCategories/{docId} {
-      allow read: if isVerified();
-      allow write: if isAdmin();
-    }
-    match /fundAccounts/{docId} {
-      allow read: if isVerified();
-      allow write: if isAdmin();
-    }
-    match /banks/{docId} {
-      allow read: if isVerified();
-      allow write: if isAdmin();
-    }
-    match /units/{docId} {
-      allow read: if isVerified();
-      allow write: if isAdmin();
-    }
-     match /memoSubjects/{docId} {
-      allow read: if isVerified();
-      allow write: if isAdmin();
-    }
+    // System Data Collections (Admin Only)
+    match /departments/{docId} { allow write: if isAdmin(); }
+    match /budgetCategories/{docId} { allow write: if isAdmin(); }
+    match /fundAccounts/{docId} { allow write: if isAdmin(); }
+    match /banks/{docId} { allow write: if isAdmin(); }
+    match /units/{docId} { allow write: if isAdmin(); }
+    match /memoSubjects/{docId} { allow write: if isAdmin(); }
+    match /settings/{docId} { allow write: if isAdmin(); }
   }
 }
