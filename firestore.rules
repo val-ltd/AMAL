@@ -1,9 +1,113 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+    function isExistingUser(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isVerified() {
+      return isExistingUser(request.auth.uid) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isVerified == true;
+    }
+
+    function isAdmin() {
+      return isVerified() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny(['Admin', 'Super Admin']);
+    }
+    
+    function isReleaser() {
+      return isVerified() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny(['Releaser', 'Admin', 'Super Admin']);
+    }
+
+    // --- Collection Rules ---
+
+    // Default catch-all: Deny all reads and writes unless specified below
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
+    }
+
+    // USERS
+    // Anyone verified can read user profiles (for names, avatars, etc.)
+    // Only the user themselves can create or update their own profile.
+    match /users/{userId} {
+      allow read: if isVerified();
+      allow create, update: if isOwner(userId);
+    }
+    
+    // REQUESTS
+    // Verified users can read requests (necessary for lists, manager views, etc.)
+    // Verified users can create requests for themselves.
+    // Updates are highly restricted.
+    match /requests/{requestId} {
+      allow read: if isVerified();
+      allow create: if isVerified() && request.resource.data.requester.id == request.auth.uid;
+      allow update: if isVerified() && 
+        (
+          // Supervisor can approve/reject
+          (request.resource.data.status == 'approved' || request.resource.data.status == 'rejected') && resource.data.supervisor.id == request.auth.uid
+        ) ||
+        (
+          // Releaser can mark as released
+          request.resource.data.status == 'released' && isReleaser()
+        ) ||
+        (
+          // Requester can submit a report after release
+          request.resource.data.status == 'completed' && resource.data.requester.id == request.auth.uid
+        );
+    }
+    
+    // REPORTS
+    // A user can create a report if they are verified.
+    // (Read/update can be added later if a "view report" feature is built)
+    match /reports/{reportId} {
+        allow create: if isVerified();
+    }
+    
+    // NOTIFICATIONS
+    // Users can only read, update (mark as read), or delete their own notifications.
+    // Any verified user can create notifications (system/supervisors create them for others).
+    match /notifications/{notificationId} {
+      allow read, update, delete: if isOwner(resource.data.userId);
+      allow create: if isVerified();
+    }
+    
+    // SETTINGS, DEPARTMENTS, CATEGORIES, etc.
+    // These are system-level collections.
+    // Any verified user can read them (to populate dropdowns, etc.).
+    // Only Admins can write to them.
+    match /settings/{docId} {
+      allow read: if isVerified();
+      allow write: if isAdmin();
+    }
+    match /departments/{docId} {
+      allow read: if isVerified();
+      allow write: if isAdmin();
+    }
+    match /budgetCategories/{docId} {
+      allow read: if isVerified();
+      allow write: if isAdmin();
+    }
+    match /fundAccounts/{docId} {
+      allow read: if isVerified();
+      allow write: if isAdmin();
+    }
+    match /banks/{docId} {
+      allow read: if isVerified();
+      allow write: if isAdmin();
+    }
+    match /units/{docId} {
+      allow read: if isVerified();
+      allow write: if isAdmin();
+    }
+     match /memoSubjects/{docId} {
+      allow read: if isVerified();
+      allow write: if isAdmin();
     }
   }
 }
