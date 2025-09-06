@@ -103,7 +103,7 @@ export function ReportForm({ request }: ReportFormProps) {
                     <CardHeader>
                         <CardTitle>Laporan Pengeluaran</CardTitle>
                         <CardDescription>
-                            Lengkapi laporan untuk permintaan: "{request.items[0]?.description || 'Permintaan Lama'}".
+                            Lengkapi laporan untuk permintaan: "{request.subject || 'Permintaan Lama'}".
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">

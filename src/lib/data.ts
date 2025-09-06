@@ -430,7 +430,7 @@ export async function getDepartmentsByIds(ids: string[]): Promise<Department[]> 
 }
 
 export async function getCollectionData<T>(collectionName: string, orderField: string): Promise<T[]> {
-    const q = query(collection(db, collectionName), where('isDeleted', 'in', [false, null]), orderBy(orderField));
+    const q = query(collection(db, collectionName), where('isDeleted', '!=', true), orderBy('isDeleted'), orderBy(orderField));
     const querySnapshot = await getDocs(q);
     const items: T[] = [];
     querySnapshot.forEach((doc) => {

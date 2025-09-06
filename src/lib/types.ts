@@ -67,6 +67,7 @@ export interface BudgetRequest {
     name: string;
     avatarUrl: string;
   };
+  subject: string; // New field for the memo subject/title
   items: RequestItem[];
   amount: number; // This will be the sum of all item totals
   status: 'pending' | 'approved' | 'rejected' | 'released' | 'completed';

@@ -1,4 +1,6 @@
 
+'use client'
+
 import { NewRequestForm } from '@/components/new-request-form';
 import {
   Card,
@@ -7,8 +9,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Suspense } from 'react';
 
-export default function NewRequestPage() {
+function NewRequestPageContent() {
   return (
     <div className="mx-auto max-w-4xl">
       <Card>
@@ -23,5 +26,13 @@ export default function NewRequestPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function NewRequestPage() {
+  return (
+    <Suspense fallback={<div>Memuat...</div>}>
+      <NewRequestPageContent />
+    </Suspense>
   );
 }

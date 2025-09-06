@@ -17,7 +17,7 @@ import { formatDepartment } from '@/lib/utils';
 import { Separator } from './ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
-import { Eye, ThumbsUp, FileText } from 'lucide-react';
+import { Eye, ThumbsUp, FileText, Copy } from 'lucide-react';
 import Link from 'next/link';
 
 interface RequestListProps {
@@ -48,53 +48,48 @@ export default function RequestList({ requests, isManagerView = false }: Request
     }).format(amount).replace('IDR', 'Rp');
   };
 
-  const ActionButton = ({ request }: { request: BudgetRequest }) => {
+  const ActionButtons = ({ request }: { request: BudgetRequest }) => {
     const isSupervisor = user?.uid === request.supervisor?.id;
     const isActionable = isManagerView && isSupervisor && request.status === 'pending';
     const isReportable = !isManagerView && request.status === 'released';
 
-    if (isActionable) {
-      return (
-        <ApprovalDialog 
-          request={request}
-          isReadOnly={false}
-          triggerButton={
-            <Button><ThumbsUp className="mr-2 h-4 w-4" />Tinjau</Button>
-          }
-        />
-      )
-    }
-
-    if (isReportable) {
-      return (
-        <Button asChild>
-          <Link href={`/request/${request.id}/report`}>
-            <FileText className="mr-2 h-4 w-4" />
-            Buat Laporan
-          </Link>
-        </Button>
-      )
-    }
-
     return (
-       <ApprovalDialog 
-          request={request}
-          isReadOnly={true}
-          triggerButton={
-            <Button variant="outline"><Eye className="mr-2 h-4 w-4" />Lihat Detail</Button>
-          }
-        />
+      <div className="flex items-center gap-2">
+        {isActionable ? (
+          <ApprovalDialog 
+            request={request}
+            isReadOnly={false}
+            triggerButton={<Button><ThumbsUp className="mr-2 h-4 w-4" />Tinjau</Button>}
+          />
+        ) : isReportable ? (
+          <Button asChild>
+            <Link href={`/request/${request.id}/report`}>
+              <FileText className="mr-2 h-4 w-4" />
+              Buat Laporan
+            </Link>
+          </Button>
+        ) : (
+          <ApprovalDialog 
+            request={request}
+            isReadOnly={true}
+            triggerButton={<Button variant="outline"><Eye className="mr-2 h-4 w-4" />Lihat Detail</Button>}
+          />
+        )}
+        {!isManagerView && (
+           <Button asChild variant="ghost" size="icon">
+              <Link href={`/request/new?duplicate=${request.id}`}>
+                <Copy className="h-4 w-4" />
+                <span className="sr-only">Duplikat</span>
+              </Link>
+            </Button>
+        )}
+      </div>
     )
   }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {requests.map((request) => {
-        const hasItems = Array.isArray(request.items) && request.items.length > 0;
-        const firstItemDescription = hasItems ? request.items[0].description : (request as any).description || 'Tidak ada item';
-        const itemCount = hasItems ? request.items.length : 0;
-        const category = hasItems ? request.items[0].category : (request as any).category;
-
         return (
             <Card key={request.id} className="flex flex-col">
             <CardHeader>
@@ -116,9 +111,10 @@ export default function RequestList({ requests, isManagerView = false }: Request
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
                 <div>
-                    <h3 className="font-semibold text-lg">{firstItemDescription}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-3 mt-1">
-                        {itemCount > 1 ? `dan ${itemCount - 1} item lainnya...` : (category || 'Permintaan anggaran')}
+                    <h3 className="font-semibold text-lg">{request.subject || "Operasional Bulanan"}</h3>
+                     <p className="text-sm text-muted-foreground line-clamp-3 mt-1">
+                        {request.items?.[0]?.description || (request as any).description || 'Permintaan anggaran'}
+                        {request.items?.length > 1 && ` dan ${request.items.length - 1} item lainnya...`}
                     </p>
                 </div>
                 <Separator />
@@ -131,7 +127,7 @@ export default function RequestList({ requests, isManagerView = false }: Request
                 <div className="text-xl font-bold">
                 {formatRupiah(request.amount)}
                 </div>
-                <ActionButton request={request} />
+                <ActionButtons request={request} />
             </CardFooter>
             </Card>
         )

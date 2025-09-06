@@ -66,7 +66,7 @@ const ensureSheetExists = async (sheets: any, spreadsheetId: string) => {
 const ensureHeaderRow = async (sheets: any, sheetId: string) => {
     const getResponse = await sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
-        range: `${SHEET_NAME}!A1:N1`,
+        range: `${SHEET_NAME}!A1:O1`,
     });
 
     if (!getResponse.data.values || getResponse.data.values.length === 0) {
@@ -85,6 +85,7 @@ const ensureHeaderRow = async (sheets: any, sheetId: string) => {
                         'Supervisor',
                         'Amount',
                         'Status',
+                        'Subject',
                         'Item Description',
                         'Category',
                         'Qty',
@@ -120,6 +121,7 @@ export async function appendRequestToSheet(request: BudgetRequest): Promise<{sta
       request.supervisor?.name ?? '',
       request.amount,
       request.status,
+      request.subject,
     ];
 
     const itemRows = request.items.map(item => [

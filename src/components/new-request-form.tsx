@@ -3,16 +3,16 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, Trash2, WalletCards } from 'lucide-react';
+import { Copy, Loader2, Plus, Trash2, WalletCards } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import type { User, Department, BudgetCategory, RequestItem, UserBankAccount, Unit, BudgetRequest } from '@/lib/types';
-import { getManagers, getUser, getBudgetCategories, getUnits } from '@/lib/data';
+import type { User, Department, BudgetCategory, RequestItem, UserBankAccount, Unit, BudgetRequest, MemoSubject } from '@/lib/types';
+import { getManagers, getUser, getBudgetCategories, getUnits, getRequest, getMemoSubjects } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -34,19 +34,24 @@ const formatRupiah = (amount: number) => {
 };
 
 export function NewRequestForm() {
-  const { user: authUser, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { user: authUser, loading: authLoading } = useAuth();
   const isMobile = useIsMobile();
+  
+  const duplicateRequestId = searchParams.get('duplicate');
 
   const [profileData, setProfileData] = useState<User | null>(null);
   const [managers, setManagers] = useState<User[]>([]);
   const [userDepartments, setUserDepartments] = useState<Department[]>([]);
   const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [memoSubjects, setMemoSubjects] = useState<MemoSubject[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Form State
+  const [subject, setSubject] = useState('');
   const [items, setItems] = useState<RequestItem[]>([
     { id: '1', description: '', qty: 1, unit: '', price: 0, total: 0, category: '' },
   ]);
@@ -64,17 +69,20 @@ export function NewRequestForm() {
         if (authUser) {
             setLoading(true);
             try {
-                const [userProfile, managerList, categoryList, unitList] = await Promise.all([
+                const [userProfile, managerList, categoryList, unitList, subjectList, duplicateRequest] = await Promise.all([
                   getUser(authUser.uid),
                   getManagers(),
                   getBudgetCategories(),
-                  getUnits()
+                  getUnits(),
+                  getMemoSubjects(),
+                  duplicateRequestId ? getRequest(duplicateRequestId) : Promise.resolve(null),
                 ]);
 
                 setProfileData(userProfile);
                 setManagers(managerList);
                 setBudgetCategories(categoryList);
                 setUnits(unitList);
+                setMemoSubjects(subjectList);
                 
                 if (userProfile?.bankAccounts && userProfile.bankAccounts.length > 0) {
                     setReimbursementAccountId(userProfile.bankAccounts[0].accountNumber);
@@ -85,10 +93,24 @@ export function NewRequestForm() {
                   const deptDocs = await Promise.all(deptPromises);
                   const depts = deptDocs.map(d => ({id: d.id, ...d.data()}) as Department);
                   setUserDepartments(depts);
-                  if(depts.length > 0) {
-                      setSelectedDepartmentId(depts[0].id);
-                  }
+                  // Do not set a default department
                 }
+                
+                if (duplicateRequest) {
+                  setSubject(duplicateRequest.subject || '');
+                  setItems(duplicateRequest.items.map((item, index) => ({...item, id: `${Date.now()}-${index}`})));
+                  setAdditionalInfo(duplicateRequest.additionalInfo || '');
+                  setSupervisorId(duplicateRequest.supervisor?.id || '');
+                  const duplicatedDept = userDepartments.find(d => d.lembaga === duplicateRequest.institution && d.divisi === duplicateRequest.division);
+                  if (duplicatedDept) {
+                      setSelectedDepartmentId(duplicatedDept.id);
+                  }
+                  setPaymentMethod(duplicateRequest.paymentMethod || 'Cash');
+                  setReimbursementAccountId(duplicateRequest.reimbursementAccount?.accountNumber || '');
+                  toast({title: "Permintaan Diduplikasi", description: "Data dari permintaan sebelumnya telah dimuat. Silakan periksa dan kirim."});
+                }
+
+
             } catch (error) {
                 console.error("Failed to fetch initial data:", error);
                 setFormError("Gagal memuat data pengguna. Silakan muat ulang halaman.");
@@ -98,7 +120,7 @@ export function NewRequestForm() {
         }
     }
     fetchInitialData();
-  }, [authUser]);
+  }, [authUser, duplicateRequestId, toast]);
   
   const handleItemChange = (index: number, field: keyof RequestItem, value: any) => {
     const newItems = [...items];
@@ -128,6 +150,10 @@ export function NewRequestForm() {
     setFormError(null);
 
     // Validation
+    if (!subject) {
+      setFormError("Perihal Memo harus diisi.");
+      return;
+    }
     if (!supervisorId) {
       setFormError("Nama Atasan harus diisi.");
       return;
@@ -167,13 +193,13 @@ export function NewRequestForm() {
 
     const reimbursementAccount = profileData.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
     
-    // Generate a new Firestore document reference to get a unique ID
     const newRequestRef = doc(collection(db, 'requests'));
     const newRequestId = newRequestRef.id;
 
     const requestObject: Omit<BudgetRequest, 'createdAt' | 'updatedAt' | 'releasedAt'> = {
         id: newRequestId,
-        items: items.map(({id, ...rest}) => rest), // Remove temporary frontend ID
+        subject,
+        items: items.map(({id, ...rest}) => rest),
         amount: totalAmount,
         additionalInfo,
         institution: selectedDepartment?.lembaga || profileData.institution || '',
@@ -202,14 +228,12 @@ export function NewRequestForm() {
     }
 
     try {
-      // Step 1: Append to Google Sheets first, using the pre-generated ID
       const sheetUpdateResponse = await appendRequestToSheet({
           ...requestObject,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
       });
 
-      // Step 2: If sheet append is successful, save to Firestore with the same ID
       const requestDataForFirestore = {
           ...requestObject,
           sheetStartRow: sheetUpdateResponse.startRow,
@@ -220,9 +244,7 @@ export function NewRequestForm() {
       
       await setDoc(newRequestRef, requestDataForFirestore);
       
-      // Step 3: Create notifications
       const batch = writeBatch(db);
-      // Create notification for supervisor
       const supervisorNotification = {
           userId: supervisor.id,
           type: 'new_request' as const,
@@ -235,7 +257,6 @@ export function NewRequestForm() {
       };
       batch.set(doc(collection(db, 'notifications')), supervisorNotification);
       
-      // Create notification for requester
       const requesterNotification = {
           userId: authUser.uid,
           type: 'request_submitted' as const,
@@ -406,11 +427,11 @@ export function NewRequestForm() {
                       <span className="font-medium">{profileData.name}</span>
                   </div>
                    <div className="flex justify-between items-start">
-                      <span className="text-muted-foreground pt-1">Departemen</span>
-                      {userDepartments.length > 1 ? (
+                      <span className="text-muted-foreground pt-1">Departemen*</span>
+                      {userDepartments.length > 0 ? (
                           <Select onValueChange={setSelectedDepartmentId} value={selectedDepartmentId} disabled={!isFormReady || isSubmitting}>
                               <SelectTrigger id="department" className="w-auto max-w-[70%]">
-                                  <SelectValue placeholder="Pilih departemen" />
+                                  <SelectValue placeholder="Pilih departemen..." />
                               </SelectTrigger>
                               <SelectContent>
                                   {userDepartments.map(dept => (
@@ -419,14 +440,28 @@ export function NewRequestForm() {
                               </SelectContent>
                           </Select>
                       ) : (
-                          <span className="font-medium text-right">
-                              {userDepartments.length === 1 ? formatDepartment(userDepartments[0]) : 'N/A'}
+                          <span className="font-medium text-right text-red-500">
+                             Anda tidak ditugaskan ke departemen mana pun.
                           </span>
                       )}
                   </div>
               </CardContent>
           </Card>
       )}
+
+      <div>
+        <Label htmlFor="subject" className="block text-sm font-medium mb-1">Perihal Memo*</Label>
+        <Select onValueChange={setSubject} value={subject} disabled={!isFormReady || isSubmitting}>
+            <SelectTrigger id="subject">
+                <SelectValue placeholder="Pilih perihal memo..." />
+            </SelectTrigger>
+            <SelectContent>
+                {memoSubjects.map(sub => (
+                    <SelectItem key={sub.id} value={sub.name}>{sub.name}</SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+      </div>
       
       <Card className="mt-6">
           <CardHeader>
@@ -502,7 +537,7 @@ export function NewRequestForm() {
       </Card>
       
       <div>
-        <label htmlFor="supervisor" className="block text-sm font-medium mb-1">Nama Atasan</label>
+        <label htmlFor="supervisor" className="block text-sm font-medium mb-1">Nama Atasan*</label>
         <Select onValueChange={setSupervisorId} value={supervisorId} disabled={!isFormReady || isSubmitting}>
             <SelectTrigger id="supervisor">
                 <SelectValue placeholder="Pilih seorang atasan untuk menyetujui" />
@@ -529,12 +564,10 @@ export function NewRequestForm() {
           </Alert>
       )}
 
-      <Button type="submit" disabled={!isFormReady || isSubmitting} className="w-full">
+      <Button type="submit" disabled={!isFormReady || isSubmitting || !selectedDepartmentId} className="w-full">
           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Kirim Permintaan
       </Button>
     </form>
   );
 }
-
-    

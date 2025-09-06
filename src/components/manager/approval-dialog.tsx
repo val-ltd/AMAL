@@ -57,7 +57,7 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
   }, [open]);
 
   // A request is always read-only if its status is 'released' or if the initial prop says so.
-  const isReadOnly = initialIsReadOnly || request.status === 'released';
+  const isReadOnly = initialIsReadOnly || request.status === 'released' || request.status === 'completed';
 
   const handleSubmit = async (status: 'approved' | 'rejected') => {
     if (isReadOnly || !managerUser?.profile) return;
@@ -126,6 +126,8 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
           </div>
 
           <div className="rounded-lg border bg-card p-4 space-y-4">
+             <h4 className="font-semibold text-base">{request.subject || 'OPERASIONAL BULANAN'}</h4>
+             <Separator />
              {items.length > 0 ? (
                 <Table>
                     <TableHeader>
