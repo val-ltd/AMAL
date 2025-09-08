@@ -20,7 +20,7 @@ import StatusBadge from '../status-badge';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Building, Eye, Loader2, ThumbsDown, ThumbsUp, UserCheck, Wallet, ArrowRight, Calendar, CheckCircle } from 'lucide-react';
+import { Building, Eye, Loader2, ThumbsDown, ThumbsUp, UserCheck, Wallet, ArrowRight, Calendar, CheckCircle, Info } from 'lucide-react';
 import { formatDepartment } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
@@ -218,6 +218,16 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
             </div>
           </div>
           
+          {request.additionalInfo && (
+            <div className="space-y-2">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <Info className="h-4 w-4" />
+                    Informasi Tambahan
+                </h4>
+                <p className="text-sm text-muted-foreground mt-1 p-3 bg-muted rounded-md">{request.additionalInfo}</p>
+            </div>
+          )}
+
           {!isReadOnly && (
             <div>
                 <label htmlFor="manager-comment" className="mb-2 block text-sm font-medium">
