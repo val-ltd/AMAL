@@ -24,7 +24,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { appendRequestToSheet } from '@/lib/sheets';
-import { format, addMonths, subMonths } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 
 const formatRupiah = (amount: number) => {
@@ -37,11 +37,10 @@ const formatRupiah = (amount: number) => {
 
 const generateBudgetPeriods = (date = new Date()) => {
     const periods = [];
-    for (let i = 6; i > 0; i--) {
-        periods.push(format(subMonths(date, i), 'MMMM yyyy', { locale: localeId }));
-    }
+    // Start from the current month
     periods.push(format(date, 'MMMM yyyy', { locale: localeId }));
-    for (let i = 1; i <= 6; i++) {
+    // Add the next 12 months
+    for (let i = 1; i <= 12; i++) {
         periods.push(format(addMonths(date, i), 'MMMM yyyy', { locale: localeId }));
     }
     return periods;
@@ -181,7 +180,12 @@ export function NewRequestForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>, status: 'pending' | 'draft') => {
     e.preventDefault();
     setFormError(null);
-    const subject = `${subjectPrefix} ${subjectSuffix}`.trim();
+    
+    let subject = subjectPrefix.trim();
+    if (subjectPrefix !== 'OPERASIONAL BULANAN' && subjectSuffix.trim()) {
+        subject = `${subjectPrefix} ${subjectSuffix}`.trim();
+    }
+
 
     // Validation
     const isSubmittingForApproval = status === 'pending';
@@ -455,7 +459,7 @@ export function NewRequestForm() {
         <Label htmlFor="subject" className="block text-sm font-medium mb-1">Perihal Memo*</Label>
         <div className="flex gap-2">
             <Select onValueChange={setSubjectPrefix} value={subjectPrefix} disabled={!isFormReady || isSubmitting}>
-                <SelectTrigger id="subject-prefix" className="w-2/3">
+                <SelectTrigger id="subject-prefix" className="w-full">
                     <SelectValue placeholder="Pilih perihal memo..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -464,14 +468,16 @@ export function NewRequestForm() {
                     ))}
                 </SelectContent>
             </Select>
-            <Input 
-                id="subject-suffix"
-                value={subjectSuffix}
-                onChange={(e) => setSubjectSuffix(e.target.value)}
-                placeholder="Detail tambahan..."
-                className="w-1/3"
-                disabled={!isFormReady || isSubmitting}
-            />
+            {subjectPrefix !== "OPERASIONAL BULANAN" && (
+              <Input 
+                  id="subject-suffix"
+                  value={subjectSuffix}
+                  onChange={(e) => setSubjectSuffix(e.target.value)}
+                  placeholder="Detail tambahan..."
+                  className="w-full"
+                  disabled={!isFormReady || isSubmitting}
+              />
+            )}
         </div>
       </div>
       
@@ -600,3 +606,5 @@ export function NewRequestForm() {
     </form>
   );
 }
+
+    
