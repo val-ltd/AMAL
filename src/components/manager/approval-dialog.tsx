@@ -20,12 +20,12 @@ import StatusBadge from '../status-badge';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Building, Eye, Loader2, ThumbsDown, ThumbsUp, UserCheck } from 'lucide-react';
+import { Building, Eye, Loader2, ThumbsDown, ThumbsUp, UserCheck, Wallet } from 'lucide-react';
 import { formatDepartment } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { useAuth } from '@/hooks/use-auth';
-import { getFundAccounts, updateRequest } from '@/lib/data';
+import { getFundAccounts, getFundAccount, updateRequest } from '@/lib/data';
 
 interface ApprovalDialogProps {
   request: BudgetRequest;
@@ -47,14 +47,14 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
-  const [fundAccounts, setFundAccounts] = useState<FundAccount[]>([]);
+  const [fundAccount, setFundAccount] = useState<FundAccount | null>(null);
   const { toast } = useToast();
   
   useEffect(() => {
-    if (open) {
-      getFundAccounts().then(setFundAccounts);
+    if (open && request.fundSourceId) {
+      getFundAccount(request.fundSourceId).then(setFundAccount);
     }
-  }, [open]);
+  }, [open, request.fundSourceId]);
 
   // A request is always read-only if its status is 'released' or if the initial prop says so.
   const isReadOnly = initialIsReadOnly || request.status === 'released' || request.status === 'completed';
@@ -175,6 +175,12 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                     <div className="flex items-center gap-3 text-muted-foreground">
                         <UserCheck className="w-4 h-4 flex-shrink-0" />
                         <span>Penyetuju: {request.supervisor.name}</span>
+                    </div>
+                )}
+                {fundAccount && (
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                        <Wallet className="w-4 h-4 flex-shrink-0" />
+                        <span>Sumber Dana: {fundAccount.accountName} ({fundAccount.accountNumber})</span>
                     </div>
                 )}
             </div>

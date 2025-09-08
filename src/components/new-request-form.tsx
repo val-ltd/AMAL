@@ -11,8 +11,8 @@ import { Copy, Loader2, Plus, Save, Trash2, WalletCards } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import type { User, Department, BudgetCategory, RequestItem, UserBankAccount, Unit, BudgetRequest, MemoSubject } from '@/lib/types';
-import { getManagers, getUser, getBudgetCategories, getUnits, getRequest, getMemoSubjects } from '@/lib/data';
+import type { User, Department, BudgetCategory, RequestItem, UserBankAccount, Unit, BudgetRequest, MemoSubject, FundAccount } from '@/lib/types';
+import { getManagers, getUser, getBudgetCategories, getUnits, getRequest, getMemoSubjects, getFundAccounts } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -63,6 +63,7 @@ export function NewRequestForm() {
   const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [memoSubjects, setMemoSubjects] = useState<MemoSubject[]>([]);
+  const [fundAccounts, setFundAccounts] = useState<FundAccount[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Form State
@@ -75,6 +76,7 @@ export function NewRequestForm() {
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [supervisorId, setSupervisorId] = useState('');
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
+  const [fundSourceId, setFundSourceId] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Transfer'>('Cash');
   const [reimbursementAccountId, setReimbursementAccountId] = useState<string>('');
   
@@ -89,12 +91,13 @@ export function NewRequestForm() {
             setLoading(true);
             try {
                 const idToFetch = draftId || duplicateRequestId;
-                const [userProfile, managerList, categoryList, unitList, subjectList, requestToLoad] = await Promise.all([
+                const [userProfile, managerList, categoryList, unitList, subjectList, fundAccountList, requestToLoad] = await Promise.all([
                   getUser(authUser.uid),
                   getManagers(),
                   getBudgetCategories(),
                   getUnits(),
                   getMemoSubjects(),
+                  getFundAccounts(),
                   idToFetch ? getRequest(idToFetch) : Promise.resolve(null),
                 ]);
 
@@ -103,6 +106,7 @@ export function NewRequestForm() {
                 setBudgetCategories(categoryList);
                 setUnits(unitList);
                 setMemoSubjects(subjectList);
+                setFundAccounts(fundAccountList);
                 
                 if (userProfile?.bankAccounts && userProfile.bankAccounts.length > 0) {
                     setReimbursementAccountId(userProfile.bankAccounts[0].accountNumber);
@@ -131,6 +135,7 @@ export function NewRequestForm() {
                   setItems(requestToLoad.items.map((item, index) => ({...item, id: `${Date.now()}-${index}`})));
                   setAdditionalInfo(requestToLoad.additionalInfo || '');
                   setSupervisorId(requestToLoad.supervisor?.id || '');
+                  setFundSourceId(requestToLoad.fundSourceId || '');
                   const loadedDept = userDepartments.find(d => d.lembaga === requestToLoad.institution && d.divisi === requestToLoad.division);
                   if (loadedDept) {
                       setSelectedDepartmentId(loadedDept.id);
@@ -193,6 +198,7 @@ export function NewRequestForm() {
         if (!subject) { setFormError("Perihal Memo harus diisi."); return; }
         if (!budgetPeriod) { setFormError("Periode Anggaran harus diisi."); return; }
         if (!supervisorId) { setFormError("Nama Atasan harus diisi."); return; }
+        if (!fundSourceId) { setFormError("Sumber Dana harus diisi."); return; }
         if (userDepartments.length > 0 && !selectedDepartmentId) { setFormError("Silakan pilih departemen untuk permintaan ini."); return; }
         if (items.some(item => !item.description || item.qty <= 0 || !item.category || !item.unit)) { setFormError("Setiap item harus memiliki Uraian, Kuantitas, Satuan dan Kategori."); return; }
         if (paymentMethod === 'Transfer' && !reimbursementAccountId) { setFormError("Pilih rekening untuk pembayaran transfer."); return; }
@@ -227,6 +233,7 @@ export function NewRequestForm() {
             avatarUrl: profileData.avatarUrl || '',
         },
         supervisor: supervisor ? { id: supervisor.id, name: supervisor.name } : undefined,
+        fundSourceId,
         paymentMethod,
         status: status,
     };
@@ -511,6 +518,38 @@ export function NewRequestForm() {
           </CardFooter>
       </Card>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+            <Label htmlFor="fundSource" className="block text-sm font-medium mb-1">Sumber Dana*</Label>
+            <Select onValueChange={setFundSourceId} value={fundSourceId} disabled={!isFormReady || isSubmitting}>
+                <SelectTrigger id="fundSource">
+                    <SelectValue placeholder="Pilih sumber dana..." />
+                </SelectTrigger>
+                <SelectContent>
+                    {fundAccounts.map(account => (
+                        <SelectItem key={account.id} value={account.id}>
+                            {account.accountName} ({account.accountNumber})
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
+        <div>
+            <Label htmlFor="supervisor" className="block text-sm font-medium mb-1">Nama Atasan*</Label>
+            <Select onValueChange={setSupervisorId} value={supervisorId} disabled={!isFormReady || isSubmitting}>
+                <SelectTrigger id="supervisor">
+                    <SelectValue placeholder="Pilih seorang atasan untuk menyetujui" />
+                </SelectTrigger>
+                <SelectContent>
+                    {managers.map(manager => (
+                        <SelectItem key={manager.id} value={manager.id}>{manager.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
+      </div>
+      
+
       <Card>
         <CardHeader><CardTitle>Metode Pembayaran</CardTitle></CardHeader>
         <CardContent className="space-y-4">
@@ -553,20 +592,6 @@ export function NewRequestForm() {
             )}
         </CardContent>
       </Card>
-      
-      <div>
-        <label htmlFor="supervisor" className="block text-sm font-medium mb-1">Nama Atasan*</label>
-        <Select onValueChange={setSupervisorId} value={supervisorId} disabled={!isFormReady || isSubmitting}>
-            <SelectTrigger id="supervisor">
-                <SelectValue placeholder="Pilih seorang atasan untuk menyetujui" />
-            </SelectTrigger>
-            <SelectContent>
-                {managers.map(manager => (
-                    <SelectItem key={manager.id} value={manager.id}>{manager.name}</SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
-      </div>
 
       {!isFormReady && !loading && (
            <Alert variant="destructive">

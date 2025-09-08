@@ -264,7 +264,7 @@ export async function updateRequest(
     }
 }
 
-export async function markRequestsAsReleased(requestIds: string[], releasedBy: {id: string, name: string}, fundSourceId: string): Promise<void> {
+export async function markRequestsAsReleased(requestIds: string[], releasedBy: {id: string, name: string}): Promise<void> {
     const batch = writeBatch(db);
     
     const requestsToUpdate = await Promise.all(
@@ -284,7 +284,6 @@ export async function markRequestsAsReleased(requestIds: string[], releasedBy: {
                 status: 'released',
                 releasedAt: Timestamp.fromDate(releasedAt),
                 releasedBy: releasedBy,
-                fundSourceId: fundSourceId,
                 updatedAt: serverTimestamp()
             });
 
@@ -294,7 +293,6 @@ export async function markRequestsAsReleased(requestIds: string[], releasedBy: {
                 status: 'released' as const,
                 releasedAt: releasedAt.toISOString(),
                 releasedBy: releasedBy,
-                fundSourceId: fundSourceId,
             };
             updatedRequestsForSheet.push(updatedRequestData);
 

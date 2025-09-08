@@ -1,21 +1,20 @@
 
+
 'use client'
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { getApprovedUnreleasedRequests, getFundAccounts, getFundAccount, markRequestsAsReleased } from "@/lib/data";
+import { getApprovedUnreleasedRequests, getFundAccounts, markRequestsAsReleased } from "@/lib/data";
 import type { BudgetRequest, FundAccount } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Inbox, ShieldAlert, Printer, ArrowLeft, Loader2, DollarSign } from "lucide-react";
+import { Inbox, ShieldAlert, Printer, ArrowLeft, Loader2, DollarSign, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { ReleaseMemo } from "@/components/release/release-memo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +29,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -39,9 +39,9 @@ const formatRupiah = (amount: number) => {
     }).format(amount);
 };
 
-const groupRequestsByLembaga = (requests: BudgetRequest[]) => {
+const groupRequestsByFundSource = (requests: BudgetRequest[]) => {
   return requests.reduce((acc, request) => {
-    const key = request.institution || 'Lainnya';
+    const key = request.fundSourceId || 'Tidak Ditentukan';
     if (!acc[key]) {
       acc[key] = [];
     }
@@ -62,7 +62,6 @@ export default function ReleasePage() {
   const [isReleasing, setIsReleasing] = useState(false);
   
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
-  const [selectedFundAccountId, setSelectedFundAccountId] = useState<string>('');
   
   const [showPreview, setShowPreview] = useState(false);
   
@@ -74,12 +73,7 @@ export default function ReleasePage() {
     if (isAuthorized) {
       setLoading(true);
       
-      getFundAccounts().then(accounts => {
-        setFundAccounts(accounts);
-        if (accounts.length > 0) {
-            setSelectedFundAccountId(accounts[0].id);
-        }
-      });
+      getFundAccounts().then(setFundAccounts);
       
       unsubscribe = getApprovedUnreleasedRequests((fetchedRequests) => {
         setAllRequests(fetchedRequests);
@@ -95,9 +89,12 @@ export default function ReleasePage() {
   }, [isAuthorized, authLoading]);
 
   const handleOpenPrintPage = () => {
-    if (selectedRequestIds.length > 0 && selectedFundAccountId) {
+    if (selectedRequestIds.length > 0) {
+      const selectedRequests = allRequests.filter(req => selectedRequestIds.includes(req.id));
+      const fundSourceId = selectedRequests[0]?.fundSourceId; // Assume all selected are from the same source for one memo
+      
       const queryParams = new URLSearchParams({
-        fundAccountId: selectedFundAccountId,
+        fundAccountId: fundSourceId || '',
         requestIds: selectedRequestIds.join(','),
       }).toString();
       
@@ -115,7 +112,7 @@ export default function ReleasePage() {
     const requestIds = selectedRequestIds;
         
     try {
-        await markRequestsAsReleased(requestIds, { id: user.uid, name: user.displayName || 'Unknown Releaser' }, selectedFundAccountId);
+        await markRequestsAsReleased(requestIds, { id: user.uid, name: user.displayName || 'Unknown Releaser' });
         toast({
             title: 'Dana Dicairkan',
             description: `${requestIds.length} permintaan telah ditandai sebagai dicairkan.`,
@@ -137,13 +134,18 @@ export default function ReleasePage() {
     );
   };
 
-  const handleSelectAll = (checked: boolean) => {
+  const handleSelectAllForSource = (fundSourceId: string, checked: boolean) => {
+    const requestsForSource = allRequests.filter(req => (req.fundSourceId || 'Tidak Ditentukan') === fundSourceId);
+    const requestIdsForSource = requestsForSource.map(req => req.id);
+
     if (checked) {
-      setSelectedRequestIds(allRequests.map(req => req.id));
+        setSelectedRequestIds(prev => [...new Set([...prev, ...requestIdsForSource])]);
     } else {
-      setSelectedRequestIds([]);
+        setSelectedRequestIds(prev => prev.filter(id => !requestIdsForSource.includes(id)));
     }
   };
+  
+  const groupedRequests = groupRequestsByFundSource(allRequests);
 
   if (authLoading || (loading && isAuthorized)) {
     return (
@@ -171,9 +173,8 @@ export default function ReleasePage() {
   
   if (showPreview) {
     const selectedRequests = allRequests.filter(req => selectedRequestIds.includes(req.id));
-    const selectedFundAccount = fundAccounts.find(acc => acc.id === selectedFundAccountId);
-    const groupedRequests = groupRequestsByLembaga(selectedRequests);
-
+    const groupedSelected = groupRequestsByFundSource(selectedRequests);
+    
     return (
       <div className="bg-gray-100 dark:bg-gray-800 p-2 sm:p-8 print:bg-white">
             <div className="flex justify-between gap-2 mb-4 no-print">
@@ -183,16 +184,19 @@ export default function ReleasePage() {
                 </Button>
                 <Button onClick={handleOpenPrintPage}>
                     <Printer className="mr-2 h-4 w-4" />
-                    Buka Halaman Cetak ({Object.keys(groupedRequests).length} Memo)
+                    Buka Halaman Cetak ({Object.keys(groupedSelected).length} Memo)
                 </Button>
             </div>
-            {selectedFundAccount && Object.entries(groupedRequests).map(([lembaga, reqs], index) => (
-                reqs.length > 0 && (
-                    <div key={lembaga} className={`memo-wrapper bg-white my-8 ${index > 0 ? 'page-break-before' : ''}`}>
-                        <ReleaseMemo requests={reqs} lembaga={lembaga} fundAccount={selectedFundAccount} isPreview />
+            {Object.entries(groupedSelected).map(([fundSourceId, reqs]) => {
+                const fundAccount = fundAccounts.find(acc => acc.id === fundSourceId);
+                if (!fundAccount || reqs.length === 0) return null;
+
+                return (
+                    <div key={fundSourceId} className="memo-wrapper bg-white my-8 page-break-before">
+                        <ReleaseMemo requests={reqs} lembaga={reqs[0].institution} fundAccount={fundAccount} isPreview />
                     </div>
                 )
-            ))}
+            })}
       </div>
     );
   }
@@ -201,147 +205,144 @@ export default function ReleasePage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Pencairan Dana</h1>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 w-full sm:w-auto">
-            <div className="grid w-full max-w-sm items-center gap-1.5">
-                <Label htmlFor="fund-source">Sumber Dana</Label>
-                <Select value={selectedFundAccountId} onValueChange={setSelectedFundAccountId}>
-                    <SelectTrigger id="fund-source" className="min-w-[200px] sm:min-w-[300px]">
-                        <SelectValue placeholder="Pilih sumber dana..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {fundAccounts.map(account => (
-                            <SelectItem key={account.id} value={account.id}>
-                                {account.accountName} ({account.accountNumber})
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            <div className="flex gap-2">
-                <Button onClick={() => setShowPreview(true)} disabled={selectedRequestIds.length === 0 || !selectedFundAccountId} variant="outline" className="flex-1">
-                    <Printer className="mr-2 h-4 w-4" />
-                    Pratinjau ({selectedRequestIds.length})
+        <div className="flex gap-2">
+            <Button onClick={() => setShowPreview(true)} disabled={selectedRequestIds.length === 0} variant="outline" className="flex-1">
+                <Printer className="mr-2 h-4 w-4" />
+                Pratinjau ({selectedRequestIds.length})
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button disabled={selectedRequestIds.length === 0 || isReleasing} className="flex-1">
+                    {isReleasing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
+                    Cairkan ({selectedRequestIds.length})
                 </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button disabled={selectedRequestIds.length === 0 || !selectedFundAccountId || isReleasing} className="flex-1">
-                        {isReleasing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
-                        Cairkan ({selectedRequestIds.length})
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Konfirmasi Pencairan Dana</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Anda akan menandai {selectedRequestIds.length} permintaan sebagai dicairkan. Tindakan ini akan mengubah status di database dan Google Sheet, serta mengirim notifikasi. Pastikan dana telah disiapkan.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Batal</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleReleaseFunds}>
-                        Ya, Lanjutkan
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-            </div>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Konfirmasi Pencairan Dana</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Anda akan menandai {selectedRequestIds.length} permintaan sebagai dicairkan. Tindakan ini akan mengubah status di database dan Google Sheet, serta mengirim notifikasi. Pastikan dana telah disiapkan.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleReleaseFunds}>
+                    Ya, Lanjutkan
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
         </div>
       </div>
-
-      <Card>
-        <CardContent className="p-0">
-          {isMobile ? (
-            <div className="space-y-4 p-4">
-              {allRequests.map(req => {
-                 const hasItems = Array.isArray(req.items) && req.items.length > 0;
-                 const description = hasItems ? req.items[0].description : (req as any).description;
-                 const itemCount = hasItems ? req.items.length : 0;
-                 return (
-                    <div key={req.id} data-state={selectedRequestIds.includes(req.id) ? "selected" : ""} className="flex items-start gap-4 rounded-lg border p-4 data-[state=selected]:bg-muted">
-                      <Checkbox
-                          checked={selectedRequestIds.includes(req.id)}
-                          onCheckedChange={() => handleSelectionChange(req.id)}
-                          aria-label={`Pilih baris ${req.id}`}
-                          className="mt-1"
-                      />
-                      <div className="flex-1 space-y-1">
-                        <div className="font-bold">{req.requester.name}</div>
-                        <div className="text-sm text-muted-foreground">{description}{itemCount > 1 && ` & ${itemCount - 1} lainnya`}</div>
-                        <div className="text-sm text-muted-foreground">{req.institution}</div>
-                        <div className="text-base font-bold pt-1">{formatRupiah(req.amount)}</div>
-                      </div>
-                    </div>
-                 )
-              })}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                  <TableRow>
-                      <TableHead className="w-12">
-                          <Checkbox
-                              checked={selectedRequestIds.length > 0 && selectedRequestIds.length === allRequests.length}
-                              onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                              aria-label="Pilih semua baris"
-                          />
-                      </TableHead>
-                      <TableHead>Pemohon & Tanggal</TableHead>
-                      <TableHead>Lembaga</TableHead>
-                      <TableHead>Deskripsi</TableHead>
-                      <TableHead className="text-right">Jumlah</TableHead>
-                  </TableRow>
-              </TableHeader>
-              <TableBody>
-                  {allRequests.length === 0 ? (
-                      <TableRow>
-                          <TableCell colSpan={5}>
-                              <div className="flex flex-col items-center justify-center rounded-lg bg-card p-12 text-center">
-                                  <Inbox className="mx-auto h-12 w-12 text-muted-foreground" />
-                                  <h3 className="mt-4 text-xl font-medium">Kotak Masuk Kosong</h3>
-                                  <p className="text-muted-foreground">
-                                      Tidak ada permintaan yang disetujui dan menunggu untuk dicairkan saat ini.
-                                  </p>
-                              </div>
-                          </TableCell>
-                      </TableRow>
-                  ) : (
-                      allRequests.map(req => {
-                        const hasItems = Array.isArray(req.items) && req.items.length > 0;
-                        const description = hasItems ? req.items[0].description : (req as any).description;
-                        const category = hasItems ? req.items[0].category : (req as any).category;
-                        const itemCount = hasItems ? req.items.length : 0;
-                        
-                        return (
-                          <TableRow key={req.id} data-state={selectedRequestIds.includes(req.id) ? "selected" : ""}>
-                              <TableCell>
-                                  <Checkbox
-                                      checked={selectedRequestIds.includes(req.id)}
-                                      onCheckedChange={() => handleSelectionChange(req.id)}
-                                      aria-label={`Pilih baris ${req.id}`}
-                                  />
-                              </TableCell>
-                              <TableCell>
-                                  <div className="font-medium">{req.requester.name}</div>
-                                  <div className="text-sm text-muted-foreground">{format(new Date(req.createdAt), 'dd MMM yyyy', { locale: id })}</div>
-                              </TableCell>
-                              <TableCell>
-                                  <div className="text-sm font-medium">{req.institution}</div>
-                                  <div className="text-sm text-muted-foreground">{req.division}</div>
-                              </TableCell>
-                              <TableCell>
-                                   <div className="font-medium">{description || 'N/A'}</div>
-                                   <div className="text-sm text-muted-foreground line-clamp-1">{itemCount > 1 ? `dan ${itemCount - 1} item lainnya.` : (category || '')}</div>
-                              </TableCell>
-                              <TableCell className="text-right font-medium">{formatRupiah(req.amount)}</TableCell>
-                          </TableRow>
-                        )
-                      })
-                  )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      
+        <div className="space-y-6">
+            {Object.keys(groupedRequests).length > 0 ? (
+                Object.entries(groupedRequests).map(([fundSourceId, requests]) => {
+                    const fundAccount = fundAccounts.find(acc => acc.id === fundSourceId);
+                    const allInGroupSelected = requests.every(req => selectedRequestIds.includes(req.id));
+                    
+                    return (
+                        <Card key={fundSourceId}>
+                            <CardHeader>
+                               <div className="flex items-center gap-3">
+                                <Wallet className="h-5 w-5 text-muted-foreground"/>
+                                <div>
+                                    <CardTitle className="text-lg">{fundAccount?.accountName || 'Tidak Ditentukan'}</CardTitle>
+                                    <CardDescription>{fundAccount?.accountNumber} - {fundAccount?.bankName}</CardDescription>
+                                </div>
+                               </div>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {isMobile ? (
+                                     <div className="space-y-4 p-4">
+                                      {requests.map(req => {
+                                         const hasItems = Array.isArray(req.items) && req.items.length > 0;
+                                         const description = hasItems ? req.items[0].description : (req as any).description;
+                                         const itemCount = hasItems ? req.items.length : 0;
+                                         return (
+                                            <div key={req.id} data-state={selectedRequestIds.includes(req.id) ? "selected" : ""} className="flex items-start gap-4 rounded-lg border p-4 data-[state=selected]:bg-muted">
+                                              <Checkbox
+                                                  checked={selectedRequestIds.includes(req.id)}
+                                                  onCheckedChange={() => handleSelectionChange(req.id)}
+                                                  aria-label={`Pilih baris ${req.id}`}
+                                                  className="mt-1"
+                                              />
+                                              <div className="flex-1 space-y-1">
+                                                <div className="font-bold">{req.requester.name}</div>
+                                                <div className="text-sm text-muted-foreground">{description}{itemCount > 1 && ` & ${itemCount - 1} lainnya`}</div>
+                                                <div className="text-sm text-muted-foreground">{req.institution}</div>
+                                                <div className="text-base font-bold pt-1">{formatRupiah(req.amount)}</div>
+                                              </div>
+                                            </div>
+                                         )
+                                      })}
+                                    </div>
+                                ) : (
+                                    <Table>
+                                      <TableHeader>
+                                          <TableRow>
+                                              <TableHead className="w-12">
+                                                  <Checkbox
+                                                      checked={allInGroupSelected}
+                                                      onCheckedChange={(checked) => handleSelectAllForSource(fundSourceId, !!checked)}
+                                                      aria-label={`Pilih semua untuk ${fundAccount?.accountName}`}
+                                                  />
+                                              </TableHead>
+                                              <TableHead>Pemohon & Tanggal</TableHead>
+                                              <TableHead>Lembaga</TableHead>
+                                              <TableHead>Deskripsi</TableHead>
+                                              <TableHead className="text-right">Jumlah</TableHead>
+                                          </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                          {requests.map(req => {
+                                                const hasItems = Array.isArray(req.items) && req.items.length > 0;
+                                                const description = hasItems ? req.items[0].description : (req as any).description;
+                                                const category = hasItems ? req.items[0].category : (req as any).category;
+                                                const itemCount = hasItems ? req.items.length : 0;
+                                                
+                                                return (
+                                                  <TableRow key={req.id} data-state={selectedRequestIds.includes(req.id) ? "selected" : ""}>
+                                                      <TableCell>
+                                                          <Checkbox
+                                                              checked={selectedRequestIds.includes(req.id)}
+                                                              onCheckedChange={() => handleSelectionChange(req.id)}
+                                                              aria-label={`Pilih baris ${req.id}`}
+                                                          />
+                                                      </TableCell>
+                                                      <TableCell>
+                                                          <div className="font-medium">{req.requester.name}</div>
+                                                          <div className="text-sm text-muted-foreground">{format(new Date(req.createdAt), 'dd MMM yyyy', { locale: id })}</div>
+                                                      </TableCell>
+                                                      <TableCell>
+                                                          <div className="text-sm font-medium">{req.institution}</div>
+                                                          <div className="text-sm text-muted-foreground">{req.division}</div>
+                                                      </TableCell>
+                                                      <TableCell>
+                                                           <div className="font-medium">{description || 'N/A'}</div>
+                                                           <div className="text-sm text-muted-foreground line-clamp-1">{itemCount > 1 ? `dan ${itemCount - 1} item lainnya.` : (category || '')}</div>
+                                                      </TableCell>
+                                                      <TableCell className="text-right font-medium">{formatRupiah(req.amount)}</TableCell>
+                                                  </TableRow>
+                                                )
+                                            })}
+                                      </TableBody>
+                                    </Table>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )
+                })
+            ) : (
+                 <div className="flex flex-col items-center justify-center rounded-lg bg-card p-12 text-center border-2 border-dashed">
+                    <Inbox className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-4 text-xl font-medium">Kotak Masuk Kosong</h3>
+                    <p className="text-muted-foreground">
+                        Tidak ada permintaan yang disetujui dan menunggu untuk dicairkan saat ini.
+                    </p>
+                </div>
+            )}
+        </div>
     </div>
   );
 }
