@@ -52,7 +52,8 @@ export function NewRequestForm() {
   const [loading, setLoading] = useState(true);
 
   // Form State
-  const [subject, setSubject] = useState('');
+  const [subjectPrefix, setSubjectPrefix] = useState('');
+  const [subjectSuffix, setSubjectSuffix] = useState('');
   const [items, setItems] = useState<RequestItem[]>([
     { id: '1', description: '', qty: 1, unit: '', price: 0, total: 0, category: '' },
   ]);
@@ -99,7 +100,16 @@ export function NewRequestForm() {
                 }
                 
                 if (requestToLoad) {
-                  setSubject(requestToLoad.subject || '');
+                  const fullSubject = requestToLoad.subject || '';
+                  const matchingPrefix = memoSubjects.find(s => fullSubject.startsWith(s.name));
+                  if (matchingPrefix) {
+                    setSubjectPrefix(matchingPrefix.name);
+                    setSubjectSuffix(fullSubject.substring(matchingPrefix.name.length).trim());
+                  } else {
+                    setSubjectPrefix(fullSubject);
+                    setSubjectSuffix('');
+                  }
+
                   setItems(requestToLoad.items.map((item, index) => ({...item, id: `${Date.now()}-${index}`})));
                   setAdditionalInfo(requestToLoad.additionalInfo || '');
                   setSupervisorId(requestToLoad.supervisor?.id || '');
@@ -152,6 +162,7 @@ export function NewRequestForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>, status: 'pending' | 'draft') => {
     e.preventDefault();
     setFormError(null);
+    const subject = `${subjectPrefix} ${subjectSuffix}`.trim();
 
     // Validation
     const isSubmittingForApproval = status === 'pending';
@@ -407,16 +418,26 @@ export function NewRequestForm() {
 
       <div>
         <Label htmlFor="subject" className="block text-sm font-medium mb-1">Perihal Memo*</Label>
-        <Select onValueChange={setSubject} value={subject} disabled={!isFormReady || isSubmitting}>
-            <SelectTrigger id="subject">
-                <SelectValue placeholder="Pilih perihal memo..." />
-            </SelectTrigger>
-            <SelectContent>
-                {memoSubjects.map(sub => (
-                    <SelectItem key={sub.id} value={sub.name}>{sub.name}</SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
+        <div className="flex gap-2">
+            <Select onValueChange={setSubjectPrefix} value={subjectPrefix} disabled={!isFormReady || isSubmitting}>
+                <SelectTrigger id="subject-prefix" className="w-2/3">
+                    <SelectValue placeholder="Pilih perihal memo..." />
+                </SelectTrigger>
+                <SelectContent>
+                    {memoSubjects.map(sub => (
+                        <SelectItem key={sub.id} value={sub.name}>{sub.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+            <Input 
+                id="subject-suffix"
+                value={subjectSuffix}
+                onChange={(e) => setSubjectSuffix(e.target.value)}
+                placeholder="Detail tambahan..."
+                className="w-1/3"
+                disabled={!isFormReady || isSubmitting}
+            />
+        </div>
       </div>
       
       <Card className="mt-6">
