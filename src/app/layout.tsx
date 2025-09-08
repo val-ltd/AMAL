@@ -23,7 +23,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Scheherazade+New&display=swap" rel="stylesheet" />
         <meta name="theme-color" content="#1c9cff" />
       </head>
-      <body className="font-body antialiased">
+      <body className="font-body antialiased max-w-full overflow-x-hidden">
         <AuthProvider>
             <AppShell>{children}</AppShell>
             <Toaster />
