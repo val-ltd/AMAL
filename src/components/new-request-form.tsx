@@ -113,6 +113,12 @@ export function NewRequestForm() {
                   getTransferTypes()
                 ]);
 
+                if (!userProfile) {
+                    setFormError("Gagal memuat data pengguna. Silakan muat ulang halaman.");
+                    setLoading(false);
+                    return;
+                }
+
                 setProfileData(userProfile);
                 setManagers(managerList);
                 setBudgetCategories(categoryList);
@@ -121,21 +127,21 @@ export function NewRequestForm() {
                 setFundAccounts(fundAccountList);
                 setTransferTypes(tTypes);
                 
-                if (userProfile?.bankAccounts && userProfile.bankAccounts.length > 0) {
+                if (userProfile.bankAccounts && userProfile.bankAccounts.length > 0) {
                     setReimbursementAccountId(userProfile.bankAccounts[0].accountNumber);
                 }
 
-                if(userProfile?.departmentIds && userProfile.departmentIds.length > 0) {
+                let loadedDepartments: Department[] = [];
+                if(userProfile.departmentIds && userProfile.departmentIds.length > 0) {
                   const deptPromises = userProfile.departmentIds.map(id => getDoc(doc(db, 'departments', id)));
                   const deptDocs = await Promise.all(deptPromises);
-                  const depts = deptDocs.map(d => ({id: d.id, ...d.data()}) as Department);
-                  setUserDepartments(depts);
-                  // Do not set a default department
+                  loadedDepartments = deptDocs.map(d => ({id: d.id, ...d.data()}) as Department);
+                  setUserDepartments(loadedDepartments);
                 }
                 
                 if (reqToLoad) {
                   const fullSubject = reqToLoad.subject || '';
-                  const matchingPrefix = memoSubjects.find(s => fullSubject.startsWith(s.name));
+                  const matchingPrefix = subjectList.find(s => fullSubject.startsWith(s.name));
                   if (matchingPrefix) {
                     setSubjectPrefix(matchingPrefix.name);
                     setSubjectSuffix(fullSubject.substring(matchingPrefix.name.length).trim());
@@ -149,7 +155,7 @@ export function NewRequestForm() {
                   setAdditionalInfo(reqToLoad.additionalInfo || '');
                   setSupervisorId(reqToLoad.supervisor?.id || '');
                   setFundSourceId(reqToLoad.fundSourceId || '');
-                  const loadedDept = userDepartments.find(d => d.lembaga === reqToLoad.institution && d.divisi === reqToLoad.division);
+                  const loadedDept = loadedDepartments.find(d => d.lembaga === reqToLoad.institution && d.divisi === reqToLoad.division);
                   if (loadedDept) {
                       setSelectedDepartmentId(loadedDept.id);
                   }
@@ -161,17 +167,18 @@ export function NewRequestForm() {
                   toast({title: message, description: "Data dari permintaan sebelumnya telah dimuat. Silakan periksa dan kirim."});
                 }
 
-
             } catch (error) {
                 console.error("Failed to fetch initial data:", error);
-                setFormError("Gagal memuat data pengguna. Silakan muat ulang halaman.");
+                setFormError("Gagal memuat data. Silakan muat ulang halaman.");
             } finally {
                 setLoading(false);
             }
+        } else if (!authLoading) {
+            setLoading(false);
         }
     }
     fetchInitialData();
-  }, [authUser, duplicateRequestId, draftId, toast]);
+  }, [authUser, authLoading, duplicateRequestId, draftId, toast]);
   
   const handleItemChange = (index: number, field: keyof RequestItem, value: any) => {
     const newItems = [...items];
@@ -350,7 +357,8 @@ export function NewRequestForm() {
     }
   };
   
-  const isFormReady = !loading && !authLoading && profileData;
+  const isFormReady = !loading && !authLoading && profileData && userDepartments.length > 0;
+  const isProfileIncomplete = !loading && !authLoading && profileData && userDepartments.length === 0;
 
   const renderItems = () => {
     if (isMobile) {
@@ -488,7 +496,7 @@ export function NewRequestForm() {
                    <div className="flex justify-between items-start">
                       <span className="text-muted-foreground pt-1">Departemen*</span>
                       {userDepartments.length > 0 ? (
-                          <Select onValueChange={setSelectedDepartmentId} value={selectedDepartmentId} disabled={!isFormReady || isSubmitting}>
+                          <Select onValueChange={setSelectedDepartmentId} value={selectedDepartmentId} disabled={isSubmitting}>
                               <SelectTrigger id="department" className="w-auto max-w-[70%]">
                                   <SelectValue placeholder="Pilih departemen..." />
                               </SelectTrigger>
@@ -510,7 +518,7 @@ export function NewRequestForm() {
 
       <div>
         <Label htmlFor="budgetPeriod" className="block text-sm font-medium mb-1">Periode Anggaran*</Label>
-        <Select onValueChange={setBudgetPeriod} value={budgetPeriod} disabled={!isFormReady || isSubmitting}>
+        <Select onValueChange={setBudgetPeriod} value={budgetPeriod} disabled={isSubmitting}>
             <SelectTrigger id="budgetPeriod">
                 <SelectValue placeholder="Pilih periode anggaran..." />
             </SelectTrigger>
@@ -525,7 +533,7 @@ export function NewRequestForm() {
       <div>
         <Label htmlFor="subject" className="block text-sm font-medium mb-1">Perihal Memo*</Label>
         <div className="flex gap-2">
-            <Select onValueChange={setSubjectPrefix} value={subjectPrefix} disabled={!isFormReady || isSubmitting}>
+            <Select onValueChange={setSubjectPrefix} value={subjectPrefix} disabled={isSubmitting}>
                 <SelectTrigger id="subject-prefix" className="w-full">
                     <SelectValue placeholder="Pilih perihal memo..." />
                 </SelectTrigger>
@@ -542,7 +550,7 @@ export function NewRequestForm() {
                   onChange={(e) => setSubjectSuffix(e.target.value)}
                   placeholder="Detail tambahan..."
                   className="w-full"
-                  disabled={!isFormReady || isSubmitting}
+                  disabled={isSubmitting}
               />
             )}
         </div>
@@ -566,7 +574,7 @@ export function NewRequestForm() {
                       placeholder="Informasi tambahan jika ada..."
                       value={additionalInfo}
                       onChange={(e) => setAdditionalInfo(e.target.value)}
-                      disabled={!isFormReady || isSubmitting}
+                      disabled={isSubmitting}
                   />
               </div>
               <div className="w-full flex justify-end">
@@ -581,7 +589,7 @@ export function NewRequestForm() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
             <Label htmlFor="fundSource" className="block text-sm font-medium mb-1">Sumber Dana*</Label>
-            <Select onValueChange={setFundSourceId} value={fundSourceId} disabled={!isFormReady || isSubmitting}>
+            <Select onValueChange={setFundSourceId} value={fundSourceId} disabled={isSubmitting}>
                 <SelectTrigger id="fundSource">
                     <SelectValue placeholder="Pilih sumber dana..." />
                 </SelectTrigger>
@@ -596,7 +604,7 @@ export function NewRequestForm() {
         </div>
         <div>
             <Label htmlFor="supervisor" className="block text-sm font-medium mb-1">Nama Atasan*</Label>
-            <Select onValueChange={setSupervisorId} value={supervisorId} disabled={!isFormReady || isSubmitting}>
+            <Select onValueChange={setSupervisorId} value={supervisorId} disabled={isSubmitting}>
                 <SelectTrigger id="supervisor">
                     <SelectValue placeholder="Pilih seorang atasan untuk menyetujui" />
                 </SelectTrigger>
@@ -677,7 +685,7 @@ export function NewRequestForm() {
         </CardContent>
       </Card>
 
-      {!isFormReady && !loading && (
+      {isProfileIncomplete && (
            <Alert variant="destructive">
               <AlertTitle>Profil Tidak Lengkap</AlertTitle>
               <AlertDescription>Profil Anda harus memiliki setidaknya satu departemen yang ditugaskan untuk membuat permintaan. Hubungi administrator.</AlertDescription>
