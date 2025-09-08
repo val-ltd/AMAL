@@ -102,12 +102,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   const signInWithGoogle = async () => {
+    setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
+      // The onAuthStateChanged listener will handle the user state update
+      // and the correct redirection will be triggered by the effect hooks.
+      // We can push to '/' as an optimistic redirect.
       router.push('/');
     } catch (error) {
       console.error("Error signing in with Google: ", error);
+      setLoading(false);
     }
   };
 
