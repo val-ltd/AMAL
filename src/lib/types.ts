@@ -94,6 +94,7 @@ export interface BudgetRequest {
   paymentMethod?: 'Cash' | 'Transfer';
   reimbursementAccount?: UserBankAccount;
   report?: ExpenseReport;
+  budgetPeriod?: string;
 }
 
 export interface Department {

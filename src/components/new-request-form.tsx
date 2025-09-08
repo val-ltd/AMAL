@@ -24,6 +24,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { appendRequestToSheet } from '@/lib/sheets';
+import { format, addMonths, subMonths } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
 
 const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -32,6 +34,19 @@ const formatRupiah = (amount: number) => {
       minimumFractionDigits: 0,
     }).format(amount);
 };
+
+const generateBudgetPeriods = (date = new Date()) => {
+    const periods = [];
+    for (let i = 6; i > 0; i--) {
+        periods.push(format(subMonths(date, i), 'MMMM yyyy', { locale: localeId }));
+    }
+    periods.push(format(date, 'MMMM yyyy', { locale: localeId }));
+    for (let i = 1; i <= 6; i++) {
+        periods.push(format(addMonths(date, i), 'MMMM yyyy', { locale: localeId }));
+    }
+    return periods;
+}
+
 
 export function NewRequestForm() {
   const router = useRouter();
@@ -54,6 +69,7 @@ export function NewRequestForm() {
   // Form State
   const [subjectPrefix, setSubjectPrefix] = useState('');
   const [subjectSuffix, setSubjectSuffix] = useState('');
+  const [budgetPeriod, setBudgetPeriod] = useState<string>(format(new Date(), 'MMMM yyyy', { locale: localeId }));
   const [items, setItems] = useState<RequestItem[]>([
     { id: '1', description: '', qty: 1, unit: '', price: 0, total: 0, category: '' },
   ]);
@@ -66,6 +82,8 @@ export function NewRequestForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   
+  const budgetPeriodOptions = useMemo(() => generateBudgetPeriods(), []);
+
   useEffect(() => {
     const fetchInitialData = async () => {
         if (authUser) {
@@ -110,6 +128,7 @@ export function NewRequestForm() {
                     setSubjectSuffix('');
                   }
 
+                  setBudgetPeriod(requestToLoad.budgetPeriod || format(new Date(), 'MMMM yyyy', { locale: localeId }));
                   setItems(requestToLoad.items.map((item, index) => ({...item, id: `${Date.now()}-${index}`})));
                   setAdditionalInfo(requestToLoad.additionalInfo || '');
                   setSupervisorId(requestToLoad.supervisor?.id || '');
@@ -168,6 +187,7 @@ export function NewRequestForm() {
     const isSubmittingForApproval = status === 'pending';
     if (isSubmittingForApproval) {
         if (!subject) { setFormError("Perihal Memo harus diisi."); return; }
+        if (!budgetPeriod) { setFormError("Periode Anggaran harus diisi."); return; }
         if (!supervisorId) { setFormError("Nama Atasan harus diisi."); return; }
         if (userDepartments.length > 0 && !selectedDepartmentId) { setFormError("Silakan pilih departemen untuk permintaan ini."); return; }
         if (items.some(item => !item.description || item.qty <= 0 || !item.category || !item.unit)) { setFormError("Setiap item harus memiliki Uraian, Kuantitas, Satuan dan Kategori."); return; }
@@ -185,6 +205,7 @@ export function NewRequestForm() {
     const requestObject: Omit<BudgetRequest, 'createdAt' | 'updatedAt' | 'releasedAt'> = {
         id: draftId || doc(collection(db, 'requests')).id,
         subject,
+        budgetPeriod,
         items: items.map(({id, ...rest}) => rest),
         amount: totalAmount,
         additionalInfo,
@@ -415,6 +436,20 @@ export function NewRequestForm() {
               </CardContent>
           </Card>
       )}
+
+      <div>
+        <Label htmlFor="budgetPeriod" className="block text-sm font-medium mb-1">Periode Anggaran*</Label>
+        <Select onValueChange={setBudgetPeriod} value={budgetPeriod} disabled={!isFormReady || isSubmitting}>
+            <SelectTrigger id="budgetPeriod">
+                <SelectValue placeholder="Pilih periode anggaran..." />
+            </SelectTrigger>
+            <SelectContent>
+                {budgetPeriodOptions.map(period => (
+                    <SelectItem key={period} value={period}>{period}</SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+      </div>
 
       <div>
         <Label htmlFor="subject" className="block text-sm font-medium mb-1">Perihal Memo*</Label>

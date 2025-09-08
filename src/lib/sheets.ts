@@ -66,7 +66,7 @@ const ensureSheetExists = async (sheets: any, spreadsheetId: string) => {
 const ensureHeaderRow = async (sheets: any, sheetId: string) => {
     const getResponse = await sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
-        range: `${SHEET_NAME}!A1:O1`,
+        range: `${SHEET_NAME}!A1:P1`,
     });
 
     if (!getResponse.data.values || getResponse.data.values.length === 0) {
@@ -86,6 +86,7 @@ const ensureHeaderRow = async (sheets: any, sheetId: string) => {
                         'Amount',
                         'Status',
                         'Subject',
+                        'Budget Period',
                         'Item Description',
                         'Category',
                         'Qty',
@@ -122,6 +123,7 @@ export async function appendRequestToSheet(request: BudgetRequest): Promise<{sta
       request.amount,
       request.status,
       request.subject,
+      request.budgetPeriod,
     ];
 
     const itemRows = request.items.map(item => [
@@ -147,7 +149,7 @@ export async function appendRequestToSheet(request: BudgetRequest): Promise<{sta
 
     const updatedRange = response.data.updates?.updatedRange;
     if (updatedRange) {
-        // Example updatedRange: 'request!A10:N11'
+        // Example updatedRange: 'request!A10:O11'
         const match = updatedRange.match(/!A(\d+):/);
         if (match) {
             const startRow = parseInt(match[1], 10);
