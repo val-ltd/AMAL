@@ -39,6 +39,8 @@ export default function ManagerPage() {
                     ...data,
                     createdAt: data.createdAt?.toDate().toISOString() ?? new Date().toISOString(),
                     updatedAt: data.updatedAt?.toDate().toISOString() ?? new Date().toISOString(),
+                    releasedAt: data.releasedAt?.toDate().toISOString(),
+                    managerActionAt: data.managerActionAt?.toDate().toISOString(),
                 } as BudgetRequest);
             });
             setRequests(fetchedRequests);

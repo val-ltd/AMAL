@@ -365,6 +365,8 @@ export async function getRequest(id: string): Promise<BudgetRequest | null> {
             ...data,
             createdAt: data.createdAt?.toDate().toISOString() ?? new Date().toISOString(),
             updatedAt: data.updatedAt?.toDate().toISOString() ?? new Date().toISOString(),
+            releasedAt: data.releasedAt?.toDate().toISOString(),
+            managerActionAt: data.managerActionAt?.toDate().toISOString(),
         } as BudgetRequest;
     }
     return null;
@@ -468,7 +470,7 @@ export async function getMemoSubjects(): Promise<MemoSubject[]> {
 }
 
 export async function getTransferTypes(): Promise<TransferType[]> {
-    return getCollectionData<TransferType>('transferTypes', 'name');
+    return getCollectionData<TransferType>('name');
 }
 
 export async function getFundAccount(id: string): Promise<FundAccount | null> {
