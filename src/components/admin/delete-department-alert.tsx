@@ -15,8 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Trash } from 'lucide-react';
-import { deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { deleteDepartment } from '@/lib/data';
 
 interface DeleteDepartmentAlertProps {
   departmentId: string;
@@ -29,8 +28,8 @@ export function DeleteDepartmentAlert({ departmentId }: DeleteDepartmentAlertPro
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      await deleteDoc(doc(db, 'departments', departmentId));
-      toast({ title: 'Departemen Dihapus', description: 'Departemen telah berhasil dihapus dari sistem.' });
+      await deleteDepartment(departmentId);
+      toast({ title: 'Departemen Dihapus', description: 'Departemen dan semua penugasan pengguna terkait telah dihapus.' });
     } catch (error) {
       console.error('Error deleting department:', error);
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui.';
@@ -56,7 +55,7 @@ export function DeleteDepartmentAlert({ departmentId }: DeleteDepartmentAlertPro
         <AlertDialogHeader>
           <AlertDialogTitle>Apakah Anda benar-benar yakin?</AlertDialogTitle>
           <AlertDialogDescription>
-            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data departemen secara permanen dari basis data.
+            Tindakan ini akan menghapus departemen dari daftar dan juga akan menghapusnya dari semua pengguna yang ditugaskan.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

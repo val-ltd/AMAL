@@ -18,6 +18,7 @@ import {
   Timestamp,
   DocumentReference,
   setDoc,
+  arrayRemove,
 } from 'firebase/firestore';
 import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Notification, Role, Bank, Unit, MemoSubject, ExpenseReport, TransferType } from './types';
 import { auth, db } from './firebase';
@@ -555,5 +556,29 @@ export async function deleteReadNotifications(userId: string) {
     batch.delete(doc.ref);
   });
   
+  await batch.commit();
+}
+
+
+export async function deleteDepartment(departmentId: string) {
+  const batch = writeBatch(db);
+
+  // 1. Soft delete the department
+  const deptRef = doc(db, 'departments', departmentId);
+  batch.update(deptRef, { isDeleted: true });
+
+  // 2. Find all users with this departmentId
+  const usersQuery = query(collection(db, 'users'), where('departmentIds', 'array-contains', departmentId));
+  const usersSnapshot = await getDocs(usersQuery);
+
+  // 3. Remove the departmentId from each user's departmentIds array
+  usersSnapshot.forEach(userDoc => {
+    const userRef = doc(db, 'users', userDoc.id);
+    batch.update(userRef, {
+      departmentIds: arrayRemove(departmentId)
+    });
+  });
+
+  // Commit all operations atomically
   await batch.commit();
 }
