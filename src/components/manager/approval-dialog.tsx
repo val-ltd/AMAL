@@ -209,12 +209,12 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                         <span>Manajer Bertindak: {format(new Date(request.managerActionAt), 'PPpp', { locale: id })}</span>
                     </div>
                  )}
-                 {request.releasedAt && (
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                        <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                        <span>Dana Dicairkan: {format(new Date(request.releasedAt), 'PPpp', { locale: id })} oleh {request.releasedBy?.name}</span>
-                    </div>
-                 )}
+                 <div className="flex items-center gap-3 text-muted-foreground">
+                    <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>
+                      Dana Dicairkan: {request.releasedAt ? `${format(new Date(request.releasedAt), 'PPpp', { locale: id })} oleh ${request.releasedBy?.name}` : 'Belum Dicairkan'}
+                    </span>
+                 </div>
             </div>
           </div>
           
