@@ -30,6 +30,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Separator } from "@/components/ui/separator";
 
 const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -254,28 +255,33 @@ export default function ReleasePage() {
                             </CardHeader>
                             <CardContent className="p-0">
                                 {isMobile ? (
-                                     <div className="space-y-4 p-4">
-                                      {requests.map(req => {
+                                     <div className="p-4">
+                                      <div className="border rounded-lg">
+                                      {requests.map((req, index) => {
                                          const hasItems = Array.isArray(req.items) && req.items.length > 0;
                                          const description = hasItems ? req.items[0].description : (req as any).description;
                                          const itemCount = hasItems ? req.items.length : 0;
                                          return (
-                                            <div key={req.id} data-state={selectedRequestIds.includes(req.id) ? "selected" : ""} className="flex items-start gap-4 rounded-lg border p-4 data-[state=selected]:bg-muted">
-                                              <Checkbox
-                                                  checked={selectedRequestIds.includes(req.id)}
-                                                  onCheckedChange={() => handleSelectionChange(req.id)}
-                                                  aria-label={`Pilih baris ${req.id}`}
-                                                  className="mt-1"
-                                              />
-                                              <div className="flex-1 space-y-1">
-                                                <div className="font-bold">{req.requester.name}</div>
-                                                <div className="text-sm text-muted-foreground">{description}{itemCount > 1 && ` & ${itemCount - 1} lainnya`}</div>
-                                                <div className="text-sm text-muted-foreground">{req.institution}</div>
-                                                <div className="text-base font-bold pt-1">{formatRupiah(req.amount)}</div>
-                                              </div>
+                                            <div key={req.id}>
+                                                <div data-state={selectedRequestIds.includes(req.id) ? "selected" : ""} className="flex items-start gap-4 p-4 data-[state=selected]:bg-muted">
+                                                    <Checkbox
+                                                        checked={selectedRequestIds.includes(req.id)}
+                                                        onCheckedChange={() => handleSelectionChange(req.id)}
+                                                        aria-label={`Pilih baris ${req.id}`}
+                                                        className="mt-1"
+                                                    />
+                                                    <div className="flex-1 space-y-1">
+                                                        <div className="font-bold">{req.requester.name}</div>
+                                                        <div className="text-sm text-muted-foreground">{description}{itemCount > 1 && ` & ${itemCount - 1} lainnya`}</div>
+                                                        <div className="text-sm text-muted-foreground">{req.institution}</div>
+                                                        <div className="text-base font-bold pt-1">{formatRupiah(req.amount)}</div>
+                                                    </div>
+                                                </div>
+                                                {index < requests.length - 1 && <Separator />}
                                             </div>
                                          )
                                       })}
+                                      </div>
                                     </div>
                                 ) : (
                                     <Table>

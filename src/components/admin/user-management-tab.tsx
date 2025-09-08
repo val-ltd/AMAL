@@ -95,9 +95,9 @@ function UserRow({ user, departments }: { user: User, departments: Department[]}
                                     <AvatarImage src={user.avatarUrl} alt={user.name} />
                                     <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                                 </Avatar>
-                                <div>
-                                    <div className="font-medium flex items-center gap-2">
-                                        {user.name}
+                                <div className="min-w-0">
+                                    <div className="font-medium flex items-center gap-2 flex-wrap">
+                                        <span className="truncate">{user.name}</span>
                                         {!user.isVerified && (
                                             <Badge variant="outline" className="text-yellow-600 border-yellow-500">
                                                 <ShieldAlert className="mr-1 h-3 w-3" />
@@ -105,7 +105,7 @@ function UserRow({ user, departments }: { user: User, departments: Department[]}
                                             </Badge>
                                         )}
                                     </div>
-                                    <div className="text-sm text-muted-foreground">{user.email}</div>
+                                    <div className="text-sm text-muted-foreground break-all">{user.email}</div>
                                 </div>
                             </div>
                         </TableCell>
@@ -220,17 +220,17 @@ function UserCard({ user, departments }: { user: User, departments: Department[]
 
 
     return (
-        <Card className={!user.isVerified ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' : ''}>
-            <CardHeader>
+        <div className={`p-4 border rounded-lg ${!user.isVerified ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' : ''}`}>
+            <CardHeader className="p-0">
                 <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                         <Avatar>
                             <AvatarImage src={user.avatarUrl} alt={user.name} />
                             <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
-                        <div className="flex-1">
-                            <p className="font-semibold">{user.name}</p>
-                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                        <div className="flex-1 min-w-0">
+                            <p className="font-semibold truncate">{user.name}</p>
+                            <p className="text-sm text-muted-foreground break-all">{user.email}</p>
                         </div>
                     </div>
                      <DropdownMenu>
@@ -268,7 +268,7 @@ function UserCard({ user, departments }: { user: User, departments: Department[]
                     </DropdownMenu>
                 </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-0 mt-4 space-y-4">
                 <div className="flex flex-wrap gap-2 items-center">
                     <Badge variant={getRoleBadgeVariant(highestRole)}>
                         {highestRole}
@@ -317,7 +317,7 @@ function UserCard({ user, departments }: { user: User, departments: Department[]
                     userId={user.id}
                 />
             )}
-        </Card>
+        </div>
     );
 }
 

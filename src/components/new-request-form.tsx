@@ -26,6 +26,7 @@ import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { appendRequestToSheet } from '@/lib/sheets';
 import { format, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
+import { Separator } from './ui/separator';
 
 const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -135,8 +136,11 @@ export function NewRequestForm() {
                 if(userProfile.departmentIds && userProfile.departmentIds.length > 0) {
                   const deptPromises = userProfile.departmentIds.map(id => getDoc(doc(db, 'departments', id)));
                   const deptDocs = await Promise.all(deptPromises);
-                  loadedDepartments = deptDocs.map(d => ({id: d.id, ...d.data()}) as Department);
+                  loadedDepartments = deptDocs.map(d => ({id: d.id, ...d.data()}) as Department).filter(d => !d.isDeleted);
                   setUserDepartments(loadedDepartments);
+                  if (loadedDepartments.length > 0) {
+                    setSelectedDepartmentId(loadedDepartments[0].id);
+                  }
                 }
                 
                 if (reqToLoad) {
@@ -365,8 +369,8 @@ export function NewRequestForm() {
       return (
         <div className="space-y-4">
           {items.map((item, index) => (
-            <Card key={item.id} className="relative pt-6">
-              <CardContent className="space-y-4">
+            <div key={item.id} className="relative p-4 border rounded-lg">
+              <div className="space-y-4">
                 <div>
                   <Label htmlFor={`desc-mobile-${item.id}`}>Item</Label>
                   <Input id={`desc-mobile-${item.id}`} value={item.description} onChange={e => handleItemChange(index, 'description', e.target.value)} placeholder="Nama item..." />
@@ -402,13 +406,13 @@ export function NewRequestForm() {
                 <div className="text-right font-medium">
                   Jumlah: {formatRupiah(item.total)}
                 </div>
-              </CardContent>
+              </div>
               {items.length > 1 && (
                   <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItem(index)} className="absolute top-1 right-1">
                       <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
               )}
-            </Card>
+            </div>
           ))}
         </div>
       )

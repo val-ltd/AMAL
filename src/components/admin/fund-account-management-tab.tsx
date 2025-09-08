@@ -35,7 +35,7 @@ export function FundAccountManagementTab({ fundAccounts, loading }: { fundAccoun
                          <p className="text-center text-muted-foreground h-24 flex items-center justify-center">Tidak ada sumber dana.</p>
                     ) : (
                         fundAccounts.map((account) => (
-                             <Card key={account.id} className="p-4 space-y-2">
+                             <div key={account.id} className="p-4 space-y-2 border rounded-lg">
                                 <div className="flex justify-between items-start">
                                     <h3 className="font-bold">{account.accountName}</h3>
                                     <DropdownMenu>
@@ -62,7 +62,7 @@ export function FundAccountManagementTab({ fundAccounts, loading }: { fundAccoun
                                     <p>Bendahara: {account.namaBendahara}</p>
                                     <p>Petugas: {account.petugas}</p>
                                 </div>
-                            </Card>
+                            </div>
                         ))
                     )}
                 </CardContent>

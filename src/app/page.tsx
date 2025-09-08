@@ -167,10 +167,10 @@ export default function EmployeeDashboard() {
                     <CardTitle>Total Pengajuan per Status</CardTitle>
                     <CardDescription>Visualisasi total dana yang diajukan berdasarkan status.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pl-2">
                     <ChartContainer config={chartConfig} className="h-64 w-full">
                         <ResponsiveContainer>
-                            <BarChart data={chartData} margin={{ top: 20 }}>
+                            <BarChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
                                 <CartesianGrid vertical={false} />
                                 <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
                                 <YAxis tickFormatter={(value) => formatRupiah(value as number, true)} />
