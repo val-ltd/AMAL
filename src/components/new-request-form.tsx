@@ -136,7 +136,7 @@ export function NewRequestForm() {
                 if(userProfile.departmentIds && userProfile.departmentIds.length > 0) {
                   const deptPromises = userProfile.departmentIds.map(id => getDoc(doc(db, 'departments', id)));
                   const deptDocs = await Promise.all(deptPromises);
-                  loadedDepartments = deptDocs.map(d => ({id: d.id, ...d.data()}) as Department).filter(d => !d.isDeleted);
+                  loadedDepartments = deptDocs.map(d => ({id: d.id, ...d.data()}) as Department).filter(d => d.isDeleted);
                   setUserDepartments(loadedDepartments);
                   if (loadedDepartments.length > 0) {
                     setSelectedDepartmentId(loadedDepartments[0].id);
@@ -205,30 +205,33 @@ export function NewRequestForm() {
     setItems(newItems);
   };
   
-  const calculatedTransferFee = useMemo(() => {
-    if (paymentMethod !== 'Transfer' || !fundSourceId || !reimbursementAccountId || !transferTypeId) {
-        return 0;
-    }
-    
-    const senderAccount = fundAccounts.find(acc => acc.id === fundSourceId);
-    const receiverAccount = profileData?.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
-    const transferType = transferTypes.find(t => t.id === transferTypeId);
+    const transferDetails = useMemo(() => {
+        const senderAccount = fundAccounts.find(acc => acc.id === fundSourceId);
 
-    if (!senderAccount || !receiverAccount || !transferType) return 0;
-    
-    // No fee for same bank
-    if (senderAccount.bankName === receiverAccount.bankName) {
-        return 0;
-    }
-    
-    return transferType.fee;
-  }, [paymentMethod, fundSourceId, reimbursementAccountId, transferTypeId, fundAccounts, profileData, transferTypes]);
+        if (!senderAccount) return { fee: 0, type: '', isSameBank: false };
 
+        if (paymentMethod === 'Cash') {
+            return { fee: 0, type: 'Pemindahbukuan (Kas)', isSameBank: true };
+        }
+
+        const receiverAccount = profileData?.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
+        if (!receiverAccount) return { fee: 0, type: '', isSameBank: false };
+
+        const isSameBank = senderAccount.bankName === receiverAccount.bankName;
+
+        if (isSameBank) {
+            return { fee: 0, type: 'Pemindahbukuan', isSameBank: true };
+        }
+
+        const transferType = transferTypes.find(t => t.id === transferTypeId);
+        return { fee: transferType?.fee || 0, type: transferType?.name || '', isSameBank: false };
+
+    }, [paymentMethod, fundSourceId, reimbursementAccountId, transferTypeId, fundAccounts, profileData?.bankAccounts, transferTypes]);
 
   const totalAmount = useMemo(() => {
     const itemsTotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
-    return itemsTotal + calculatedTransferFee;
-  }, [items, calculatedTransferFee]);
+    return itemsTotal + transferDetails.fee;
+  }, [items, transferDetails.fee]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>, status: 'pending' | 'draft') => {
     e.preventDefault();
@@ -249,8 +252,11 @@ export function NewRequestForm() {
         if (!fundSourceId) { setFormError("Sumber Dana harus diisi."); return; }
         if (userDepartments.length > 0 && !selectedDepartmentId) { setFormError("Silakan pilih departemen untuk permintaan ini."); return; }
         if (items.some(item => !item.description || item.qty <= 0 || !item.category || !item.unit)) { setFormError("Setiap item harus memiliki Uraian, Kuantitas, Satuan dan Kategori."); return; }
-        if (paymentMethod === 'Transfer' && !reimbursementAccountId) { setFormError("Pilih rekening untuk pembayaran transfer."); return; }
-        if (paymentMethod === 'Transfer' && !transferTypeId) { setFormError("Pilih jenis transfer."); return; }
+        
+        if (paymentMethod === 'Transfer') {
+            if (!reimbursementAccountId) { setFormError("Pilih rekening untuk pembayaran transfer."); return; }
+            if (!transferDetails.isSameBank && !transferTypeId) { setFormError("Pilih jenis transfer."); return; }
+        }
     }
      if (!profileData || !authUser) { setFormError("Data pengguna tidak ditemukan. Silakan login kembali."); return; }
 
@@ -259,8 +265,18 @@ export function NewRequestForm() {
 
     const supervisor = managers.find(m => m.id === supervisorId);
     const selectedDepartment = userDepartments.find(d => d.id === selectedDepartmentId);
-    const reimbursementAccount = profileData.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
-    const transferType = transferTypes.find(t => t.id === transferTypeId);
+    const senderAccount = fundAccounts.find(acc => acc.id === fundSourceId);
+
+    let finalReimbursementAccount: UserBankAccount | undefined;
+    if (paymentMethod === 'Cash' && senderAccount) {
+        finalReimbursementAccount = {
+            bankName: senderAccount.bankBendahara,
+            accountNumber: senderAccount.rekeningBendahara,
+            accountHolderName: senderAccount.namaBendahara
+        };
+    } else if (paymentMethod === 'Transfer') {
+        finalReimbursementAccount = profileData.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
+    }
     
     const requestObject: Omit<BudgetRequest, 'createdAt' | 'updatedAt' | 'releasedAt'> = {
         id: draftId || doc(collection(db, 'requests')).id,
@@ -285,17 +301,18 @@ export function NewRequestForm() {
         supervisor: supervisor ? { id: supervisor.id, name: supervisor.name } : undefined,
         fundSourceId,
         paymentMethod,
-        transferFee: calculatedTransferFee,
+        transferFee: transferDetails.fee,
+        transferType: transferDetails.type,
         status: status,
     };
 
-    if (paymentMethod === 'Transfer') {
-        if(reimbursementAccount) requestObject.reimbursementAccount = reimbursementAccount;
-        if(transferType) {
-          requestObject.transferTypeId = transferType.id;
-          requestObject.transferType = transferType.name;
-        }
+    if (finalReimbursementAccount) {
+        requestObject.reimbursementAccount = finalReimbursementAccount;
     }
+    if (transferDetails.type && !transferDetails.isSameBank) {
+        requestObject.transferTypeId = transferTypeId;
+    }
+
 
     try {
         const isUpdatingDraft = !!draftId;
@@ -361,8 +378,8 @@ export function NewRequestForm() {
     }
   };
   
-  const isFormReady = !loading && !authLoading && profileData && userDepartments.length > 0;
-  const isProfileIncomplete = !loading && !authLoading && profileData && userDepartments.length === 0;
+  const isFormReady = !loading && !authLoading && profileData && userDepartments && userDepartments.length > 0;
+  const isProfileIncomplete = !loading && !authLoading && profileData && (!userDepartments || userDepartments.length === 0);
 
   const renderItems = () => {
     if (isMobile) {
@@ -499,7 +516,7 @@ export function NewRequestForm() {
                   </div>
                    <div className="flex justify-between items-start">
                       <span className="text-muted-foreground pt-1">Departemen*</span>
-                      {userDepartments.length > 0 ? (
+                      {userDepartments && userDepartments.length > 0 ? (
                           <Select onValueChange={setSelectedDepartmentId} value={selectedDepartmentId} disabled={isSubmitting}>
                               <SelectTrigger id="department" className="w-auto max-w-[70%]">
                                   <SelectValue placeholder="Pilih departemen..." />
@@ -635,22 +652,9 @@ export function NewRequestForm() {
                     <Label htmlFor="transfer">Transfer</Label>
                 </div>
             </RadioGroup>
-            {paymentMethod === 'Transfer' && (
+            {paymentMethod === 'Transfer' ? (
                  <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <Label htmlFor="transferType">Jenis Transfer*</Label>
-                            <Select value={transferTypeId} onValueChange={(v) => setTransferTypeId(v as any)}>
-                                <SelectTrigger id="transferType">
-                                    <SelectValue placeholder="Pilih jenis transfer..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {transferTypes.map(t => (
-                                        <SelectItem key={t.id} value={t.id}>{t.name} ({formatRupiah(t.fee)})</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
                         <div>
                             <Label htmlFor="reimbursementAccount">Rekening Penerima*</Label>
                             {(profileData?.bankAccounts && profileData.bankAccounts.length > 0) ? (
@@ -676,15 +680,38 @@ export function NewRequestForm() {
                                 </Alert>
                             )}
                         </div>
+                        <div>
+                             <Label htmlFor="transferType">Jenis Transfer</Label>
+                             {transferDetails.isSameBank ? (
+                                 <Input value="Pemindahbukuan (Tanpa Biaya)" disabled />
+                             ) : (
+                                <Select value={transferTypeId} onValueChange={(v) => setTransferTypeId(v as any)}>
+                                    <SelectTrigger id="transferType">
+                                        <SelectValue placeholder="Pilih jenis transfer..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {transferTypes.map(t => (
+                                            <SelectItem key={t.id} value={t.id}>{t.name} ({formatRupiah(t.fee)})</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                             )}
+                        </div>
                     </div>
-                    {calculatedTransferFee > 0 && (
+                    {transferDetails.fee > 0 && (
                         <Alert>
                             <AlertDescription>
-                                Biaya transfer sebesar {formatRupiah(calculatedTransferFee)} akan ditambahkan ke total pengajuan.
+                                Biaya transfer sebesar {formatRupiah(transferDetails.fee)} ({transferDetails.type}) akan ditambahkan ke total pengajuan.
                             </AlertDescription>
                         </Alert>
                     )}
                  </div>
+            ) : ( // Cash payment
+                <Alert>
+                    <AlertDescription>
+                        Pembayaran tunai akan ditransfer ke rekening Bendahara yang terkait dengan Sumber Dana yang dipilih.
+                    </AlertDescription>
+                </Alert>
             )}
         </CardContent>
       </Card>
