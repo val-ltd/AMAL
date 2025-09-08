@@ -20,7 +20,7 @@ import StatusBadge from '../status-badge';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Building, Eye, Loader2, ThumbsDown, ThumbsUp, UserCheck, Wallet } from 'lucide-react';
+import { Building, Eye, Loader2, ThumbsDown, ThumbsUp, UserCheck, Wallet, ArrowRight } from 'lucide-react';
 import { formatDepartment } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
@@ -181,6 +181,18 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                     <div className="flex items-center gap-3 text-muted-foreground">
                         <Wallet className="w-4 h-4 flex-shrink-0" />
                         <span>Sumber Dana: {fundAccount.accountName} ({fundAccount.accountNumber})</span>
+                    </div>
+                )}
+                {request.paymentMethod === 'Transfer' && request.reimbursementAccount && (
+                     <div className="flex items-center gap-3 text-muted-foreground">
+                        <ArrowRight className="w-4 h-4 flex-shrink-0" />
+                        <span>Metode Pembayaran: {request.paymentMethod} ({request.transferType}) ke {request.reimbursementAccount.bankName} - {request.reimbursementAccount.accountNumber} (a/n {request.reimbursementAccount.accountHolderName})</span>
+                    </div>
+                )}
+                 {request.paymentMethod === 'Cash' && (
+                     <div className="flex items-center gap-3 text-muted-foreground">
+                        <ArrowRight className="w-4 h-4 flex-shrink-0" />
+                        <span>Metode Pembayaran: Tunai</span>
                     </div>
                 )}
             </div>

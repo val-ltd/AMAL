@@ -92,6 +92,7 @@ export interface BudgetRequest {
   fundSourceId?: string;
   // New fields
   paymentMethod?: 'Cash' | 'Transfer';
+  transferType?: 'RTGS' | 'BI-FAST' | 'LLG';
   reimbursementAccount?: UserBankAccount;
   report?: ExpenseReport;
   budgetPeriod?: string;

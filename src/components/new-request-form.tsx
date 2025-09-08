@@ -78,6 +78,7 @@ export function NewRequestForm() {
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
   const [fundSourceId, setFundSourceId] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Transfer'>('Cash');
+  const [transferType, setTransferType] = useState<'RTGS' | 'BI-FAST' | 'LLG'>();
   const [reimbursementAccountId, setReimbursementAccountId] = useState<string>('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -141,6 +142,7 @@ export function NewRequestForm() {
                       setSelectedDepartmentId(loadedDept.id);
                   }
                   setPaymentMethod(requestToLoad.paymentMethod || 'Cash');
+                  setTransferType(requestToLoad.transferType);
                   setReimbursementAccountId(requestToLoad.reimbursementAccount?.accountNumber || '');
                   
                   const message = draftId ? "Draf dimuat." : "Permintaan diduplikasi.";
@@ -202,6 +204,7 @@ export function NewRequestForm() {
         if (userDepartments.length > 0 && !selectedDepartmentId) { setFormError("Silakan pilih departemen untuk permintaan ini."); return; }
         if (items.some(item => !item.description || item.qty <= 0 || !item.category || !item.unit)) { setFormError("Setiap item harus memiliki Uraian, Kuantitas, Satuan dan Kategori."); return; }
         if (paymentMethod === 'Transfer' && !reimbursementAccountId) { setFormError("Pilih rekening untuk pembayaran transfer."); return; }
+        if (paymentMethod === 'Transfer' && !transferType) { setFormError("Pilih jenis transfer."); return; }
     }
      if (!profileData || !authUser) { setFormError("Data pengguna tidak ditemukan. Silakan login kembali."); return; }
 
@@ -238,18 +241,23 @@ export function NewRequestForm() {
         status: status,
     };
 
-    if (paymentMethod === 'Transfer' && reimbursementAccount) {
-        requestObject.reimbursementAccount = reimbursementAccount;
+    if (paymentMethod === 'Transfer') {
+        if(reimbursementAccount) requestObject.reimbursementAccount = reimbursementAccount;
+        if(transferType) requestObject.transferType = transferType;
     }
 
     try {
         const isUpdatingDraft = !!draftId;
 
         if (isSubmittingForApproval) {
-            // Logic for submitting for approval
-            const sheetUpdateResponse = await appendRequestToSheet({ ...requestObject, id: requestObject.id, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
-            const requestDataForFirestore = { ...requestObject, sheetStartRow: sheetUpdateResponse.startRow, sheetEndRow: sheetUpdateResponse.endRow, updatedAt: serverTimestamp() };
+            const requestDataForFirestore = { ...requestObject, updatedAt: serverTimestamp() };
             
+            // Append to sheet first, then save to Firestore
+            const sheetUpdateResponse = await appendRequestToSheet({ ...requestDataForFirestore, id: requestObject.id, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+            
+            requestDataForFirestore.sheetStartRow = sheetUpdateResponse.startRow;
+            requestDataForFirestore.sheetEndRow = sheetUpdateResponse.endRow;
+
             if (isUpdatingDraft) {
                 await updateDoc(doc(db, 'requests', draftId), requestDataForFirestore);
             } else {
@@ -259,8 +267,10 @@ export function NewRequestForm() {
             const batch = writeBatch(db);
             const supervisorNotification = { userId: supervisor!.id, type: 'new_request' as const, title: 'Permintaan Anggaran Baru', message: `${profileData.name} mengajukan permintaan baru (${formatRupiah(totalAmount)}) untuk ditinjau.`, requestId: requestObject.id, isRead: false, createdAt: serverTimestamp(), createdBy: requestObject.requester };
             batch.set(doc(collection(db, 'notifications')), supervisorNotification);
+            
             const requesterNotification = { userId: authUser.uid, type: 'request_submitted' as const, title: 'Permintaan Terkirim', message: `Permintaan Anda (${formatRupiah(totalAmount)}) telah dikirim ke ${supervisor!.name} untuk ditinjau.`, requestId: requestObject.id, isRead: false, createdAt: serverTimestamp(), createdBy: { id: 'system', name: 'System' } };
             batch.set(doc(collection(db, 'notifications')), requesterNotification);
+
             await batch.commit();
 
             toast({ title: "Permintaan Terkirim", description: "Permintaan anggaran Anda telah berhasil dibuat dan disimpan di Google Sheets." });
@@ -564,31 +574,46 @@ export function NewRequestForm() {
                 </div>
             </RadioGroup>
             {paymentMethod === 'Transfer' && (
-                <div>
-                    <Label htmlFor="reimbursementAccount">Rekening Penerima</Label>
-                    {(profileData?.bankAccounts && profileData.bankAccounts.length > 0) ? (
-                        <Select value={reimbursementAccountId} onValueChange={setReimbursementAccountId}>
-                            <SelectTrigger id="reimbursementAccount">
-                                <SelectValue placeholder="Pilih rekening..." />
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <Label htmlFor="transferType">Jenis Transfer*</Label>
+                        <Select value={transferType} onValueChange={(v) => setTransferType(v as any)}>
+                            <SelectTrigger id="transferType">
+                                <SelectValue placeholder="Pilih jenis transfer..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {profileData.bankAccounts.map(acc => (
-                                    <SelectItem key={acc.accountNumber} value={acc.accountNumber}>
-                                        {acc.bankName} - {acc.accountNumber} (a/n {acc.accountHolderName})
-                                    </SelectItem>
-                                ))}
+                                <SelectItem value="RTGS">RTGS</SelectItem>
+                                <SelectItem value="BI-FAST">BI-FAST</SelectItem>
+                                <SelectItem value="LLG">LLG</SelectItem>
                             </SelectContent>
                         </Select>
-                    ) : (
-                         <Alert variant="destructive" className="mt-2">
-                            <WalletCards className="h-4 w-4" />
-                            <AlertTitle>Tidak Ada Rekening Bank</AlertTitle>
-                            <AlertDescription>
-                                Anda tidak memiliki rekening bank yang tersimpan. Silakan tambahkan satu di halaman profil Anda untuk menggunakan metode transfer.
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                </div>
+                    </div>
+                    <div>
+                        <Label htmlFor="reimbursementAccount">Rekening Penerima*</Label>
+                        {(profileData?.bankAccounts && profileData.bankAccounts.length > 0) ? (
+                            <Select value={reimbursementAccountId} onValueChange={setReimbursementAccountId}>
+                                <SelectTrigger id="reimbursementAccount">
+                                    <SelectValue placeholder="Pilih rekening..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {profileData.bankAccounts.map(acc => (
+                                        <SelectItem key={acc.accountNumber} value={acc.accountNumber}>
+                                            {acc.bankName} - {acc.accountNumber} (a/n {acc.accountHolderName})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                            <Alert variant="destructive" className="mt-2">
+                                <WalletCards className="h-4 w-4" />
+                                <AlertTitle>Tidak Ada Rekening Bank</AlertTitle>
+                                <AlertDescription>
+                                    Anda tidak memiliki rekening bank yang tersimpan. Silakan tambahkan satu di halaman profil Anda untuk menggunakan metode transfer.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </div>
+                 </div>
             )}
         </CardContent>
       </Card>
