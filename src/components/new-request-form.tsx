@@ -11,8 +11,8 @@ import { Copy, Loader2, Plus, Save, Trash2, WalletCards } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import type { User, Department, BudgetCategory, RequestItem, UserBankAccount, Unit, BudgetRequest, MemoSubject, FundAccount, TransferSettings } from '@/lib/types';
-import { getManagers, getUser, getBudgetCategories, getUnits, getRequest, getMemoSubjects, getFundAccounts, getTransferSettings } from '@/lib/data';
+import type { User, Department, BudgetCategory, RequestItem, UserBankAccount, Unit, BudgetRequest, MemoSubject, FundAccount, TransferType } from '@/lib/types';
+import { getManagers, getUser, getBudgetCategories, getUnits, getRequest, getMemoSubjects, getFundAccounts, getTransferTypes } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -64,7 +64,7 @@ export function NewRequestForm() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [memoSubjects, setMemoSubjects] = useState<MemoSubject[]>([]);
   const [fundAccounts, setFundAccounts] = useState<FundAccount[]>([]);
-  const [transferSettings, setTransferSettings] = useState<TransferSettings | null>(null);
+  const [transferTypes, setTransferTypes] = useState<TransferType[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Form State
@@ -79,7 +79,7 @@ export function NewRequestForm() {
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
   const [fundSourceId, setFundSourceId] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Transfer'>('Cash');
-  const [transferType, setTransferType] = useState<'RTGS' | 'BI-FAST' | 'LLG'>();
+  const [transferTypeId, setTransferTypeId] = useState<string>('');
   const [reimbursementAccountId, setReimbursementAccountId] = useState<string>('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,7 +101,7 @@ export function NewRequestForm() {
                     subjectList, 
                     fundAccountList, 
                     reqToLoad,
-                    tSettings
+                    tTypes
                 ] = await Promise.all([
                   getUser(authUser.uid),
                   getManagers(),
@@ -110,7 +110,7 @@ export function NewRequestForm() {
                   getMemoSubjects(),
                   getFundAccounts(),
                   idToFetch ? getRequest(idToFetch) : Promise.resolve(null),
-                  getTransferSettings()
+                  getTransferTypes()
                 ]);
 
                 setProfileData(userProfile);
@@ -119,7 +119,7 @@ export function NewRequestForm() {
                 setUnits(unitList);
                 setMemoSubjects(subjectList);
                 setFundAccounts(fundAccountList);
-                setTransferSettings(tSettings);
+                setTransferTypes(tTypes);
                 
                 if (userProfile?.bankAccounts && userProfile.bankAccounts.length > 0) {
                     setReimbursementAccountId(userProfile.bankAccounts[0].accountNumber);
@@ -154,7 +154,7 @@ export function NewRequestForm() {
                       setSelectedDepartmentId(loadedDept.id);
                   }
                   setPaymentMethod(reqToLoad.paymentMethod || 'Cash');
-                  setTransferType(reqToLoad.transferType);
+                  setTransferTypeId(reqToLoad.transferTypeId || '');
                   setReimbursementAccountId(reqToLoad.reimbursementAccount?.accountNumber || '');
                   
                   const message = draftId ? "Draf dimuat." : "Permintaan diduplikasi.";
@@ -195,22 +195,23 @@ export function NewRequestForm() {
   };
   
   const calculatedTransferFee = useMemo(() => {
-    if (paymentMethod !== 'Transfer' || !fundSourceId || !reimbursementAccountId || !transferType || !transferSettings) {
+    if (paymentMethod !== 'Transfer' || !fundSourceId || !reimbursementAccountId || !transferTypeId) {
         return 0;
     }
     
     const senderAccount = fundAccounts.find(acc => acc.id === fundSourceId);
     const receiverAccount = profileData?.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
+    const transferType = transferTypes.find(t => t.id === transferTypeId);
 
-    if (!senderAccount || !receiverAccount) return 0;
+    if (!senderAccount || !receiverAccount || !transferType) return 0;
     
     // No fee for same bank
     if (senderAccount.bankName === receiverAccount.bankName) {
         return 0;
     }
     
-    return transferSettings.fees[transferType] ?? transferSettings.defaultFee;
-  }, [paymentMethod, fundSourceId, reimbursementAccountId, transferType, fundAccounts, profileData, transferSettings]);
+    return transferType.fee;
+  }, [paymentMethod, fundSourceId, reimbursementAccountId, transferTypeId, fundAccounts, profileData, transferTypes]);
 
 
   const totalAmount = useMemo(() => {
@@ -238,7 +239,7 @@ export function NewRequestForm() {
         if (userDepartments.length > 0 && !selectedDepartmentId) { setFormError("Silakan pilih departemen untuk permintaan ini."); return; }
         if (items.some(item => !item.description || item.qty <= 0 || !item.category || !item.unit)) { setFormError("Setiap item harus memiliki Uraian, Kuantitas, Satuan dan Kategori."); return; }
         if (paymentMethod === 'Transfer' && !reimbursementAccountId) { setFormError("Pilih rekening untuk pembayaran transfer."); return; }
-        if (paymentMethod === 'Transfer' && !transferType) { setFormError("Pilih jenis transfer."); return; }
+        if (paymentMethod === 'Transfer' && !transferTypeId) { setFormError("Pilih jenis transfer."); return; }
     }
      if (!profileData || !authUser) { setFormError("Data pengguna tidak ditemukan. Silakan login kembali."); return; }
 
@@ -248,6 +249,7 @@ export function NewRequestForm() {
     const supervisor = managers.find(m => m.id === supervisorId);
     const selectedDepartment = userDepartments.find(d => d.id === selectedDepartmentId);
     const reimbursementAccount = profileData.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
+    const transferType = transferTypes.find(t => t.id === transferTypeId);
     
     const requestObject: Omit<BudgetRequest, 'createdAt' | 'updatedAt' | 'releasedAt'> = {
         id: draftId || doc(collection(db, 'requests')).id,
@@ -278,7 +280,10 @@ export function NewRequestForm() {
 
     if (paymentMethod === 'Transfer') {
         if(reimbursementAccount) requestObject.reimbursementAccount = reimbursementAccount;
-        if(transferType) requestObject.transferType = transferType;
+        if(transferType) {
+          requestObject.transferTypeId = transferType.id;
+          requestObject.transferType = transferType.name;
+        }
     }
 
     try {
@@ -623,14 +628,14 @@ export function NewRequestForm() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <Label htmlFor="transferType">Jenis Transfer*</Label>
-                            <Select value={transferType} onValueChange={(v) => setTransferType(v as any)}>
+                            <Select value={transferTypeId} onValueChange={(v) => setTransferTypeId(v as any)}>
                                 <SelectTrigger id="transferType">
                                     <SelectValue placeholder="Pilih jenis transfer..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="BI-FAST">BI-FAST ({formatRupiah(transferSettings?.fees['BI-FAST'] || 0)})</SelectItem>
-                                    <SelectItem value="RTGS">RTGS ({formatRupiah(transferSettings?.fees.RTGS || 0)})</SelectItem>
-                                    <SelectItem value="LLG">LLG ({formatRupiah(transferSettings?.fees.LLG || 0)})</SelectItem>
+                                    {transferTypes.map(t => (
+                                        <SelectItem key={t.id} value={t.id}>{t.name} ({formatRupiah(t.fee)})</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>

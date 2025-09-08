@@ -19,7 +19,7 @@ import {
   DocumentReference,
   setDoc,
 } from 'firebase/firestore';
-import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Notification, Role, Bank, Unit, MemoSubject, ExpenseReport, TransferSettings } from './types';
+import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Notification, Role, Bank, Unit, MemoSubject, ExpenseReport, TransferType } from './types';
 import { auth, db } from './firebase';
 import { appendRequestToSheet, updateRequestInSheet } from './sheets';
 
@@ -466,6 +466,9 @@ export async function getMemoSubjects(): Promise<MemoSubject[]> {
     return getCollectionData<MemoSubject>('memoSubjects', 'name');
 }
 
+export async function getTransferTypes(): Promise<TransferType[]> {
+    return getCollectionData<TransferType>('transferTypes', 'name');
+}
 
 export async function getFundAccount(id: string): Promise<FundAccount | null> {
     if (!id) return null;
@@ -476,16 +479,6 @@ export async function getFundAccount(id: string): Promise<FundAccount | null> {
     }
     return null;
 }
-
-export async function getTransferSettings(): Promise<TransferSettings | null> {
-    const docRef = doc(db, 'settings', 'transfer');
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-        return docSnap.data() as TransferSettings;
-    }
-    return null;
-}
-
 
 // --- Notifications ---
 

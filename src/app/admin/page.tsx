@@ -1,8 +1,9 @@
 
+
 'use client'
 
 import { useEffect, useState } from "react";
-import type { User, Department, BudgetCategory, FundAccount, Bank, Unit, MemoSubject } from "@/lib/types";
+import type { User, Department, BudgetCategory, FundAccount, Bank, Unit, MemoSubject, TransferType } from "@/lib/types";
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { UserManagementTab } from "@/components/admin/user-management-tab";
@@ -23,70 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-function TransferFeeCard() {
-    const { toast } = useToast();
-    const [transferFee, setTransferFee] = useState<number>(0);
-    const [isEditingFee, setIsEditingFee] = useState(false);
-
-    useEffect(() => {
-        const unsub = onSnapshot(doc(db, 'settings', 'transfer'), docSnap => {
-            if (docSnap.exists()) {
-                setTransferFee(docSnap.data().fee);
-            }
-        });
-        return () => unsub();
-    }, []);
-
-    const handleSaveFee = async () => {
-        try {
-            await updateDoc(doc(db, 'settings', 'transfer'), { fee: transferFee });
-            toast({ title: "Biaya Transfer Diperbarui" });
-            setIsEditingFee(false);
-        } catch (error) {
-            toast({ title: "Gagal menyimpan", variant: "destructive" });
-        }
-    };
-    
-    return (
-         <Card>
-            <CardHeader>
-                <CardTitle>Pengaturan Aplikasi</CardTitle>
-                <CardDescription>Kelola pengaturan global untuk aplikasi.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div>
-                        <Label htmlFor="transferFee">Biaya Transfer Bank</Label>
-                        {isEditingFee ? (
-                            <Input 
-                                id="transferFee"
-                                type="number"
-                                value={transferFee}
-                                onChange={e => setTransferFee(Number(e.target.value))}
-                                className="mt-1 w-48"
-                            />
-                        ) : (
-                            <p className="text-lg font-bold">
-                                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(transferFee)}
-                            </p>
-                        )}
-                    </div>
-                    {isEditingFee ? (
-                         <div className="flex gap-2">
-                             <Button size="icon" variant="ghost" onClick={() => setIsEditingFee(false)}><X className="h-4 w-4" /></Button>
-                             <Button size="icon" onClick={handleSaveFee}><Save className="h-4 w-4" /></Button>
-                         </div>
-                    ) : (
-                        <Button size="icon" variant="outline" onClick={() => setIsEditingFee(true)}>
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                    )}
-                </div>
-            </CardContent>
-        </Card>
-    )
-}
+import { TransferTypeManagement } from "@/components/admin/transfer-type-management";
 
 function AdminPageContent({
     users,
@@ -96,6 +34,7 @@ function AdminPageContent({
     banks,
     units,
     memoSubjects,
+    transferTypes,
     loading
 }: {
     users: User[],
@@ -105,6 +44,7 @@ function AdminPageContent({
     banks: Bank[],
     units: Unit[],
     memoSubjects: MemoSubject[],
+    transferTypes: TransferType[],
     loading: boolean
 }) {
     const isMobile = useIsMobile();
@@ -117,7 +57,7 @@ function AdminPageContent({
         { id: "banks", title: "Bank", component: <BankManagement banks={banks} loading={loading} /> },
         { id: "units", title: "Satuan", component: <UnitManagement units={units} loading={loading} /> },
         { id: "memo-subjects", title: "Perihal Memo", component: <MemoSubjectManagement subjects={memoSubjects} loading={loading} /> },
-        { id: "app-settings", title: "Pengaturan Aplikasi", component: <TransferFeeCard /> }
+        { id: "transfer-types", title: "Jenis Transfer", component: <TransferTypeManagement transferTypes={transferTypes} loading={loading} /> },
     ];
 
     if (isMobile) {
@@ -137,7 +77,7 @@ function AdminPageContent({
                      <BankManagement banks={banks} loading={loading} />
                      <UnitManagement units={units} loading={loading} />
                      <MemoSubjectManagement subjects={memoSubjects} loading={loading} />
-                     <TransferFeeCard />
+                     <TransferTypeManagement transferTypes={transferTypes} loading={loading} />
                 </TabsContent>
             </Tabs>
         )
@@ -181,6 +121,7 @@ export default function AdminPage() {
   const [banks, setBanks] = useState<Bank[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [memoSubjects, setMemoSubjects] = useState<MemoSubject[]>([]);
+  const [transferTypes, setTransferTypes] = useState<TransferType[]>([]);
   
   const [loading, setLoading] = useState(true);
   
@@ -203,6 +144,7 @@ export default function AdminPage() {
         { name: 'banks', setter: setBanks, orderBy: ['name', 'asc'] },
         { name: 'units', setter: setUnits, orderBy: ['name', 'asc'] },
         { name: 'memoSubjects', setter: setMemoSubjects, orderBy: ['name', 'asc'] },
+        { name: 'transferTypes', setter: setTransferTypes, orderBy: ['name', 'asc'] },
     ];
     
     const unsubscribers = collections.map(c => {
@@ -260,6 +202,7 @@ export default function AdminPage() {
             banks={banks}
             units={units}
             memoSubjects={memoSubjects}
+            transferTypes={transferTypes}
             loading={loading}
         />
     </div>

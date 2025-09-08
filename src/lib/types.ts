@@ -92,7 +92,8 @@ export interface BudgetRequest {
   fundSourceId?: string;
   // New fields
   paymentMethod?: 'Cash' | 'Transfer';
-  transferType?: 'RTGS' | 'BI-FAST' | 'LLG';
+  transferType?: string;
+  transferTypeId?: string;
   reimbursementAccount?: UserBankAccount;
   report?: ExpenseReport;
   budgetPeriod?: string;
@@ -167,11 +168,9 @@ export interface MemoSubject {
     isDeleted?: boolean;
 }
 
-export interface TransferSettings {
-    fees: {
-        'BI-FAST': number;
-        RTGS: number;
-        LLG: number;
-    };
-    defaultFee: number;
+export interface TransferType {
+    id: string;
+    name: string;
+    fee: number;
+    isDeleted?: boolean;
 }

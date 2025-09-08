@@ -1,4 +1,5 @@
 
+
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { config } from 'dotenv';
@@ -232,9 +233,15 @@ const units = [
 ];
 
 const memoSubjects = [
-    { name: 'OPERASIONAL BULANAN', isDeleted: false },
+    { name: 'ANGGARAN BULANAN', isDeleted: false },
     { name: 'KEBUTUHAN PROYEK', isDeleted: false },
     { name: 'ACARA KHUSUS', isDeleted: false },
+];
+
+const transferTypes = [
+    { name: 'BI-FAST', fee: 2500, isDeleted: false },
+    { name: 'RTGS', fee: 30000, isDeleted: false },
+    { name: 'LLG', fee: 6500, isDeleted: false },
 ];
 
 // --- Seeding logic ---
@@ -328,21 +335,8 @@ async function seed() {
   await seedCollection(db, 'banks', banks, 'name');
   await seedCollection(db, 'units', units, 'name');
   await seedCollection(db, 'memoSubjects', memoSubjects, 'name');
+  await seedCollection(db, 'transferTypes', transferTypes, 'name');
   
-  // Seed app settings
-  console.log('\nSeeding app settings...');
-  const settingsRef = db.collection('settings').doc('transfer');
-  const settingsDoc = await settingsRef.get();
-  if (!settingsDoc.exists) {
-      await settingsRef.set({
-          fee: 6500,
-          notes: 'Biaya transfer antar bank.'
-      });
-      console.log('Added default transfer fee setting.');
-  } else {
-      console.log('Transfer fee setting already exists. Skipping.');
-  }
-
   console.log('\n--- Database Seed Complete ---');
 }
 
