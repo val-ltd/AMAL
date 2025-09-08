@@ -126,7 +126,7 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
           </div>
 
           <div className="rounded-lg border bg-card p-4 space-y-4">
-             <h4 className="font-semibold text-base">{request.subject || 'OPERASIONAL BULANAN'}</h4>
+             <h4 className="font-semibold text-base">{request.subject || 'ANGGARAN BULANAN'}</h4>
              <Separator />
              {items.length > 0 ? (
                 <Table>

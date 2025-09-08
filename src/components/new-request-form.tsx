@@ -182,7 +182,7 @@ export function NewRequestForm() {
     setFormError(null);
     
     let subject = subjectPrefix.trim();
-    if (subjectPrefix !== 'OPERASIONAL BULANAN' && subjectSuffix.trim()) {
+    if (subjectPrefix !== 'ANGGARAN BULANAN' && subjectSuffix.trim()) {
         subject = `${subjectPrefix} ${subjectSuffix}`.trim();
     }
 
@@ -468,7 +468,7 @@ export function NewRequestForm() {
                     ))}
                 </SelectContent>
             </Select>
-            {subjectPrefix !== "OPERASIONAL BULANAN" && (
+            {subjectPrefix !== "ANGGARAN BULANAN" && (
               <Input 
                   id="subject-suffix"
                   value={subjectSuffix}
@@ -606,5 +606,3 @@ export function NewRequestForm() {
     </form>
   );
 }
-
-    

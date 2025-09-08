@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type { BudgetRequest, FundAccount } from "@/lib/types";
@@ -98,6 +99,7 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
     
     const approverName = fundAccount.pejabatNama || '........................';
     const firstRequesterName = requests[0]?.requester?.name || '........................';
+    const memoSubject = requests[0]?.subject || 'ANGGARAN BULANAN';
     
     const allItems = requests.flatMap(req => 
         (Array.isArray(req.items) && req.items.length > 0) 
@@ -132,7 +134,7 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
                     <span className="font-semibold">Tanggal:</span> {format(new Date(), 'dd MMMM yyyy', { locale: id })}
                 </div>
                 <div>
-                    <span className="font-semibold">Perihal:</span> OPERASIONAL BULANAN
+                    <span className="font-semibold">Perihal:</span> {memoSubject}
                 </div>
             </div>
 
