@@ -470,7 +470,7 @@ export async function getMemoSubjects(): Promise<MemoSubject[]> {
 }
 
 export async function getTransferTypes(): Promise<TransferType[]> {
-    return getCollectionData<TransferType>('name');
+    return getCollectionData<TransferType>('transferTypes', 'name');
 }
 
 export async function getFundAccount(id: string): Promise<FundAccount | null> {
