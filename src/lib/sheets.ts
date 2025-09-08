@@ -3,9 +3,12 @@
 'use server';
 
 import { google } from 'googleapis';
-import type { BudgetRequest } from './types';
+import type { BudgetRequest, FundAccount, User } from './types';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
+
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 const SHEET_NAME = 'request';
@@ -66,41 +69,34 @@ const ensureSheetExists = async (sheets: any, spreadsheetId: string) => {
 const ensureHeaderRow = async (sheets: any, sheetId: string) => {
     const getResponse = await sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
-        range: `${SHEET_NAME}!A1:P1`,
+        range: `${SHEET_NAME}!A1:V1`,
     });
+    
+    const expectedHeaders = [
+        'Lembaga', 'Requester', 'Uraian', 'Qty', 'Unit', 'Harga Satuan', 'Total', 
+        'Category', 'Divisi', 'Nama pemohon', 'Rek Penerima', 'Nama rek penerima', 
+        'Bank penerima', 'Biaya Trf', 'Rek Pengirim', 'Nama Rek pengirim', 
+        'Bank Pengirim', 'Perihal Memo', 'Periode', 'No. HP', 'EMAIL', 'Tgl Memo', 'No. Memo'
+    ];
 
-    if (!getResponse.data.values || getResponse.data.values.length === 0) {
+    if (!getResponse.data.values || getResponse.data.values.length === 0 || JSON.stringify(getResponse.data.values[0]) !== JSON.stringify(expectedHeaders)) {
         await sheets.spreadsheets.values.update({
             spreadsheetId: sheetId,
             range: `${SHEET_NAME}!A1`,
             valueInputOption: 'USER_ENTERED',
             requestBody: {
-                values: [
-                    [
-                        'ID',
-                        'Created At',
-                        'Requester',
-                        'Lembaga',
-                        'Divisi',
-                        'Supervisor',
-                        'Amount',
-                        'Status',
-                        'Subject',
-                        'Budget Period',
-                        'Item Description',
-                        'Category',
-                        'Qty',
-                        'Unit',
-                        'Price',
-                        'Total',
-                    ],
-                ],
+                values: [expectedHeaders],
             },
         });
     }
 };
 
-export async function appendRequestToSheet(request: BudgetRequest): Promise<{startRow: number, endRow: number}> {
+interface FullRequestForSheet extends BudgetRequest {
+    requesterProfile: User;
+    fundAccount: FundAccount;
+}
+
+export async function appendRequestToSheet(request: FullRequestForSheet): Promise<{startRow: number, endRow: number}> {
   try {
     const sheets = getSheetsApi();
     const sheetId = process.env.GOOGLE_SHEET_ID;
@@ -113,27 +109,33 @@ export async function appendRequestToSheet(request: BudgetRequest): Promise<{sta
 
     const range = `${SHEET_NAME}!A1`;
     
-    const baseRow = [
-      request.id,
-      request.createdAt,
-      request.requester.name,
-      request.department?.lembaga ?? request.institution ?? '',
-      request.department?.divisi ?? request.division ?? '',
-      request.supervisor?.name ?? '',
-      request.amount,
-      request.status,
-      request.subject,
-      request.budgetPeriod,
-    ];
+    const memoDate = format(new Date(request.createdAt), 'dd/MM/yyyy', { locale: id });
+    const memoNumber = `MEMO/${request.id.slice(0,5).toUpperCase()}/${new Date().getFullYear()}`;
 
     const itemRows = request.items.map(item => [
-        ...baseRow,
-        item.description,
-        item.category,
-        item.qty,
-        item.unit,
-        item.price,
-        item.total
+        request.department?.lembaga ?? request.institution ?? '', // Lembaga
+        request.requester.name, // Requester
+        item.description, // Uraian
+        item.qty, // Qty
+        item.unit, // Unit
+        item.price, // Harga Satuan
+        item.total, // Total
+        item.category, // Category
+        request.department?.divisi ?? request.division ?? '', // Divisi
+        request.requesterProfile.name, // Nama pemohon
+        request.reimbursementAccount?.accountNumber ?? 'N/A', // Rek Penerima
+        request.reimbursementAccount?.accountHolderName ?? 'N/A', // Nama rek penerima
+        request.reimbursementAccount?.bankName ?? 'N/A', // Bank penerima
+        request.transferFee ?? 0, // Biaya Trf
+        request.fundAccount.accountNumber, // Rek Pengirim
+        request.fundAccount.accountName, // Nama Rek pengirim
+        request.fundAccount.bankName, // Bank Pengirim
+        request.subject, // Perihal Memo
+        request.budgetPeriod, // Periode
+        request.requesterProfile.phoneNumber ?? '', // No. HP
+        request.requesterProfile.email ?? '', // EMAIL
+        memoDate, // Tgl Memo
+        memoNumber, // No. Memo
     ]);
 
 
@@ -149,7 +151,7 @@ export async function appendRequestToSheet(request: BudgetRequest): Promise<{sta
 
     const updatedRange = response.data.updates?.updatedRange;
     if (updatedRange) {
-        // Example updatedRange: 'request!A10:O11'
+        // Example updatedRange: 'request!A10:W11'
         const match = updatedRange.match(/!A(\d+):/);
         if (match) {
             const startRow = parseInt(match[1], 10);
@@ -181,7 +183,15 @@ export async function updateRequestInSheet(status: BudgetRequest['status'], star
             console.error(`Cannot update sheet: missing sheet row numbers.`);
             return;
         }
-
+        
+        // The status column will now need to be derived from your new layout.
+        // Based on the new header, status is not a column. We'll skip this update for now.
+        // If you add a status column, this function can be re-enabled.
+        console.log(`Sheet update for status '${status}' skipped as there is no status column in the new layout.`);
+        return;
+        
+        /*
+        // Example if 'Status' was column H (8th column)
         const rangeToUpdate = `${SHEET_NAME}!H${startRow}:H${endRow}`;
 
         const values = Array(endRow - startRow + 1).fill([status]);
@@ -194,6 +204,7 @@ export async function updateRequestInSheet(status: BudgetRequest['status'], star
                 values,
             },
         });
+        */
 
     } catch (error) {
         console.error('Error updating Google Sheet:', error);

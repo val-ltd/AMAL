@@ -19,7 +19,7 @@ import {
   DocumentReference,
   setDoc,
 } from 'firebase/firestore';
-import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Notification, Role, Bank, Unit, MemoSubject, ExpenseReport } from './types';
+import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Notification, Role, Bank, Unit, MemoSubject, ExpenseReport, TransferSettings } from './types';
 import { auth, db } from './firebase';
 import { appendRequestToSheet, updateRequestInSheet } from './sheets';
 
@@ -153,7 +153,7 @@ export async function createRequest(
 
   try {
     // Step 1: Append to Google Sheets first, using the pre-generated ID
-    const sheetUpdateResponse = await appendRequestToSheet(requestWithId as BudgetRequest);
+    const sheetUpdateResponse = await appendRequestToSheet(requestWithId as any); // `any` because sheet type is broader
 
     // Step 2: If sheet append is successful, save to Firestore with the same ID
     const requestDataForFirestore = {
@@ -179,6 +179,15 @@ export async function createRequest(
     throw error;
   }
 }
+
+const formatRupiah = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(amount);
+};
+
 
 export async function updateRequest(
   id: string,
@@ -468,13 +477,14 @@ export async function getFundAccount(id: string): Promise<FundAccount | null> {
     return null;
 }
 
-const formatRupiah = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-};
+export async function getTransferSettings(): Promise<TransferSettings | null> {
+    const docRef = doc(db, 'settings', 'transfer');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        return docSnap.data() as TransferSettings;
+    }
+    return null;
+}
 
 
 // --- Notifications ---

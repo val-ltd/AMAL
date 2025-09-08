@@ -26,6 +26,7 @@ import { Separator } from '../ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { useAuth } from '@/hooks/use-auth';
 import { getFundAccounts, getFundAccount, updateRequest } from '@/lib/data';
+import { Alert, AlertDescription } from '../ui/alert';
 
 interface ApprovalDialogProps {
   request: BudgetRequest;
@@ -97,6 +98,7 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
   }
 
   const items = Array.isArray(request.items) && request.items.length > 0 ? request.items : [];
+  const itemsTotal = items.reduce((sum, item) => sum + item.total, 0);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -149,6 +151,12 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                                 <TableCell className="text-right">{formatRupiah(item.total)}</TableCell>
                             </TableRow>
                         ))}
+                         {request.transferFee && request.transferFee > 0 && (
+                            <TableRow>
+                                <TableCell colSpan={4} className="text-right font-semibold">Biaya Transfer ({request.transferType})</TableCell>
+                                <TableCell className="text-right font-semibold">{formatRupiah(request.transferFee)}</TableCell>
+                            </TableRow>
+                        )}
                         <TableRow>
                             <TableCell colSpan={4} className="text-right font-bold">Total Pengajuan</TableCell>
                             <TableCell className="text-right font-bold">{formatRupiah(request.amount)}</TableCell>

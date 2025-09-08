@@ -96,6 +96,7 @@ export interface BudgetRequest {
   reimbursementAccount?: UserBankAccount;
   report?: ExpenseReport;
   budgetPeriod?: string;
+  transferFee?: number;
 }
 
 export interface Department {
@@ -164,4 +165,13 @@ export interface MemoSubject {
     id: string;
     name: string;
     isDeleted?: boolean;
+}
+
+export interface TransferSettings {
+    fees: {
+        'BI-FAST': number;
+        RTGS: number;
+        LLG: number;
+    };
+    defaultFee: number;
 }

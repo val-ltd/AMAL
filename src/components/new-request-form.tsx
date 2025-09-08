@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,8 +11,8 @@ import { Copy, Loader2, Plus, Save, Trash2, WalletCards } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import type { User, Department, BudgetCategory, RequestItem, UserBankAccount, Unit, BudgetRequest, MemoSubject, FundAccount } from '@/lib/types';
-import { getManagers, getUser, getBudgetCategories, getUnits, getRequest, getMemoSubjects, getFundAccounts } from '@/lib/data';
+import type { User, Department, BudgetCategory, RequestItem, UserBankAccount, Unit, BudgetRequest, MemoSubject, FundAccount, TransferSettings } from '@/lib/types';
+import { getManagers, getUser, getBudgetCategories, getUnits, getRequest, getMemoSubjects, getFundAccounts, getTransferSettings } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -64,6 +64,7 @@ export function NewRequestForm() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [memoSubjects, setMemoSubjects] = useState<MemoSubject[]>([]);
   const [fundAccounts, setFundAccounts] = useState<FundAccount[]>([]);
+  const [transferSettings, setTransferSettings] = useState<TransferSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Form State
@@ -92,7 +93,16 @@ export function NewRequestForm() {
             setLoading(true);
             try {
                 const idToFetch = draftId || duplicateRequestId;
-                const [userProfile, managerList, categoryList, unitList, subjectList, fundAccountList, requestToLoad] = await Promise.all([
+                const [
+                    userProfile, 
+                    managerList, 
+                    categoryList, 
+                    unitList, 
+                    subjectList, 
+                    fundAccountList, 
+                    reqToLoad,
+                    tSettings
+                ] = await Promise.all([
                   getUser(authUser.uid),
                   getManagers(),
                   getBudgetCategories(),
@@ -100,6 +110,7 @@ export function NewRequestForm() {
                   getMemoSubjects(),
                   getFundAccounts(),
                   idToFetch ? getRequest(idToFetch) : Promise.resolve(null),
+                  getTransferSettings()
                 ]);
 
                 setProfileData(userProfile);
@@ -108,6 +119,7 @@ export function NewRequestForm() {
                 setUnits(unitList);
                 setMemoSubjects(subjectList);
                 setFundAccounts(fundAccountList);
+                setTransferSettings(tSettings);
                 
                 if (userProfile?.bankAccounts && userProfile.bankAccounts.length > 0) {
                     setReimbursementAccountId(userProfile.bankAccounts[0].accountNumber);
@@ -121,8 +133,8 @@ export function NewRequestForm() {
                   // Do not set a default department
                 }
                 
-                if (requestToLoad) {
-                  const fullSubject = requestToLoad.subject || '';
+                if (reqToLoad) {
+                  const fullSubject = reqToLoad.subject || '';
                   const matchingPrefix = memoSubjects.find(s => fullSubject.startsWith(s.name));
                   if (matchingPrefix) {
                     setSubjectPrefix(matchingPrefix.name);
@@ -132,18 +144,18 @@ export function NewRequestForm() {
                     setSubjectSuffix('');
                   }
 
-                  setBudgetPeriod(requestToLoad.budgetPeriod || format(new Date(), 'MMMM yyyy', { locale: localeId }));
-                  setItems(requestToLoad.items.map((item, index) => ({...item, id: `${Date.now()}-${index}`})));
-                  setAdditionalInfo(requestToLoad.additionalInfo || '');
-                  setSupervisorId(requestToLoad.supervisor?.id || '');
-                  setFundSourceId(requestToLoad.fundSourceId || '');
-                  const loadedDept = userDepartments.find(d => d.lembaga === requestToLoad.institution && d.divisi === requestToLoad.division);
+                  setBudgetPeriod(reqToLoad.budgetPeriod || format(new Date(), 'MMMM yyyy', { locale: localeId }));
+                  setItems(reqToLoad.items.map((item, index) => ({...item, id: `${Date.now()}-${index}`})));
+                  setAdditionalInfo(reqToLoad.additionalInfo || '');
+                  setSupervisorId(reqToLoad.supervisor?.id || '');
+                  setFundSourceId(reqToLoad.fundSourceId || '');
+                  const loadedDept = userDepartments.find(d => d.lembaga === reqToLoad.institution && d.divisi === reqToLoad.division);
                   if (loadedDept) {
                       setSelectedDepartmentId(loadedDept.id);
                   }
-                  setPaymentMethod(requestToLoad.paymentMethod || 'Cash');
-                  setTransferType(requestToLoad.transferType);
-                  setReimbursementAccountId(requestToLoad.reimbursementAccount?.accountNumber || '');
+                  setPaymentMethod(reqToLoad.paymentMethod || 'Cash');
+                  setTransferType(reqToLoad.transferType);
+                  setReimbursementAccountId(reqToLoad.reimbursementAccount?.accountNumber || '');
                   
                   const message = draftId ? "Draf dimuat." : "Permintaan diduplikasi.";
                   toast({title: message, description: "Data dari permintaan sebelumnya telah dimuat. Silakan periksa dan kirim."});
@@ -166,7 +178,7 @@ export function NewRequestForm() {
     const item = { ...newItems[index], [field]: value };
     
     if (field === 'qty' || field === 'price') {
-      item.total = item.qty * item.price;
+      item.total = (Number(item.qty) || 0) * (Number(item.price) || 0);
     }
     
     newItems[index] = item;
@@ -181,8 +193,30 @@ export function NewRequestForm() {
     const newItems = items.filter((_, i) => i !== index);
     setItems(newItems);
   };
+  
+  const calculatedTransferFee = useMemo(() => {
+    if (paymentMethod !== 'Transfer' || !fundSourceId || !reimbursementAccountId || !transferType || !transferSettings) {
+        return 0;
+    }
+    
+    const senderAccount = fundAccounts.find(acc => acc.id === fundSourceId);
+    const receiverAccount = profileData?.bankAccounts?.find(acc => acc.accountNumber === reimbursementAccountId);
 
-  const totalAmount = useMemo(() => items.reduce((sum, item) => sum + item.total, 0), [items]);
+    if (!senderAccount || !receiverAccount) return 0;
+    
+    // No fee for same bank
+    if (senderAccount.bankName === receiverAccount.bankName) {
+        return 0;
+    }
+    
+    return transferSettings.fees[transferType] ?? transferSettings.defaultFee;
+  }, [paymentMethod, fundSourceId, reimbursementAccountId, transferType, fundAccounts, profileData, transferSettings]);
+
+
+  const totalAmount = useMemo(() => {
+    const itemsTotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
+    return itemsTotal + calculatedTransferFee;
+  }, [items, calculatedTransferFee]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>, status: 'pending' | 'draft') => {
     e.preventDefault();
@@ -238,6 +272,7 @@ export function NewRequestForm() {
         supervisor: supervisor ? { id: supervisor.id, name: supervisor.name } : undefined,
         fundSourceId,
         paymentMethod,
+        transferFee: calculatedTransferFee,
         status: status,
     };
 
@@ -250,10 +285,20 @@ export function NewRequestForm() {
         const isUpdatingDraft = !!draftId;
 
         if (isSubmittingForApproval) {
+            const fundAccount = fundAccounts.find(f => f.id === fundSourceId);
+
+            const fullRequestDataForSheet = {
+                ...requestObject,
+                id: requestObject.id,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                requesterProfile: profileData,
+                fundAccount: fundAccount,
+            }
+
             const requestDataForFirestore = { ...requestObject, updatedAt: serverTimestamp() };
             
-            // Append to sheet first, then save to Firestore
-            const sheetUpdateResponse = await appendRequestToSheet({ ...requestDataForFirestore, id: requestObject.id, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+            const sheetUpdateResponse = await appendRequestToSheet(fullRequestDataForSheet as any);
             
             requestDataForFirestore.sheetStartRow = sheetUpdateResponse.startRow;
             requestDataForFirestore.sheetEndRow = sheetUpdateResponse.endRow;
@@ -574,45 +619,54 @@ export function NewRequestForm() {
                 </div>
             </RadioGroup>
             {paymentMethod === 'Transfer' && (
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <Label htmlFor="transferType">Jenis Transfer*</Label>
-                        <Select value={transferType} onValueChange={(v) => setTransferType(v as any)}>
-                            <SelectTrigger id="transferType">
-                                <SelectValue placeholder="Pilih jenis transfer..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="RTGS">RTGS</SelectItem>
-                                <SelectItem value="BI-FAST">BI-FAST</SelectItem>
-                                <SelectItem value="LLG">LLG</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div>
-                        <Label htmlFor="reimbursementAccount">Rekening Penerima*</Label>
-                        {(profileData?.bankAccounts && profileData.bankAccounts.length > 0) ? (
-                            <Select value={reimbursementAccountId} onValueChange={setReimbursementAccountId}>
-                                <SelectTrigger id="reimbursementAccount">
-                                    <SelectValue placeholder="Pilih rekening..." />
+                 <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="transferType">Jenis Transfer*</Label>
+                            <Select value={transferType} onValueChange={(v) => setTransferType(v as any)}>
+                                <SelectTrigger id="transferType">
+                                    <SelectValue placeholder="Pilih jenis transfer..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {profileData.bankAccounts.map(acc => (
-                                        <SelectItem key={acc.accountNumber} value={acc.accountNumber}>
-                                            {acc.bankName} - {acc.accountNumber} (a/n {acc.accountHolderName})
-                                        </SelectItem>
-                                    ))}
+                                    <SelectItem value="BI-FAST">BI-FAST ({formatRupiah(transferSettings?.fees['BI-FAST'] || 0)})</SelectItem>
+                                    <SelectItem value="RTGS">RTGS ({formatRupiah(transferSettings?.fees.RTGS || 0)})</SelectItem>
+                                    <SelectItem value="LLG">LLG ({formatRupiah(transferSettings?.fees.LLG || 0)})</SelectItem>
                                 </SelectContent>
                             </Select>
-                        ) : (
-                            <Alert variant="destructive" className="mt-2">
-                                <WalletCards className="h-4 w-4" />
-                                <AlertTitle>Tidak Ada Rekening Bank</AlertTitle>
-                                <AlertDescription>
-                                    Anda tidak memiliki rekening bank yang tersimpan. Silakan tambahkan satu di halaman profil Anda untuk menggunakan metode transfer.
-                                </AlertDescription>
-                            </Alert>
-                        )}
+                        </div>
+                        <div>
+                            <Label htmlFor="reimbursementAccount">Rekening Penerima*</Label>
+                            {(profileData?.bankAccounts && profileData.bankAccounts.length > 0) ? (
+                                <Select value={reimbursementAccountId} onValueChange={setReimbursementAccountId}>
+                                    <SelectTrigger id="reimbursementAccount">
+                                        <SelectValue placeholder="Pilih rekening..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {profileData.bankAccounts.map(acc => (
+                                            <SelectItem key={acc.accountNumber} value={acc.accountNumber}>
+                                                {acc.bankName} - {acc.accountNumber} (a/n {acc.accountHolderName})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                <Alert variant="destructive" className="mt-2">
+                                    <WalletCards className="h-4 w-4" />
+                                    <AlertTitle>Tidak Ada Rekening Bank</AlertTitle>
+                                    <AlertDescription>
+                                        Anda tidak memiliki rekening bank yang tersimpan. Silakan tambahkan satu di halaman profil Anda untuk menggunakan metode transfer.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                        </div>
                     </div>
+                    {calculatedTransferFee > 0 && (
+                        <Alert>
+                            <AlertDescription>
+                                Biaya transfer sebesar {formatRupiah(calculatedTransferFee)} akan ditambahkan ke total pengajuan.
+                            </AlertDescription>
+                        </Alert>
+                    )}
                  </div>
             )}
         </CardContent>
