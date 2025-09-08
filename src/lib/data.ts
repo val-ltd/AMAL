@@ -208,6 +208,7 @@ export async function updateRequest(
     batch.update(requestRef, {
         status,
         managerComment,
+        managerActionAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     });
 

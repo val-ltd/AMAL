@@ -20,7 +20,7 @@ import StatusBadge from '../status-badge';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Building, Eye, Loader2, ThumbsDown, ThumbsUp, UserCheck, Wallet, ArrowRight } from 'lucide-react';
+import { Building, Eye, Loader2, ThumbsDown, ThumbsUp, UserCheck, Wallet, ArrowRight, Calendar, CheckCircle } from 'lucide-react';
 import { formatDepartment } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
@@ -203,6 +203,18 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                         <span>Metode Pembayaran: Tunai</span>
                     </div>
                 )}
+                 {request.managerActionAt && (
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                        <Calendar className="w-4 h-4 flex-shrink-0" />
+                        <span>Manajer Bertindak: {format(new Date(request.managerActionAt), 'PPpp', { locale: id })}</span>
+                    </div>
+                 )}
+                 {request.releasedAt && (
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                        <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                        <span>Dana Dicairkan: {format(new Date(request.releasedAt), 'PPpp', { locale: id })} oleh {request.releasedBy?.name}</span>
+                    </div>
+                 )}
             </div>
           </div>
           

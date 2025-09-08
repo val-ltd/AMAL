@@ -74,6 +74,7 @@ export interface BudgetRequest {
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
   managerComment?: string;
+  managerActionAt?: string; // ISO string for when manager approved/rejected
   institution: string; // Top-level institution for grouping
   division: string;
   supervisor?: {
