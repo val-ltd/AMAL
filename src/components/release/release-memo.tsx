@@ -83,7 +83,7 @@ const numberToWords = (num: number): string => {
 function MemoHeader() {
     return (
         <div className="flex items-center justify-between pb-4 border-b-4 border-black px-4">
-            <Image src="/logo-wm.png" alt="Wadi Mubarak Logo" width={80} height={80} />
+            <Image src="/logo-wadi.png" alt="Wadi Mubarak Logo" width={80} height={80} />
             <div className="text-center">
                 <h1 className="text-xl font-bold">MEMO PERMOHONAN PENCAIRAN DANA</h1>
                 <h2 className="text-lg font-semibold">ANGGARAN BULANAN</h2>
