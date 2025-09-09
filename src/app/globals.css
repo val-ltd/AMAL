@@ -111,9 +111,9 @@
         }
         
         .canvas-a4 {
-            /* 210mm is the width, we scale it down to fit the container */
+            /* A4 paper has a width of 794px in standard CSS pixels (210mm * 3.78) */
             --a4-width: 794px; 
-            /* Get the scale factor by dividing container width by paper width */
+            /* Calculate the scale factor needed to fit the paper to the viewport width */
             --scale-factor: calc(100vw / var(--a4-width));
             
             transform: scale(var(--scale-factor));
