@@ -171,8 +171,8 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
             </header>
 
             <div className="mt-4 space-y-1">
-                <p>Bismillahirrohmaanirrohiim</p>
-                <p>Assalamu'alaikum Warahmatullahi Wabarakaatuh</p>
+                <p className="font-bold italic">Bismillahirrohmaanirrohiim</p>
+                <p className="font-bold italic">Assalamu'alaikum Warahmatullahi Wabarakaatuh</p>
                 <p className="mt-2">Sehubungan dengan telah disetujui dan ditandatanganinya Permohonan Anggaran Dana oleh Ketua Yayasan, maka kami sampaikan Rincian Permohonan Anggaran Dana sebagai berikut:</p>
             </div>
             
@@ -242,7 +242,7 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
 
             <div className="mt-2 space-y-1">
                 <p>Demikian permohonan ini kami sampaikan, atas perhatian dan kerjasamanya, kami haturkan Jazakumullahu Khairan Katsiran</p>
-                <p>Wassalamu'alaikum Warahmatullahi Wabarakaatuh</p>
+                <p className="font-bold italic">Wassalamu'alaikum Warahmatullahi Wabarakaatuh</p>
             </div>
 
             <div className="mt-4 grid grid-cols-3 gap-4 text-center">
