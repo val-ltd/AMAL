@@ -232,6 +232,10 @@ export function NewRequestForm() {
     const itemsTotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
     return itemsTotal + transferDetails.fee;
   }, [items, transferDetails.fee]);
+  
+  const selectedFundAccount = useMemo(() => {
+    return fundAccounts.find(acc => acc.id === fundSourceId);
+  }, [fundSourceId, fundAccounts]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>, status: 'pending' | 'draft') => {
     e.preventDefault();
@@ -709,10 +713,19 @@ export function NewRequestForm() {
                         </Alert>
                     )}
                  </div>
-            ) : ( // Cash payment
+            ) : ( 
                 <Alert>
                     <AlertDescription>
-                        Pembayaran tunai akan ditransfer ke rekening Bendahara yang terkait dengan Sumber Dana yang dipilih.
+                        {selectedFundAccount ? (
+                            <>
+                                Pembayaran tunai akan ditransfer ke rekening Bendahara:
+                                <span className="font-semibold block mt-1">
+                                    {selectedFundAccount.namaBendahara} - {selectedFundAccount.bankBendahara} ({selectedFundAccount.rekeningBendahara})
+                                </span>
+                            </>
+                        ) : (
+                            "Pilih Sumber Dana untuk melihat detail rekening Bendahara."
+                        )}
                     </AlertDescription>
                 </Alert>
             )}
