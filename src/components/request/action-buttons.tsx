@@ -5,7 +5,7 @@ import type { BudgetRequest } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { ApprovalDialog } from '@/components/manager/approval-dialog';
-import { Eye, ThumbsUp, Edit, Copy } from 'lucide-react';
+import { Eye, Search, Edit, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { ViewRequestDialog } from './view-request-dialog';
 
@@ -37,7 +37,7 @@ export function ActionButtons({ request, isManagerView = false }: ActionButtonsP
         <ApprovalDialog 
           request={request}
           isReadOnly={false}
-          triggerButton={<Button><ThumbsUp className="mr-2 h-4 w-4" />Tinjau</Button>}
+          triggerButton={<Button><Search className="mr-2 h-4 w-4" />Tinjau</Button>}
         />
       ) : (
         <ViewRequestDialog 

@@ -97,7 +97,9 @@ function MemoHeader({ memoNumber, dari, releaser, unitKerja, perihal, memoDate }
     return (
         <div className="flex flex-col">
             <div className="flex items-start justify-between pb-2 border-b-4 border-black">
-                <Image src="/logo-wadi.png" alt="Wadi Mubarak Logo" width={60} height={60} />
+                <div className="relative w-[60px] h-[60px]">
+                    <Image src="/logo-wadi.png" alt="Wadi Mubarak Logo" layout="fill" objectFit="contain" />
+                </div>
                 <div className="text-center">
                     <h1 className="text-xl font-bold">MEMO PERMOHONAN PENCAIRAN DANA</h1>
                     <h2 className="text-lg font-semibold uppercase">{perihal}</h2>
