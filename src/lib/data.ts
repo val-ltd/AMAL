@@ -24,6 +24,14 @@ import type { BudgetRequest, User, Department, BudgetCategory, FundAccount, Noti
 import { auth, db } from './firebase';
 import { appendRequestToSheet, updateRequestInSheet } from './sheets';
 
+const toIsoIfTimestamp = (timestamp: any) => {
+    if (timestamp && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate().toISOString();
+    }
+    return timestamp;
+};
+
+
 // This function now returns an unsubscribe function for the real-time listener
 export function getMyRequests(
   callback: (requests: BudgetRequest[]) => void
@@ -47,8 +55,10 @@ export function getMyRequests(
       requests.push({
         id: doc.id,
         ...data,
-        createdAt: data.createdAt?.toDate().toISOString() ?? new Date().toISOString(),
-        updatedAt: data.updatedAt?.toDate().toISOString() ?? new Date().toISOString(),
+        createdAt: toIsoIfTimestamp(data.createdAt) || new Date().toISOString(),
+        updatedAt: toIsoIfTimestamp(data.updatedAt) || new Date().toISOString(),
+        releasedAt: toIsoIfTimestamp(data.releasedAt),
+        managerActionAt: toIsoIfTimestamp(data.managerActionAt),
       } as BudgetRequest);
     });
     callback(requests);
@@ -84,8 +94,10 @@ export function getPendingRequests(
       requests.push({
         id: doc.id,
         ...data,
-        createdAt: data.createdAt?.toDate().toISOString() ?? new Date().toISOString(),
-        updatedAt: data.updatedAt?.toDate().toISOString() ?? new Date().toISOString(),
+        createdAt: toIsoIfTimestamp(data.createdAt) || new Date().toISOString(),
+        updatedAt: toIsoIfTimestamp(data.updatedAt) || new Date().toISOString(),
+        releasedAt: toIsoIfTimestamp(data.releasedAt),
+        managerActionAt: toIsoIfTimestamp(data.managerActionAt),
       } as BudgetRequest);
     });
     callback(requests);
@@ -118,9 +130,10 @@ export function getApprovedUnreleasedRequests(
       requests.push({
         id: doc.id,
         ...data,
-        createdAt: data.createdAt?.toDate().toISOString() ?? new Date().toISOString(),
-        updatedAt: data.updatedAt?.toDate().toISOString() ?? new Date().toISOString(),
-        releasedAt: data.releasedAt?.toDate().toISOString(),
+        createdAt: toIsoIfTimestamp(data.createdAt) || new Date().toISOString(),
+        updatedAt: toIsoIfTimestamp(data.updatedAt) || new Date().toISOString(),
+        releasedAt: toIsoIfTimestamp(data.releasedAt),
+        managerActionAt: toIsoIfTimestamp(data.managerActionAt),
       } as BudgetRequest);
     });
     callback(requests);
@@ -364,10 +377,10 @@ export async function getRequest(id: string): Promise<BudgetRequest | null> {
         return { 
             id: requestDoc.id, 
             ...data,
-            createdAt: data.createdAt?.toDate().toISOString() ?? new Date().toISOString(),
-            updatedAt: data.updatedAt?.toDate().toISOString() ?? new Date().toISOString(),
-            releasedAt: data.releasedAt?.toDate().toISOString(),
-            managerActionAt: data.managerActionAt?.toDate().toISOString(),
+            createdAt: toIsoIfTimestamp(data.createdAt) || new Date().toISOString(),
+            updatedAt: toIsoIfTimestamp(data.updatedAt) || new Date().toISOString(),
+            releasedAt: toIsoIfTimestamp(data.releasedAt),
+            managerActionAt: toIsoIfTimestamp(data.managerActionAt),
         } as BudgetRequest;
     }
     return null;
@@ -455,23 +468,23 @@ export async function getBudgetCategories(): Promise<BudgetCategory[]> {
 }
 
 export async function getFundAccounts(): Promise<FundAccount[]> {
-    return getCollectionData<FundAccount>('fundAccounts', 'accountName');
+    return getCollectionData<FundAccount>('accountName');
 }
 
 export async function getBanks(): Promise<Bank[]> {
-    return getCollectionData<Bank>('banks', 'name');
+    return getCollectionData<Bank>('name');
 }
 
 export async function getUnits(): Promise<Unit[]> {
-    return getCollectionData<Unit>('units', 'name');
+    return getCollectionData<Unit>('name');
 }
 
 export async function getMemoSubjects(): Promise<MemoSubject[]> {
-    return getCollectionData<MemoSubject>('memoSubjects', 'name');
+    return getCollectionData<MemoSubject>('name');
 }
 
 export async function getTransferTypes(): Promise<TransferType[]> {
-    return getCollectionData<TransferType>('transferTypes', 'name');
+    return getCollectionData<TransferType>('name');
 }
 
 export async function getFundAccount(id: string): Promise<FundAccount | null> {

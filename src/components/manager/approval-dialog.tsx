@@ -202,12 +202,12 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                 )}
                  <div className="flex items-center gap-3 text-muted-foreground">
                      <Calendar className="w-4 h-4 flex-shrink-0" />
-                     <span>Manajer Bertindak: {request.managerActionAt ? request.managerActionAt : 'Belum ada tindakan'}</span>
+                     <span>Manajer Bertindak: {request.managerActionAt ? format(new Date(request.managerActionAt), 'PPpp', { locale: id }) : 'Belum ada tindakan'}</span>
                  </div>
                  <div className="flex items-center gap-3 text-muted-foreground">
                     <CheckCircle className="w-4 h-4 flex-shrink-0" />
                     <span>
-                      Dana Dicairkan: {request.releasedAt ? `${request.releasedAt} oleh ${request.releasedBy?.name}` : 'Belum Dicairkan'}
+                      Dana Dicairkan: {request.releasedAt ? `${format(new Date(request.releasedAt), 'PPpp', { locale: id })} oleh ${request.releasedBy?.name}` : 'Belum Dicairkan'}
                     </span>
                  </div>
             </div>

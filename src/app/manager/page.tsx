@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ShieldAlert } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toIsoIfTimestamp } from "@/lib/utils";
 
 export default function ManagerPage() {
   const { user, loading: authLoading } = useAuth();
@@ -37,10 +38,10 @@ export default function ManagerPage() {
                 fetchedRequests.push({
                     id: doc.id,
                     ...data,
-                    createdAt: data.createdAt?.toDate().toISOString() ?? new Date().toISOString(),
-                    updatedAt: data.updatedAt?.toDate().toISOString() ?? new Date().toISOString(),
-                    releasedAt: data.releasedAt?.toDate().toISOString(),
-                    managerActionAt: data.managerActionAt?.toDate().toISOString(),
+                    createdAt: toIsoIfTimestamp(data.createdAt) || new Date().toISOString(),
+                    updatedAt: toIsoIfTimestamp(data.updatedAt) || new Date().toISOString(),
+                    releasedAt: toIsoIfTimestamp(data.releasedAt),
+                    managerActionAt: toIsoIfTimestamp(data.managerActionAt),
                 } as BudgetRequest);
             });
             setRequests(fetchedRequests);
