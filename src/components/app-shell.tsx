@@ -33,7 +33,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <header className="sticky top-0 z-10 hidden items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:flex h-16">
                 <div className="flex items-center gap-6">
                     <Link href="/" className="flex items-center h-full">
-                        <Image src="/logo-wadi.png" alt="Amal Logo" width={20} height={20} className="object-contain h-auto w-full" />
+                        <Image src="/logo-wadi.png" alt="Amal Logo" width={40} height={40} className="object-contain" />
                     </Link>
                     <div className="flex items-center gap-4">
                         <div className="h-6 w-24 rounded-md bg-muted animate-pulse"></div>
@@ -86,7 +86,7 @@ function Header() {
     <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm h-16">
       <div className="flex items-center gap-6">
         <Link href="/" className="flex items-center h-full">
-            <Image src="/logo-wadi.png" alt="Amal Logo" width={20} height={20} className="object-contain" />
+            <Image src="/logo-wadi.png" alt="Amal Logo" width={40} height={40} className="object-contain" />
         </Link>
         {showFullHeader && <DesktopNav userRoles={authUser.profile?.roles} />}
       </div>
