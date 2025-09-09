@@ -144,7 +144,7 @@ export default function EmployeeDashboard() {
             </CardHeader>
         </Card>
         
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4">
             {Object.entries(summaryStats)
                 .filter(([status]) => ['pending', 'approved', 'rejected', 'completed'].includes(status))
                 .map(([status, data]) => (
@@ -161,7 +161,7 @@ export default function EmployeeDashboard() {
             ))}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 w-[100vw]">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
             <Card className="lg:col-span-4">
                 <CardHeader>
                     <CardTitle>Total Pengajuan per Status</CardTitle>
@@ -266,7 +266,7 @@ function DashboardSkeleton() {
     return (
         <div className="flex flex-col gap-6">
             <Skeleton className="h-28 w-full" />
-             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+             <div className="grid grid-cols-2 gap-4">
                 <Skeleton className="h-28 w-full" />
                 <Skeleton className="h-28 w-full" />
                 <Skeleton className="h-28 w-full" />
