@@ -3,22 +3,16 @@ import type { BudgetRequest } from '@/lib/types';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import StatusBadge from './status-badge';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { ApprovalDialog } from './manager/approval-dialog';
 import { formatDepartment } from '@/lib/utils';
 import { Separator } from './ui/separator';
-import { useAuth } from '@/hooks/use-auth';
-import { Button } from './ui/button';
-import { Eye, ThumbsUp, FileText, Copy, Edit } from 'lucide-react';
-import Link from 'next/link';
+import { ActionButtons } from './request/action-buttons';
 
 interface RequestListProps {
   requests: BudgetRequest[];
@@ -26,8 +20,6 @@ interface RequestListProps {
 }
 
 export default function RequestList({ requests, isManagerView = false }: RequestListProps) {
-  const { user } = useAuth();
-  
   if (requests.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed bg-card p-12 text-center">
@@ -47,50 +39,6 @@ export default function RequestList({ requests, isManagerView = false }: Request
       maximumFractionDigits: 0,
     }).format(amount).replace('IDR', 'Rp');
   };
-
-  const ActionButtons = ({ request }: { request: BudgetRequest }) => {
-    const isSupervisor = user?.uid === request.supervisor?.id;
-    const isActionable = isManagerView && isSupervisor && request.status === 'pending';
-    const isCompleted = !isManagerView && request.status === 'completed';
-    const isDraft = request.status === 'draft';
-
-    if (isDraft) {
-      return (
-        <Button asChild>
-          <Link href={`/request/new?draft=${request.id}`}>
-            <Edit className="mr-2 h-4 w-4" />
-            Ubah Draf
-          </Link>
-        </Button>
-      );
-    }
-
-    return (
-      <div className="flex items-center gap-2">
-        {isActionable ? (
-          <ApprovalDialog 
-            request={request}
-            isReadOnly={false}
-            triggerButton={<Button><ThumbsUp className="mr-2 h-4 w-4" />Tinjau</Button>}
-          />
-        ) : (
-          <ApprovalDialog 
-            request={request}
-            isReadOnly={true}
-            triggerButton={<Button variant="outline"><Eye className="mr-2 h-4 w-4" />Lihat Detail</Button>}
-          />
-        )}
-        {!isManagerView && (
-           <Button asChild variant="ghost" size="icon">
-              <Link href={`/request/new?duplicate=${request.id}`}>
-                <Copy className="h-4 w-4" />
-                <span className="sr-only">Duplikat</span>
-              </Link>
-            </Button>
-        )}
-      </div>
-    )
-  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -132,7 +80,7 @@ export default function RequestList({ requests, isManagerView = false }: Request
                 <div className="text-xl font-bold">
                 {formatRupiah(request.amount)}
                 </div>
-                <ActionButtons request={request} />
+                <ActionButtons request={request} isManagerView={isManagerView} />
             </CardFooter>
             </Card>
         )

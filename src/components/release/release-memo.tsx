@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { BudgetRequest, FundAccount } from "@/lib/types";
@@ -18,8 +19,8 @@ const formatRupiah = (amount: number) => {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(amount).replace('IDR', '');
+      maximumFractionDigits: 0,
+    }).format(amount).replace(/\s*Rp\s*/, '');
 };
 
 const numberToWords = (num: number): string => {
@@ -85,7 +86,7 @@ function MemoHeader({ memoNumber, approver, releaser, unitKerja, perihal, memoDa
                     <p className="font-bold text-lg">ICWM</p>
                     <p className="text-xs">Versi 3.0.1</p>
                     <div className="flex justify-between items-center text-xs mt-1">
-                        <span className="font-bold text-2xl">19</span>
+                        <span className="font-bold text-2xl">{format(new Date(memoDate), 'dd')}</span>
                         <span className="font-bold uppercase">{format(new Date(memoDate), 'MMMM yyyy', {locale: id})}</span>
                     </div>
                 </div>
@@ -136,7 +137,7 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
 
 
     return (
-        <div className="bg-white p-6 shadow-lg font-serif text-xs">
+        <div className="bg-white p-6 shadow-lg font-['Times_New_Roman',_serif] text-black" style={{ fontSize: '10px' }}>
             <header className="printable-header">
                 <MemoHeader 
                   memoNumber={`M.${requests[0].id.substring(0,2)} / PT&PM-${requests[0].id.substring(2,6)} / ${format(memoDate, 'MM/yy')}`}
@@ -158,13 +159,13 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[3%] p-1 h-auto text-black font-bold border border-black text-center">NO.</TableHead>
-                            <TableHead className="w-auto p-1 h-auto text-black font-bold border border-black text-center">URAIAN</TableHead>
-                            <TableHead className="w-[5%] p-1 h-auto text-black font-bold border border-black text-center">QTY</TableHead>
-                            <TableHead className="w-[8%] p-1 h-auto text-black font-bold border border-black text-center">SATUAN</TableHead>
-                            <TableHead className="w-[12%] p-1 h-auto text-black font-bold border border-black text-center">HARGA/SAT. (Rp.)</TableHead>
-                            <TableHead className="w-[12%] p-1 h-auto text-black font-bold border border-black text-center">JUMLAH (Rp.)</TableHead>
-                            <TableHead className="w-[20%] p-1 h-auto text-black font-bold border border-black text-center">KATEGORI</TableHead>
+                            <TableHead className="w-[3%] p-1 h-auto text-black font-bold border border-black text-center align-middle">NO.</TableHead>
+                            <TableHead className="w-auto p-1 h-auto text-black font-bold border border-black text-center align-middle">URAIAN</TableHead>
+                            <TableHead className="w-[5%] p-1 h-auto text-black font-bold border border-black text-center align-middle">JML ITEM</TableHead>
+                            <TableHead className="w-[8%] p-1 h-auto text-black font-bold border border-black text-center align-middle">SATUAN</TableHead>
+                            <TableHead className="w-[12%] p-1 h-auto text-black font-bold border border-black text-center align-middle">HARGA/SAT. (Rp.)</TableHead>
+                            <TableHead className="w-[12%] p-1 h-auto text-black font-bold border border-black text-center align-middle">JUMLAH (Rp.)</TableHead>
+                            <TableHead className="w-[20%] p-1 h-auto text-black font-bold border border-black text-center align-middle">KATEGORI</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -183,26 +184,30 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
                 </Table>
             </div>
             
-             <div className="flex justify-between mt-1">
-                <div className="w-1/2 border border-black p-2">
-                    <p className="font-bold">Informasi Tambahan:</p>
-                    <p>{firstRequest.additionalInfo || 'TIDAK ADA INFO TAMBAHAN'}</p>
-                </div>
-                <div className="w-1/2 flex">
-                    <div className="w-1/2 border-y border-l border-black p-1 space-y-1">
-                        <p>Sub Total Anggaran</p>
-                        <p>Total Ada Biaya Transfer</p>
-                        <p className="font-bold">Total Pengajuan Anggaran</p>
+             <div className="flex justify-between mt-0">
+                <div className="w-1/2 border-l border-r border-b border-black p-2 flex flex-col justify-between">
+                    <div>
+                        <p className="font-bold">Informasi Tambahan:</p>
+                        <p className="text-red-600 font-bold">{firstRequest.additionalInfo || 'TIDAK ADA INFO TAMBAHAN'}</p>
                     </div>
-                    <div className="w-1/2 border border-black p-1 text-right space-y-1">
-                         <p>{formatRupiah(subTotal)}</p>
-                         <p>{totalTransferFee > 0 ? formatRupiah(totalTransferFee) : '-'}</p>
-                         <p className="font-bold">{formatRupiah(totalAmount)}</p>
+                </div>
+                <div className="w-1/2 flex flex-col">
+                    <div className="flex">
+                        <div className="w-2/3 border-b border-l border-black p-1">Sub Total Anggaran</div>
+                        <div className="w-1/3 border-b border-l border-r border-black p-1 text-right">{formatRupiah(subTotal)}</div>
+                    </div>
+                    <div className="flex">
+                        <div className="w-2/3 border-b border-l border-black p-1">Total Ada Biaya Transfer</div>
+                        <div className="w-1/3 border-b border-l border-r border-black p-1 text-right">{totalTransferFee > 0 ? formatRupiah(totalTransferFee) : '-'}</div>
+                    </div>
+                     <div className="flex font-bold">
+                        <div className="w-2/3 border-b border-l border-black p-1">Total Pengajuan Anggaran</div>
+                        <div className="w-1/3 border-b border-l border-r border-black p-1 text-right">{formatRupiah(totalAmount)}</div>
                     </div>
                 </div>
              </div>
              <div className="border-x border-b border-black p-1 font-bold italic">
-                Terbilang: #{totalInWords} Rupiah#
+                Terbilang: # {totalInWords} Rupiah #
             </div>
 
             <div className="mt-2 space-y-0.5">
@@ -222,18 +227,18 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
             <div className="mt-4 grid grid-cols-3 gap-4 text-center">
                 <div>
                     <p>Menyetujui,</p>
-                    <p className="mt-12 font-semibold">({approverName})</p>
-                    <p className="border-t border-black mt-1">{fundAccount.pejabatJabatan}</p>
+                    <p className="mt-12 font-semibold underline">({approverName})</p>
+                    <p className="mt-1">{fundAccount.pejabatJabatan}</p>
                 </div>
                 <div>
                     <p>Mengetahui,</p>
-                     <p className="mt-12 font-semibold">({fundAccount.namaBendahara || '........................'})</p>
-                    <p className="border-t border-black mt-1">Bendahara</p>
+                     <p className="mt-12 font-semibold underline">({fundAccount.namaBendahara || '........................'})</p>
+                    <p className="mt-1">Bendahara</p>
                 </div>
                 <div>
                     <p>Pemohon,</p>
-                     <p className="mt-12 font-semibold">({firstRequester?.name || '........................'})</p>
-                    <p className="border-t border-black mt-1">Staff</p>
+                     <p className="mt-12 font-semibold underline">({firstRequester?.name || '........................'})</p>
+                    <p className="mt-1">Staff</p>
                 </div>
             </div>
 
@@ -244,7 +249,7 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
                 </div>
                  <div className="border-2 border-black p-1 text-center">
                     <p className="font-bold">Diproses & Dicairkan Oleh:</p>
-                    <p className="mt-1">Dede</p>
+                    <p className="mt-1">{fundAccount.petugas || 'Dede'}</p>
                     <p>Tanggal: ......................</p>
                     <p className="mt-1">Paraf</p>
                     <div className="h-10"></div>
@@ -265,8 +270,9 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
                 ))}
             </div>
 
-            <footer className="printable-footer pt-4 text-gray-500 flex justify-between">
+            <footer className="printable-footer pt-4 text-gray-500 flex justify-between items-center">
                 <span className="text-[8px]">Pengguna: {firstRequest?.requester.name} - Tgl. Cetak: {format(new Date(), 'PPpp', {locale: id})}</span>
+                 <span className="text-[8px] italic">*) coret salah satu</span>
             </footer>
         </div>
     )
