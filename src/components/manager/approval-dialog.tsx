@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { BudgetRequest, FundAccount } from '@/lib/types';
+import type { BudgetRequest, FundAccount, User } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { getFundAccount, updateRequest } from '@/lib/data';
+import { getFundAccount, updateRequest, getUser } from '@/lib/data';
 import { Loader2, ThumbsDown, ThumbsUp, Printer } from 'lucide-react';
 import { ReleaseMemo } from '../release/release-memo';
 import { Skeleton } from '../ui/skeleton';
@@ -27,25 +27,44 @@ interface ApprovalDialogProps {
   triggerButton?: React.ReactNode;
 }
 
-export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false, triggerButton }: ApprovalDialogProps) {
+export function ApprovalDialog({ request: initialRequest, isReadOnly: initialIsReadOnly = false, triggerButton }: ApprovalDialogProps) {
   const { user: managerUser } = useAuth();
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
   const [fundAccount, setFundAccount] = useState<FundAccount | null>(null);
+  const [request, setRequest] = useState(initialRequest);
   const [loadingMemo, setLoadingMemo] = useState(false);
   const { toast } = useToast();
   
   const canPrint = request.status === 'approved' || request.status === 'released' || request.status === 'completed';
 
   useEffect(() => {
-    if (open && request.fundSourceId) {
+    if (open) {
       setLoadingMemo(true);
-      getFundAccount(request.fundSourceId)
-        .then(setFundAccount)
-        .finally(() => setLoadingMemo(false));
+      const fetchData = async () => {
+        try {
+          const fundAccountPromise = request.fundSourceId ? getFundAccount(request.fundSourceId) : Promise.resolve(null);
+          const requesterProfilePromise = getUser(request.requester.id);
+
+          const [account, requesterProfile] = await Promise.all([fundAccountPromise, requesterProfilePromise]);
+          
+          setFundAccount(account);
+
+          if (requesterProfile) {
+            setRequest(prev => ({ ...prev, requesterProfile }));
+          }
+
+        } catch (error) {
+            console.error("Failed to fetch memo data:", error);
+            toast({ title: 'Error', description: 'Gagal memuat data memo.', variant: 'destructive'});
+        } finally {
+            setLoadingMemo(false);
+        }
+      };
+      fetchData();
     }
-  }, [open, request.fundSourceId]);
+  }, [open, request.fundSourceId, request.requester.id, toast]);
 
   const handlePrint = () => {
     window.open(`/request/${request.id}/print`, '_blank');
@@ -102,7 +121,7 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
         </DialogHeader>
         <div className="max-h-[70vh] overflow-y-auto pr-2 border-y py-4">
             {loadingMemo && <Skeleton className="w-full h-[500px]" />}
-            {!loadingMemo && fundAccount && (
+            {!loadingMemo && fundAccount && request.requesterProfile && (
                 <ReleaseMemo
                     requests={[request]}
                     lembaga={request.institution}
@@ -112,6 +131,9 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
             )}
             {!loadingMemo && !fundAccount && request.status !== 'pending' && (
                 <p className="text-center text-red-500">Gagal memuat detail memo: Sumber dana tidak ditemukan.</p>
+            )}
+             {!loadingMemo && !request.requesterProfile && (
+                <p className="text-center text-red-500">Gagal memuat detail memo: Data pemohon tidak ditemukan.</p>
             )}
         </div>
         

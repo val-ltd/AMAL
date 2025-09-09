@@ -100,6 +100,8 @@ export interface BudgetRequest {
   report?: ExpenseReport;
   budgetPeriod?: string;
   transferFee?: number;
+  // Populated by front-end for memo generation
+  requesterProfile?: User;
 }
 
 export interface Department {

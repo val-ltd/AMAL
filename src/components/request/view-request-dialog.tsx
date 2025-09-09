@@ -12,36 +12,55 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
-import { getFundAccount } from '@/lib/data';
+import { getFundAccount, getUser } from '@/lib/data';
 import { Printer } from 'lucide-react';
 import { ReleaseMemo } from '../release/release-memo';
 import { Skeleton } from '../ui/skeleton';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
 
 interface ViewRequestDialogProps {
   request: BudgetRequest;
   triggerButton?: React.ReactNode;
 }
 
-export function ViewRequestDialog({ request, triggerButton }: ViewRequestDialogProps) {
+export function ViewRequestDialog({ request: initialRequest, triggerButton }: ViewRequestDialogProps) {
   const [open, setOpen] = useState(false);
   const [fundAccount, setFundAccount] = useState<FundAccount | null>(null);
+  const [request, setRequest] = useState(initialRequest);
   const [loadingMemo, setLoadingMemo] = useState(false);
+  const { toast } = useToast();
   
   const canPrint = request.status === 'approved' || request.status === 'released' || request.status === 'completed';
 
   useEffect(() => {
-    if (open && request.fundSourceId) {
+    if (open) {
       setLoadingMemo(true);
-      getFundAccount(request.fundSourceId)
-        .then(setFundAccount)
-        .finally(() => setLoadingMemo(false));
-    } else if (open && !request.fundSourceId) {
-        // Handle legacy requests that might not have a fund source
-        setLoadingMemo(false);
+      const fetchData = async () => {
+        try {
+          const fundAccountPromise = request.fundSourceId ? getFundAccount(request.fundSourceId) : Promise.resolve(null);
+          const requesterProfilePromise = getUser(request.requester.id);
+
+          const [account, requesterProfile] = await Promise.all([fundAccountPromise, requesterProfilePromise]);
+          
+          setFundAccount(account);
+
+          if (requesterProfile) {
+            setRequest(prev => ({ ...prev, requesterProfile }));
+          }
+
+        } catch (error) {
+            console.error("Failed to fetch memo data:", error);
+            toast({ title: 'Error', description: 'Gagal memuat data memo.', variant: 'destructive'});
+        } finally {
+            setLoadingMemo(false);
+        }
+      };
+      fetchData();
     }
-  }, [open, request.fundSourceId]);
+  }, [open, request.fundSourceId, request.requester.id, toast]);
+
 
   const handlePrint = () => {
     window.open(`/request/${request.id}/print`, '_blank');
@@ -60,7 +79,7 @@ export function ViewRequestDialog({ request, triggerButton }: ViewRequestDialogP
     if (loadingMemo) {
       return <Skeleton className="w-full h-[500px]" />;
     }
-    if (fundAccount) {
+    if (fundAccount && request.requesterProfile) {
       return (
           <ReleaseMemo
               requests={[request]}
@@ -70,6 +89,7 @@ export function ViewRequestDialog({ request, triggerButton }: ViewRequestDialogP
           />
       );
     }
+    
     // Fallback for requests without a fund account or still loading
     return (
       <div className="space-y-6 p-4">
@@ -108,7 +128,7 @@ export function ViewRequestDialog({ request, triggerButton }: ViewRequestDialogP
             <span className="italic"> {request.managerComment || 'Tidak ada komentar.'}</span>
         </p>
          <p className="text-red-500 text-center text-sm">
-            Tampilan memo tidak tersedia karena sumber dana tidak ditemukan.
+            Tampilan memo tidak tersedia karena data tidak lengkap.
          </p>
       </div>
     );

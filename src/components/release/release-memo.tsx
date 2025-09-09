@@ -93,7 +93,7 @@ function ApprovedStamp({ date }: { date?: string }) {
 }
 
 
-function MemoHeader({ memoNumber, approver, releaser, unitKerja, perihal, memoDate }: { memoNumber: string, approver: FundAccount, releaser: FundAccount['petugas'], unitKerja: string, perihal: string, memoDate: string }) {
+function MemoHeader({ memoNumber, dari, releaser, unitKerja, perihal, memoDate }: { memoNumber: string, dari: string, releaser: FundAccount['petugas'], unitKerja: string, perihal: string, memoDate: string }) {
     return (
         <div className="flex flex-col">
             <div className="flex items-start justify-between pb-2 border-b-4 border-black">
@@ -114,7 +114,7 @@ function MemoHeader({ memoNumber, approver, releaser, unitKerja, perihal, memoDa
             </div>
             <div className="grid grid-cols-2 gap-x-4 text-sm mt-2">
                 <div className="grid grid-cols-[auto_1fr] gap-x-2">
-                    <span className="font-semibold">Dari</span><span>: {approver.pejabatNama} / {approver.pejabatJabatan}</span>
+                    <span className="font-semibold">Dari</span><span>: {dari}</span>
                     <span className="font-semibold">Unit Kerja</span><span>: {unitKerja}</span>
                     <span className="font-semibold">Perihal</span><span>: {perihal}</span>
                 </div>
@@ -133,10 +133,11 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
 
     const totalInWords = numberToWords(totalAmount);
     
-    const approverName = fundAccount.pejabatNama || '........................';
-    const firstRequester = requests[0]?.requester;
-    const memoSubject = requests[0]?.subject || 'OPERASIONAL BULANAN';
-    const memoDate = requests[0]?.createdAt ? new Date(requests[0].createdAt) : new Date();
+    const firstRequest = requests[0];
+    const { requesterProfile } = firstRequest;
+
+    const memoSubject = firstRequest?.subject || 'OPERASIONAL BULANAN';
+    const memoDate = firstRequest?.createdAt ? new Date(firstRequest.createdAt) : new Date();
 
     const allItems = requests.flatMap(req => 
         (Array.isArray(req.items) && req.items.length > 0) 
@@ -151,21 +152,21 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
           }]
     );
     
-    const firstRequest = requests[0];
     const reimbursementText = firstRequest.paymentMethod === 'Cash' 
         ? `PEMINDAHBUKUAN ke Rekening ${fundAccount.bankBendahara} ${fundAccount.rekeningBendahara} Atas Nama: ${fundAccount.namaBendahara}`
         : `TRANSFER ke Rekening ${firstRequest.reimbursementAccount?.bankName} ${firstRequest.reimbursementAccount?.accountNumber} Atas nama: ${firstRequest.reimbursementAccount?.accountHolderName}`;
     
     const isApproved = firstRequest.status === 'approved' || firstRequest.status === 'released' || firstRequest.status === 'completed';
+    const unitKerja = `${firstRequest.department?.divisi || firstRequest.division} | ${firstRequest.department?.lembaga || firstRequest.institution}`;
 
     return (
         <div className="bg-white p-6 shadow-lg font-['Times_New_Roman',_serif] text-black" style={{ fontSize: '10px' }}>
             <header className="printable-header">
                 <MemoHeader 
-                  memoNumber={`M.${requests[0].id.substring(0,2)} / PT&PM-${requests[0].id.substring(2,6)} / ${format(memoDate, 'MM/yy')}`}
-                  approver={fundAccount}
+                  memoNumber={`M.${firstRequest.id.substring(0,2)} / PT&PM-${firstRequest.id.substring(2,6)} / ${format(memoDate, 'MM/yy')}`}
+                  dari={firstRequest.requester.name}
                   releaser={fundAccount.petugas}
-                  unitKerja={`${firstRequest.department?.divisi || firstRequest.division} | ${firstRequest.department?.lembaga || firstRequest.institution}`}
+                  unitKerja={unitKerja}
                   perihal={memoSubject}
                   memoDate={firstRequest.createdAt}
                 />
@@ -247,21 +248,32 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
             </div>
 
             <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-                <div className="h-28 relative">
+                <div className="h-28 relative flex flex-col justify-between">
                     <p>Menyetujui,</p>
-                    {isApproved && <ApprovedStamp date={firstRequest.managerActionAt} />}
-                    <p className="absolute bottom-6 w-full font-semibold underline">({approverName})</p>
-                    <p className="absolute bottom-0 w-full">{fundAccount.pejabatJabatan}</p>
+                    <div className="h-16 relative">
+                        {isApproved && <ApprovedStamp date={firstRequest.managerActionAt} />}
+                        {fundAccount.pejabatSignatureUrl && <Image src={fundAccount.pejabatSignatureUrl} alt="Signature" layout="fill" objectFit="contain" />}
+                    </div>
+                    <p className="font-semibold underline">({fundAccount.pejabatNama || '........................'})</p>
+                    <p>{fundAccount.pejabatJabatan}</p>
                 </div>
-                <div className="h-28 relative">
+                <div className="h-28 relative flex flex-col justify-between">
                     <p>Mengetahui,</p>
-                    <p className="absolute bottom-6 w-full font-semibold underline">({fundAccount.namaBendahara || '........................'})</p>
-                    <p className="absolute bottom-0 w-full">Bendahara</p>
+                    <div className="h-16 relative">
+                       {isApproved && fundAccount.bendaharaSignatureUrl && <Image src={fundAccount.bendaharaSignatureUrl} alt="Signature" layout="fill" objectFit="contain" />}
+                       <p className="text-center text-gray-400 text-xs absolute bottom-0 w-full">{isApproved ? format(new Date(firstRequest.managerActionAt!), 'dd-MM-yyyy HH:mm') : ''}</p>
+                    </div>
+                    <p className="font-semibold underline">({fundAccount.namaBendahara || '........................'})</p>
+                    <p>Bendahara</p>
                 </div>
-                <div className="h-28 relative">
+                <div className="h-28 relative flex flex-col justify-between">
                     <p>Pemohon,</p>
-                    <p className="absolute bottom-6 w-full font-semibold underline">({firstRequester?.name || '........................'})</p>
-                    <p className="absolute bottom-0 w-full">Staff</p>
+                     <div className="h-16 relative">
+                        {requesterProfile?.signatureUrl && <Image src={requesterProfile.signatureUrl} alt="Signature" layout="fill" objectFit="contain" />}
+                        <p className="text-center text-gray-400 text-xs absolute bottom-0 w-full">{format(new Date(firstRequest.createdAt), 'dd-MM-yyyy HH:mm')}</p>
+                    </div>
+                    <p className="font-semibold underline">({firstRequest.requester.name || '........................'})</p>
+                    <p>{unitKerja}</p>
                 </div>
             </div>
 
