@@ -51,7 +51,7 @@ export default function RequestList({ requests, isManagerView = false }: Request
   const ActionButtons = ({ request }: { request: BudgetRequest }) => {
     const isSupervisor = user?.uid === request.supervisor?.id;
     const isActionable = isManagerView && isSupervisor && request.status === 'pending';
-    const isReportable = !isManagerView && request.status === 'released';
+    const isCompleted = !isManagerView && request.status === 'completed';
     const isDraft = request.status === 'draft';
 
     if (isDraft) {
@@ -73,13 +73,6 @@ export default function RequestList({ requests, isManagerView = false }: Request
             isReadOnly={false}
             triggerButton={<Button><ThumbsUp className="mr-2 h-4 w-4" />Tinjau</Button>}
           />
-        ) : isReportable ? (
-          <Button asChild>
-            <Link href={`/request/${request.id}/report`}>
-              <FileText className="mr-2 h-4 w-4" />
-              Buat Laporan
-            </Link>
-          </Button>
         ) : (
           <ApprovalDialog 
             request={request}

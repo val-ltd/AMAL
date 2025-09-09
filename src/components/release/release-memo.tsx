@@ -1,25 +1,16 @@
-
-
 'use client';
 
 import type { BudgetRequest, FundAccount } from "@/lib/types";
 import Image from "next/image";
-import { Button } from "../ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { useAuth } from "@/hooks/use-auth";
-import { useState }from 'react';
-import { useToast } from "@/hooks/use-toast";
-import { markRequestsAsReleased } from "@/lib/data";
-import { Loader2, DollarSign } from "lucide-react";
-import { Separator } from "../ui/separator";
 
 interface ReleaseMemoProps {
     requests: BudgetRequest[];
     lembaga: string;
     fundAccount: FundAccount;
-    isPreview?: boolean; // Added to distinguish between preview and final print
+    isPreview?: boolean;
 }
 
 const formatRupiah = (amount: number) => {
@@ -28,79 +19,103 @@ const formatRupiah = (amount: number) => {
       currency: 'IDR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
-    }).format(amount);
+    }).format(amount).replace('IDR', '');
 };
 
 const numberToWords = (num: number): string => {
     const ones = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan'];
     const teens = ['Sepuluh', 'Sebelas', 'Dua Belas', 'Tiga Belas', 'Empat Belas', 'Lima Belas', 'Enam Belas', 'Tujuh Belas', 'Delapan Belas', 'Sembilan Belas'];
     const tens = ['', '', 'Dua Puluh', 'Tiga Puluh', 'Empat Puluh', 'Lima Puluh', 'Enam Puluh', 'Tujuh Puluh', 'Delapan Puluh', 'Sembilan Puluh'];
+    const thousands = ['', 'Ribu', 'Juta', 'Miliar', 'Triliun'];
 
     const integerPart = Math.floor(num);
-    
     if (integerPart === 0) return 'Nol';
 
+    let i = 0;
     let words = '';
     let currentNum = integerPart;
 
-    if (currentNum >= 1000000000) {
-        words += numberToWords(Math.floor(currentNum / 1000000000)) + ' Miliar ';
-        currentNum %= 1000000000;
-    }
-
-    if (currentNum >= 1000000) {
-        words += numberToWords(Math.floor(currentNum / 1000000)) + ' Juta ';
-        currentNum %= 1000000;
-    }
-    
-    if (currentNum >= 1000) {
-        if (currentNum < 2000) words += 'Seribu ';
-        else words += numberToWords(Math.floor(currentNum / 1000)) + ' Ribu ';
-        currentNum %= 1000;
-    }
-
-    if (currentNum >= 100) {
-        if (currentNum < 200) words += 'Seratus ';
-        else words += ones[Math.floor(currentNum / 100)] + ' Ratus ';
-        currentNum %= 100;
-    }
-
-    if (currentNum >= 20) {
-        words += tens[Math.floor(currentNum / 10)] + ' ';
-        currentNum %= 10;
-    } else if (currentNum >= 10) {
-        words += teens[currentNum - 10] + ' ';
-        currentNum = 0;
-    }
-
-    if (currentNum > 0) {
-        words += ones[currentNum] + ' ';
+    while (currentNum > 0) {
+        let chunk = currentNum % 1000;
+        if (chunk > 0) {
+            let chunkWords = '';
+            if (chunk >= 100) {
+                chunkWords += (chunk < 200 ? 'Seratus' : ones[Math.floor(chunk / 100)] + ' Ratus') + ' ';
+                chunk %= 100;
+            }
+            if (chunk >= 20) {
+                chunkWords += tens[Math.floor(chunk / 10)] + ' ';
+                chunk %= 10;
+            } else if (chunk >= 10) {
+                chunkWords += teens[chunk - 10] + ' ';
+                chunk = 0;
+            }
+            if (chunk > 0) {
+                if (i === 1 && chunk === 1 && (currentNum >= 1000 && currentNum < 2000)) {
+                   // handles "seribu" case correctly
+                } else {
+                   chunkWords += ones[chunk] + ' ';
+                }
+            }
+            if (i === 1 && chunk === 1 && (currentNum >= 1000 && currentNum < 2000) ) {
+                words = 'Seribu ' + words;
+            } else {
+                words = chunkWords + (thousands[i] || '') + ' ' + words;
+            }
+        }
+        i++;
+        currentNum = Math.floor(currentNum / 1000);
     }
     
     return words.trim();
 };
 
-function MemoHeader() {
+
+function MemoHeader({ memoNumber, approver, releaser, unitKerja, perihal, memoDate }: { memoNumber: string, approver: FundAccount, releaser: FundAccount['petugas'], unitKerja: string, perihal: string, memoDate: string }) {
     return (
-        <div className="flex items-center justify-between pb-4 border-b-4 border-black px-4">
-            <Image src="/logo-wadi.png" alt="Wadi Mubarak Logo" width={80} height={80} />
-            <div className="text-center">
-                <h1 className="text-xl font-bold">MEMO PERMOHONAN PENCAIRAN DANA</h1>
-                <h2 className="text-lg font-semibold">ANGGARAN BULANAN</h2>
+        <div className="flex flex-col">
+            <div className="flex items-start justify-between pb-2 border-b-4 border-black">
+                <Image src="/logo-wadi.png" alt="Wadi Mubarak Logo" width={60} height={60} />
+                <div className="text-center">
+                    <h1 className="text-xl font-bold">MEMO PERMOHONAN PENCAIRAN DANA</h1>
+                    <h2 className="text-lg font-semibold uppercase">{perihal}</h2>
+                    <p className="text-sm">Nomor: {memoNumber}</p>
+                </div>
+                 <div className="text-center border-2 border-black p-1 w-[120px]">
+                    <p className="font-bold text-lg">ICWM</p>
+                    <p className="text-xs">Versi 3.0.1</p>
+                    <div className="flex justify-between items-center text-xs mt-1">
+                        <span className="font-bold text-2xl">19</span>
+                        <span className="font-bold uppercase">{format(new Date(memoDate), 'MMMM yyyy', {locale: id})}</span>
+                    </div>
+                </div>
             </div>
-            <Image src="/amal-logo.png" alt="Amal Logo" width={120} height={48} />
+            <div className="grid grid-cols-2 gap-x-4 text-sm mt-2">
+                <div className="grid grid-cols-[auto_1fr] gap-x-2">
+                    <span className="font-semibold">Dari</span><span>: {approver.pejabatNama} / {approver.pejabatJabatan}</span>
+                    <span className="font-semibold">Unit Kerja</span><span>: {unitKerja}</span>
+                    <span className="font-semibold">Perihal</span><span>: {perihal}</span>
+                </div>
+                 <div className="grid grid-cols-[auto_1fr] gap-x-2">
+                    <span className="font-semibold">Kepada</span><span>: {releaser}</span>
+                </div>
+            </div>
         </div>
     );
 }
 
 export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false }: ReleaseMemoProps) {
     const totalAmount = requests.reduce((sum, req) => sum + req.amount, 0);
+    const totalTransferFee = requests.reduce((sum, req) => sum + (req.transferFee || 0), 0);
+    const subTotal = totalAmount - totalTransferFee;
+
     const totalInWords = numberToWords(totalAmount);
     
     const approverName = fundAccount.pejabatNama || '........................';
-    const firstRequesterName = requests[0]?.requester?.name || '........................';
-    const memoSubject = requests[0]?.subject || 'ANGGARAN BULANAN';
-    
+    const firstRequester = requests[0]?.requester;
+    const memoSubject = requests[0]?.subject || 'OPERASIONAL BULANAN';
+    const memoDate = requests[0]?.createdAt ? new Date(requests[0].createdAt) : new Date();
+
     const allItems = requests.flatMap(req => 
         (Array.isArray(req.items) && req.items.length > 0) 
         ? req.items 
@@ -113,115 +128,145 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
             category: (req as any).category || "Lainnya"
           }]
     );
+    
+    const firstRequest = requests[0];
+    const reimbursementText = firstRequest.paymentMethod === 'Cash' 
+        ? `PEMINDAHBUKUAN ke Rekening ${fundAccount.bankBendahara} ${fundAccount.rekeningBendahara} Atas Nama: ${fundAccount.namaBendahara}`
+        : `TRANSFER ke Rekening ${firstRequest.reimbursementAccount?.bankName} ${firstRequest.reimbursementAccount?.accountNumber} Atas nama: ${firstRequest.reimbursementAccount?.accountHolderName}`;
+
 
     return (
-        <div className="bg-white p-8 shadow-lg">
+        <div className="bg-white p-6 shadow-lg font-serif text-xs">
             <header className="printable-header">
-                <MemoHeader />
+                <MemoHeader 
+                  memoNumber={`M.${requests[0].id.substring(0,2)} / PT&PM-${requests[0].id.substring(2,6)} / ${format(memoDate, 'MM/yy')}`}
+                  approver={fundAccount}
+                  releaser={fundAccount.petugas}
+                  unitKerja={`${firstRequest.department?.divisi || firstRequest.division} | ${firstRequest.department?.lembaga || firstRequest.institution}`}
+                  perihal={memoSubject}
+                  memoDate={firstRequest.createdAt}
+                />
             </header>
 
-            <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
-                <div>
-                    <span className="font-semibold">Dari:</span> {approverName} / {fundAccount.pejabatJabatan}
-                </div>
-                 <div className="text-right">
-                    <span className="font-semibold">Kepada:</span> {fundAccount.petugas}
-                </div>
-                <div>
-                     <span className="font-semibold">Lembaga:</span> {lembaga}
-                </div>
-                 <div className="text-right">
-                    <span className="font-semibold">Tanggal:</span> {format(new Date(), 'dd MMMM yyyy', { locale: id })}
-                </div>
-                <div>
-                    <span className="font-semibold">Perihal:</span> {memoSubject}
-                </div>
-            </div>
-
-            <div className="mt-6">
+            <div className="mt-4 space-y-1">
                 <p>Bismillahirrohmaanirrohiim</p>
                 <p>Assalamu'alaikum Warahmatullahi Wabarakaatuh</p>
-                <p className="mt-2">Sehubungan dengan telah disetujui dan ditandatanganinya Permohonan Anggaran Dana oleh Kepala Manajemen, maka kami sampaikan Rincian Permohonan Anggaran Dana sebagai berikut:</p>
+                <p className="mt-2">Sehubungan dengan telah disetujui dan ditandatanganinya Permohonan Anggaran Dana oleh Ketua Yayasan, maka kami sampaikan Rincian Permohonan Anggaran Dana sebagai berikut:</p>
             </div>
             
-            <div className="mt-4">
+            <div className="mt-2">
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[5%]">NO.</TableHead>
-                            <TableHead>URAIAN</TableHead>
-                            <TableHead>JML</TableHead>
-                            <TableHead>SATUAN</TableHead>
-                            <TableHead>HARGA/SAT.</TableHead>
-                            <TableHead>JUMLAH (Rp.)</TableHead>
-                            <TableHead>KATEGORI</TableHead>
+                            <TableHead className="w-[3%] p-1 h-auto text-black font-bold border border-black text-center">NO.</TableHead>
+                            <TableHead className="w-auto p-1 h-auto text-black font-bold border border-black text-center">URAIAN</TableHead>
+                            <TableHead className="w-[5%] p-1 h-auto text-black font-bold border border-black text-center">QTY</TableHead>
+                            <TableHead className="w-[8%] p-1 h-auto text-black font-bold border border-black text-center">SATUAN</TableHead>
+                            <TableHead className="w-[12%] p-1 h-auto text-black font-bold border border-black text-center">HARGA/SAT. (Rp.)</TableHead>
+                            <TableHead className="w-[12%] p-1 h-auto text-black font-bold border border-black text-center">JUMLAH (Rp.)</TableHead>
+                            <TableHead className="w-[20%] p-1 h-auto text-black font-bold border border-black text-center">KATEGORI</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {allItems.map((item, index) => (
                             <TableRow key={index}>
-                                <TableCell>{index + 1}</TableCell>
-                                <TableCell>{item.description}</TableCell>
-                                <TableCell>{item.qty}</TableCell>
-                                <TableCell>{item.unit}</TableCell>
-                                <TableCell>{formatRupiah(item.price)}</TableCell>
-                                <TableCell>{formatRupiah(item.total)}</TableCell>
-                                <TableCell>{item.category}</TableCell>
+                                <TableCell className="p-1 border border-black text-center">{index + 1}</TableCell>
+                                <TableCell className="p-1 border border-black">{item.description}</TableCell>
+                                <TableCell className="p-1 border border-black text-center">{item.qty}</TableCell>
+                                <TableCell className="p-1 border border-black text-center">{item.unit}</TableCell>
+                                <TableCell className="p-1 border border-black text-right">{formatRupiah(item.price)}</TableCell>
+                                <TableCell className="p-1 border border-black text-right">{formatRupiah(item.total)}</TableCell>
+                                <TableCell className="p-1 border border-black">{item.category}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
             </div>
-
-            <div className="mt-4 flex justify-end">
-                <div className="w-1/2">
-                    <div className="flex justify-between font-bold">
-                        <span>Sub Total Anggaran</span>
-                        <span>{formatRupiah(totalAmount)}</span>
+            
+             <div className="flex justify-between mt-1">
+                <div className="w-1/2 border border-black p-2">
+                    <p className="font-bold">Informasi Tambahan:</p>
+                    <p>{firstRequest.additionalInfo || 'TIDAK ADA INFO TAMBAHAN'}</p>
+                </div>
+                <div className="w-1/2 flex">
+                    <div className="w-1/2 border-y border-l border-black p-1 space-y-1">
+                        <p>Sub Total Anggaran</p>
+                        <p>Total Ada Biaya Transfer</p>
+                        <p className="font-bold">Total Pengajuan Anggaran</p>
                     </div>
-                     <div className="flex justify-between font-bold mt-2 border-t pt-2">
-                        <span>Total Pengajuan Anggaran</span>
-                        <span>{formatRupiah(totalAmount)}</span>
-                    </div>
-                    <div className="mt-1 text-sm text-muted-foreground italic">
-                        Terbilang: #{totalInWords} Rupiah#
+                    <div className="w-1/2 border border-black p-1 text-right space-y-1">
+                         <p>{formatRupiah(subTotal)}</p>
+                         <p>{totalTransferFee > 0 ? formatRupiah(totalTransferFee) : '-'}</p>
+                         <p className="font-bold">{formatRupiah(totalAmount)}</p>
                     </div>
                 </div>
+             </div>
+             <div className="border-x border-b border-black p-1 font-bold italic">
+                Terbilang: #{totalInWords} Rupiah#
             </div>
-            
-            <Separator className="my-6" />
 
-            <div className="text-sm space-y-2">
-                <p>Adapun sumber dana anggaran diatas dialokasikan dari rekening {fundAccount.accountName}</p>
+            <div className="mt-2 space-y-0.5">
+                <p>Adapun sumber dana anggaran diatas dialokasikan dari rekening {fundAccount.namaLembaga}</p>
                 <p><span className="font-semibold">Atas nama:</span> {fundAccount.accountName}</p>
                 <p><span className="font-semibold">No. Rekening:</span> {fundAccount.accountNumber}</p>
-                <p><span className="font-semibold">Nama Bank:</span> {fundAccount.bankName}</p>
+                <p><span className="font-semibold">Nama Bank:</span> {fundAccount.bankName} ({fundAccount.cabang})</p>
             </div>
-            <p className="mt-4 text-sm">Dengan ini, Kami mohon kepada Kasir, agar dapat merealisasikan anggaran yang telah disetujui oleh Kepala Manajemen.</p>
+            <p className="mt-2">Dengan ini, Kami mohon kepada Kasir, agar dapat merealisasikan anggaran yang telah disetujui oleh Ketua Yayasan dengan cara:</p>
+            <p className="font-bold uppercase">{reimbursementText}</p>
 
-             <p className="mt-4 text-sm">Demikian permohonan ini kami sampaikan, atas perhatian dan kerjasamanya, kami haturkan Jazakumullahu Khairan Katsiran. Wassalamu'alaikum Warahmatullahi Wabarakaatuh</p>
+            <div className="mt-2 space-y-1">
+                <p>Demikian permohonan ini kami sampaikan, atas perhatian dan kerjasamanya, kami haturkan Jazakumullahu Khairan Katsiran</p>
+                <p>Wassalamu'alaikum Warahmatullahi Wabarakaatuh</p>
+            </div>
 
-            <div className="mt-12 grid grid-cols-3 gap-8 text-center text-sm">
+            <div className="mt-4 grid grid-cols-3 gap-4 text-center">
                 <div>
                     <p>Menyetujui,</p>
-                    <p className="mt-20 font-semibold border-b border-black pb-1">{approverName}</p>
-                    <p>{fundAccount.pejabatJabatan}</p>
+                    <p className="mt-12 font-semibold">({approverName})</p>
+                    <p className="border-t border-black mt-1">{fundAccount.pejabatJabatan}</p>
                 </div>
                 <div>
                     <p>Mengetahui,</p>
-                     <p className="mt-20 font-semibold border-b border-black pb-1">{fundAccount.namaBendahara || '........................'}</p>
-                    <p>Bendahara</p>
+                     <p className="mt-12 font-semibold">({fundAccount.namaBendahara || '........................'})</p>
+                    <p className="border-t border-black mt-1">Bendahara</p>
                 </div>
                 <div>
                     <p>Pemohon,</p>
-                     <p className="mt-20 font-semibold border-b border-black pb-1">{firstRequesterName}</p>
-                    <p>Staff</p>
+                     <p className="mt-12 font-semibold">({firstRequester?.name || '........................'})</p>
+                    <p className="border-t border-black mt-1">Staff</p>
                 </div>
             </div>
 
-            <footer className="printable-footer pt-8 text-xs text-gray-500 flex justify-between">
-                <span>Nomor: M.XX / PT&PM-XXXX / VIII / 25</span>
-                <span>Halaman <span className="page-number"></span></span>
+            <div className="grid grid-cols-2 gap-2 mt-4">
+                <div className="border-2 border-black p-1">
+                    <p className="font-bold">Catatan/Disposisi:</p>
+                    <div className="border border-black h-20 mt-1 p-1 text-center font-bold">KOLOM KHUSUS DIISI OLEH KETUA YAYASAN</div>
+                </div>
+                 <div className="border-2 border-black p-1 text-center">
+                    <p className="font-bold">Diproses & Dicairkan Oleh:</p>
+                    <p className="mt-1">Dede</p>
+                    <p>Tanggal: ......................</p>
+                    <p className="mt-1">Paraf</p>
+                    <div className="h-10"></div>
+                </div>
+            </div>
+
+             <div className="grid grid-cols-4 gap-px mt-px">
+                {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="border-2 border-black p-1">
+                        <p className="font-bold text-center">Pencairan Tahap Ke-{i}</p>
+                        <p>Nama Penerima: ..............................</p>
+                        <p>Tgl. Terima Dana: ..............................</p>
+                        <p>Jumlah Diterima: Rp. ....................</p>
+                        <p>Metode Pencairan: TUNAI / ................</p>
+                        <p>Tanda Tangan Penerima:</p>
+                        <div className="h-8"></div>
+                    </div>
+                ))}
+            </div>
+
+            <footer className="printable-footer pt-4 text-gray-500 flex justify-between">
+                <span className="text-[8px]">Pengguna: {firstRequest?.requester.name} - Tgl. Cetak: {format(new Date(), 'PPpp', {locale: id})}</span>
             </footer>
         </div>
     )
