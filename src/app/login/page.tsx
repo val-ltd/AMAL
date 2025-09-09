@@ -4,7 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import { Logo } from '@/components/logo';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -28,7 +28,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="mb-4 flex justify-center">
-            <Logo />
+            <Image src="/logo-wadi.png" alt="Amal Logo" width={40} height={40} className="object-contain" />
           </div>
           <CardTitle>Selamat Datang Kembali</CardTitle>
           <CardDescription>Masuk untuk mengakses dasbor Anda.</CardDescription>
