@@ -88,7 +88,7 @@ function AdminPageContent({
                     </ul>
                 </ScrollArea>
             </aside>
-            <main className="space-y-8">
+            <main className="space-y-8 min-w-0">
                 {sections.map(section => (
                     <section key={section.id} id={section.id}>
                         {section.component}

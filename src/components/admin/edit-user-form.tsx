@@ -207,7 +207,7 @@ export function EditUserForm({ user, departments: initialDepartments }: EditUser
                         </CommandGroup>
                     </CommandList>
                     <CommandGroup className="border-t">
-                        <SaveDepartmentDialog onDepartmentAdded={handleDepartmentAdded} triggerButton={
+                        <SaveDepartmentDialog onDepartmentAdded={handleDepartmentAdded}>
                             <CommandItem 
                                 className="w-full cursor-pointer"
                                 onSelect={(e) => { e.preventDefault(); }}
@@ -215,7 +215,7 @@ export function EditUserForm({ user, departments: initialDepartments }: EditUser
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Tambah Departemen Baru
                             </CommandItem>
-                        } />
+                        </SaveDepartmentDialog>
                     </CommandGroup>
                 </Command>
             </PopoverContent>
