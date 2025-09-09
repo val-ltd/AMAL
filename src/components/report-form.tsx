@@ -1,8 +1,9 @@
+
 'use client';
 
 import type { BudgetRequest, FundAccount } from "@/lib/types";
 import Image from "next/image";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
