@@ -98,7 +98,6 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
   }
 
   const items = Array.isArray(request.items) && request.items.length > 0 ? request.items : [];
-  const itemsTotal = items.reduce((sum, item) => sum + item.total, 0);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
