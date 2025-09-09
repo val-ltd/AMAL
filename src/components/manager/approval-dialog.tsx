@@ -114,7 +114,7 @@ export function ApprovalDialog({ request: initialRequest, isReadOnly: initialIsR
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Trigger />
-      <DialogContent className={cn("max-w-4xl h-full flex flex-col sm:h-auto dialog-content-max-width")}>
+      <DialogContent className={cn("max-w-4xl h-full flex flex-col sm:h-[90vh] dialog-content-max-width")}>
         <DialogHeader>
           <DialogTitle>{isReadOnly ? 'Detail' : 'Tinjau'} Permintaan Anggaran</DialogTitle>
           <DialogDescription>
@@ -142,7 +142,7 @@ export function ApprovalDialog({ request: initialRequest, isReadOnly: initialIsR
         </div>
         
         {!isReadOnly && (
-            <div className="px-1 pt-2">
+            <div className="px-1 pt-2 sm:px-0">
                 <label htmlFor="manager-comment" className="mb-2 block text-sm font-medium">
                 Komentar Anda (Opsional)
                 </label>
