@@ -2,13 +2,15 @@
 'use client'
 
 import type { Department } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SaveDepartmentDialog } from "./save-department-dialog";
 import { DeleteDepartmentAlert } from "./delete-department-alert";
+import { usePagination } from "@/hooks/use-pagination";
+import { Pagination } from "../ui/pagination";
 
 interface DepartmentManagementTabProps {
     departments: Department[];
@@ -16,6 +18,8 @@ interface DepartmentManagementTabProps {
 }
 
 export function DepartmentManagementTab({ departments, loading }: DepartmentManagementTabProps) {
+    const { paginatedData, ...paginationProps } = usePagination(departments);
+
     return (
         <Card>
             <CardHeader>
@@ -38,12 +42,12 @@ export function DepartmentManagementTab({ departments, loading }: DepartmentMana
                             <TableRow>
                                 <TableCell colSpan={5} className="text-center">Memuat data departemen...</TableCell>
                             </TableRow>
-                        ) : departments.length === 0 ? (
+                        ) : paginatedData.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={5} className="text-center h-24">Tidak ada departemen ditemukan.</TableCell>
                             </TableRow>
                         ) : (
-                            departments.map((dept) => (
+                            paginatedData.map((dept) => (
                                 <TableRow key={dept.id}>
                                     <TableCell className="font-medium">{dept.lembaga}</TableCell>
                                     <TableCell>{dept.divisi}</TableCell>
@@ -75,6 +79,9 @@ export function DepartmentManagementTab({ departments, loading }: DepartmentMana
                     </TableBody>
                 </Table>
             </CardContent>
+             <CardFooter>
+                <Pagination {...paginationProps} />
+            </CardFooter>
         </Card>
     );
 }

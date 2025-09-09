@@ -19,6 +19,8 @@ import { db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
+import { usePagination } from "@/hooks/use-pagination";
+import { Pagination } from "../ui/pagination";
 
 // Helper to ensure roles is always an array
 const getRolesArray = (roles: any): Role[] => {
@@ -329,6 +331,7 @@ interface UserManagementTabProps {
 
 export function UserManagementTab({ users, loading, departments }: UserManagementTabProps) {
     const isMobile = useIsMobile();
+    const { paginatedData, ...paginationProps } = usePagination(users);
 
     if (isMobile) {
         return (
@@ -340,10 +343,10 @@ export function UserManagementTab({ users, loading, departments }: UserManagemen
                 <CardContent className="space-y-4">
                     {loading ? (
                         <p className="text-center text-muted-foreground">Memuat data pengguna...</p>
-                    ) : users.length === 0 ? (
+                    ) : paginatedData.length === 0 ? (
                         <p className="text-center text-muted-foreground h-24 flex items-center justify-center">Tidak ada pengguna ditemukan.</p>
                     ) : (
-                        users.map((user) => (
+                        paginatedData.map((user) => (
                             <UserCard 
                                 key={user.id} 
                                 user={user} 
@@ -352,6 +355,9 @@ export function UserManagementTab({ users, loading, departments }: UserManagemen
                         ))
                     )}
                 </CardContent>
+                <CardFooter>
+                    <Pagination {...paginationProps} />
+                </CardFooter>
             </Card>
         )
     }
@@ -380,12 +386,12 @@ export function UserManagementTab({ users, loading, departments }: UserManagemen
                             <TableRow>
                                 <TableCell colSpan={7} className="text-center">Memuat data pengguna...</TableCell>
                             </TableRow>
-                        ) : users.length === 0 ? (
+                        ) : paginatedData.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={7} className="text-center h-24">Tidak ada pengguna ditemukan.</TableCell>
                             </TableRow>
                         ) : (
-                            users.map((user) => (
+                            paginatedData.map((user) => (
                                 <UserRow 
                                     key={user.id} 
                                     user={user} 
@@ -396,6 +402,9 @@ export function UserManagementTab({ users, loading, departments }: UserManagemen
                     </TableBody>
                 </Table>
             </CardContent>
+            <CardFooter>
+                <Pagination {...paginationProps} />
+            </CardFooter>
         </Card>
     );
 }

@@ -2,13 +2,15 @@
 'use client'
 
 import type { BudgetCategory } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, PlusCircle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SaveDataDialog } from "./save-data-dialog";
 import { DeleteDataAlert } from "./delete-data-alert";
+import { usePagination } from "@/hooks/use-pagination";
+import { Pagination } from "../ui/pagination";
 
 interface CategoryManagementTabProps {
     categories: BudgetCategory[];
@@ -16,6 +18,8 @@ interface CategoryManagementTabProps {
 }
 
 export function CategoryManagementTab({ categories, loading }: CategoryManagementTabProps) {
+    const { paginatedData, ...paginationProps } = usePagination(categories);
+
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -42,12 +46,12 @@ export function CategoryManagementTab({ categories, loading }: CategoryManagemen
                             <TableRow>
                                 <TableCell colSpan={2} className="text-center">Memuat data kategori...</TableCell>
                             </TableRow>
-                        ) : categories.length === 0 ? (
+                        ) : paginatedData.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={2} className="text-center h-24">Tidak ada kategori ditemukan.</TableCell>
                             </TableRow>
                         ) : (
-                            categories.map((cat) => (
+                            paginatedData.map((cat) => (
                                 <TableRow key={cat.id}>
                                     <TableCell className="font-medium">{cat.name}</TableCell>
                                     <TableCell className="text-right">
@@ -73,6 +77,9 @@ export function CategoryManagementTab({ categories, loading }: CategoryManagemen
                     </TableBody>
                 </Table>
             </CardContent>
+             <CardFooter>
+                <Pagination {...paginationProps} />
+            </CardFooter>
         </Card>
     );
 }

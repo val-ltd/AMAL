@@ -2,13 +2,15 @@
 'use client'
 
 import type { Unit } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, PlusCircle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SaveDataDialog } from "./save-data-dialog";
 import { DeleteDataAlert } from "./delete-data-alert";
+import { usePagination } from "@/hooks/use-pagination";
+import { Pagination } from "../ui/pagination";
 
 interface UnitManagementProps {
     units: Unit[];
@@ -16,6 +18,8 @@ interface UnitManagementProps {
 }
 
 export function UnitManagement({ units, loading }: UnitManagementProps) {
+    const { paginatedData, ...paginationProps } = usePagination(units);
+
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -45,12 +49,12 @@ export function UnitManagement({ units, loading }: UnitManagementProps) {
                             <TableRow>
                                 <TableCell colSpan={2} className="text-center">Memuat data satuan...</TableCell>
                             </TableRow>
-                        ) : units.length === 0 ? (
+                        ) : paginatedData.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={2} className="text-center h-24">Tidak ada satuan ditemukan.</TableCell>
                             </TableRow>
                         ) : (
-                            units.map((unit) => (
+                            paginatedData.map((unit) => (
                                 <TableRow key={unit.id}>
                                     <TableCell className="font-medium">{unit.name}</TableCell>
                                     <TableCell className="text-right">
@@ -76,6 +80,9 @@ export function UnitManagement({ units, loading }: UnitManagementProps) {
                     </TableBody>
                 </Table>
             </CardContent>
+             <CardFooter>
+                <Pagination {...paginationProps} />
+            </CardFooter>
         </Card>
     );
 }

@@ -2,13 +2,15 @@
 'use client'
 
 import type { TransferType } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, PlusCircle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DeleteDataAlert } from "./delete-data-alert";
 import { SaveTransferTypeDialog } from "./save-transfer-type-dialog";
+import { usePagination } from "@/hooks/use-pagination";
+import { Pagination } from "../ui/pagination";
 
 interface TransferTypeManagementProps {
     transferTypes: TransferType[];
@@ -24,6 +26,8 @@ const formatRupiah = (amount: number) => {
 };
 
 export function TransferTypeManagement({ transferTypes, loading }: TransferTypeManagementProps) {
+    const { paginatedData, ...paginationProps } = usePagination(transferTypes);
+
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -51,12 +55,12 @@ export function TransferTypeManagement({ transferTypes, loading }: TransferTypeM
                             <TableRow>
                                 <TableCell colSpan={3} className="text-center">Memuat data...</TableCell>
                             </TableRow>
-                        ) : transferTypes.length === 0 ? (
+                        ) : paginatedData.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={3} className="text-center h-24">Tidak ada data ditemukan.</TableCell>
                             </TableRow>
                         ) : (
-                            transferTypes.map((type) => (
+                            paginatedData.map((type) => (
                                 <TableRow key={type.id}>
                                     <TableCell className="font-medium">{type.name}</TableCell>
                                     <TableCell>{formatRupiah(type.fee)}</TableCell>
@@ -87,6 +91,9 @@ export function TransferTypeManagement({ transferTypes, loading }: TransferTypeM
                     </TableBody>
                 </Table>
             </CardContent>
+            <CardFooter>
+                <Pagination {...paginationProps} />
+            </CardFooter>
         </Card>
     );
 }

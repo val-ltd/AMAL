@@ -2,17 +2,21 @@
 'use client'
 
 import type { FundAccount } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Edit, PlusCircle } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SaveFundAccountDialog } from "./save-fund-account-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DeleteDataAlert } from "./delete-data-alert";
+import { usePagination } from "@/hooks/use-pagination";
+import { Pagination } from "../ui/pagination";
 
 export function FundAccountManagementTab({ fundAccounts, loading }: { fundAccounts: FundAccount[], loading: boolean }) {
     const isMobile = useIsMobile();
+    const { paginatedData, ...paginationProps } = usePagination(fundAccounts);
+
 
     if (isMobile) {
         return (
@@ -31,10 +35,10 @@ export function FundAccountManagementTab({ fundAccounts, loading }: { fundAccoun
                 <CardContent className="space-y-4">
                     {loading ? (
                         <p className="text-center">Memuat data...</p>
-                    ) : fundAccounts.length === 0 ? (
+                    ) : paginatedData.length === 0 ? (
                          <p className="text-center text-muted-foreground h-24 flex items-center justify-center">Tidak ada sumber dana.</p>
                     ) : (
-                        fundAccounts.map((account) => (
+                        paginatedData.map((account) => (
                              <div key={account.id} className="p-4 space-y-2 border rounded-lg">
                                 <div className="flex justify-between items-start">
                                     <h3 className="font-bold">{account.accountName}</h3>
@@ -66,6 +70,9 @@ export function FundAccountManagementTab({ fundAccounts, loading }: { fundAccoun
                         ))
                     )}
                 </CardContent>
+                 <CardFooter>
+                    <Pagination {...paginationProps} />
+                </CardFooter>
             </Card>
         )
     }
@@ -101,12 +108,12 @@ export function FundAccountManagementTab({ fundAccounts, loading }: { fundAccoun
                             <TableRow>
                                 <TableCell colSpan={7} className="text-center">Memuat data sumber dana...</TableCell>
                             </TableRow>
-                        ) : fundAccounts.length === 0 ? (
+                        ) : paginatedData.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={7} className="text-center h-24">Tidak ada sumber dana ditemukan.</TableCell>
                             </TableRow>
                         ) : (
-                            fundAccounts.map((account) => (
+                            paginatedData.map((account) => (
                                 <TableRow key={account.id}>
                                     <TableCell className="font-medium">{account.namaLembaga}</TableCell>
                                     <TableCell>{account.accountName}</TableCell>
@@ -141,6 +148,9 @@ export function FundAccountManagementTab({ fundAccounts, loading }: { fundAccoun
                     </TableBody>
                 </Table>
             </CardContent>
+             <CardFooter>
+                <Pagination {...paginationProps} />
+            </CardFooter>
         </Card>
     );
 }

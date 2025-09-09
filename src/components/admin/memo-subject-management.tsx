@@ -2,13 +2,15 @@
 'use client'
 
 import type { MemoSubject } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, PlusCircle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SaveDataDialog } from "./save-data-dialog";
 import { DeleteDataAlert } from "./delete-data-alert";
+import { usePagination } from "@/hooks/use-pagination";
+import { Pagination } from "../ui/pagination";
 
 interface MemoSubjectManagementProps {
     subjects: MemoSubject[];
@@ -16,6 +18,8 @@ interface MemoSubjectManagementProps {
 }
 
 export function MemoSubjectManagement({ subjects, loading }: MemoSubjectManagementProps) {
+    const { paginatedData, ...paginationProps } = usePagination(subjects);
+
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -42,12 +46,12 @@ export function MemoSubjectManagement({ subjects, loading }: MemoSubjectManageme
                             <TableRow>
                                 <TableCell colSpan={2} className="text-center">Memuat data...</TableCell>
                             </TableRow>
-                        ) : subjects.length === 0 ? (
+                        ) : paginatedData.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={2} className="text-center h-24">Tidak ada data ditemukan.</TableCell>
                             </TableRow>
                         ) : (
-                            subjects.map((subject) => (
+                            paginatedData.map((subject) => (
                                 <TableRow key={subject.id}>
                                     <TableCell className="font-medium">{subject.name}</TableCell>
                                     <TableCell className="text-right">
@@ -73,6 +77,9 @@ export function MemoSubjectManagement({ subjects, loading }: MemoSubjectManageme
                     </TableBody>
                 </Table>
             </CardContent>
+            <CardFooter>
+                <Pagination {...paginationProps} />
+            </CardFooter>
         </Card>
     );
 }

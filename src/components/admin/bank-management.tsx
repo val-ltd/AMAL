@@ -2,13 +2,15 @@
 'use client'
 
 import type { Bank } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, PlusCircle } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SaveBankDialog } from "./save-bank-dialog";
 import { DeleteDataAlert } from "./delete-data-alert";
+import { usePagination } from "@/hooks/use-pagination";
+import { Pagination } from "../ui/pagination";
 
 interface BankManagementProps {
     banks: Bank[];
@@ -16,6 +18,8 @@ interface BankManagementProps {
 }
 
 export function BankManagement({ banks, loading }: BankManagementProps) {
+    const { paginatedData, ...paginationProps } = usePagination(banks);
+
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -43,12 +47,12 @@ export function BankManagement({ banks, loading }: BankManagementProps) {
                             <TableRow>
                                 <TableCell colSpan={3} className="text-center">Memuat data bank...</TableCell>
                             </TableRow>
-                        ) : banks.length === 0 ? (
+                        ) : paginatedData.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={3} className="text-center h-24">Tidak ada bank ditemukan.</TableCell>
                             </TableRow>
                         ) : (
-                            banks.map((bank) => (
+                            paginatedData.map((bank) => (
                                 <TableRow key={bank.id}>
                                     <TableCell className="font-medium">{bank.name}</TableCell>
                                     <TableCell>{bank.code}</TableCell>
@@ -80,6 +84,9 @@ export function BankManagement({ banks, loading }: BankManagementProps) {
                     </TableBody>
                 </Table>
             </CardContent>
+            <CardFooter>
+                <Pagination {...paginationProps} />
+            </CardFooter>
         </Card>
     );
 }
