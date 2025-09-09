@@ -15,17 +15,11 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import StatusBadge from '../status-badge';
-import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Building, Eye, Loader2, ThumbsDown, ThumbsUp, UserCheck, Wallet, ArrowRight, Calendar, CheckCircle, Info } from 'lucide-react';
-import { formatDepartment } from '@/lib/utils';
-import { Separator } from '../ui/separator';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { useAuth } from '@/hooks/use-auth';
 import { getFundAccount, updateRequest } from '@/lib/data';
-import { Alert, AlertDescription } from '../ui/alert';
+import { Loader2, ThumbsDown, ThumbsUp, Printer } from 'lucide-react';
+import { ReleaseMemo } from '../release/release-memo';
+import { Skeleton } from '../ui/skeleton';
 
 interface ApprovalDialogProps {
   request: BudgetRequest;
@@ -33,28 +27,29 @@ interface ApprovalDialogProps {
   triggerButton?: React.ReactNode;
 }
 
-const formatRupiah = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-};
-
-
 export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false, triggerButton }: ApprovalDialogProps) {
   const { user: managerUser } = useAuth();
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
   const [fundAccount, setFundAccount] = useState<FundAccount | null>(null);
+  const [loadingMemo, setLoadingMemo] = useState(false);
   const { toast } = useToast();
   
+  const canPrint = request.status === 'approved' || request.status === 'released' || request.status === 'completed';
+
   useEffect(() => {
     if (open && request.fundSourceId) {
-      getFundAccount(request.fundSourceId).then(setFundAccount);
+      setLoadingMemo(true);
+      getFundAccount(request.fundSourceId)
+        .then(setFundAccount)
+        .finally(() => setLoadingMemo(false));
     }
   }, [open, request.fundSourceId]);
+
+  const handlePrint = () => {
+    window.open(`/request/${request.id}/print`, '_blank');
+  };
 
   const isReadOnly = initialIsReadOnly || request.status === 'released' || request.status === 'completed';
 
@@ -95,136 +90,33 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
     );
   }
 
-  const items = Array.isArray(request.items) && request.items.length > 0 ? request.items : [];
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Trigger />
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>{isReadOnly ? 'Detail' : 'Tinjau'} Permintaan Anggaran</DialogTitle>
           <DialogDescription>
-            {isReadOnly ? 'Anda hanya dapat melihat detail permintaan ini.' : 'Tinjau detail di bawah ini dan setujui atau tolak permintaan.'}
+            {isReadOnly ? 'Anda dapat melihat detail dan mencetak memo untuk permintaan ini.' : 'Tinjau detail di bawah ini dan setujui atau tolak permintaan.'}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
-          <div className="flex items-center justify-between rounded-lg border bg-card p-4">
-            <div className='flex items-center gap-3'>
-                <Avatar>
-                    <AvatarImage src={request.requester.avatarUrl} alt={request.requester.name} />
-                    <AvatarFallback>{request.requester.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div>
-                    <div className="font-semibold">{request.requester.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                        Dikirim pada {format(new Date(request.createdAt), 'PPpp', { locale: id })}
-                    </div>
-                </div>
-            </div>
-            <StatusBadge status={request.status} />
-          </div>
-
-          <div className="rounded-lg border bg-card p-4 space-y-4">
-             <h4 className="font-semibold text-base">{request.subject || 'ANGGARAN BULANAN'}</h4>
-             <Separator />
-             <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-[40%]">Uraian</TableHead>
-                        <TableHead>Kategori</TableHead>
-                        <TableHead className="text-right">Qty</TableHead>
-                        <TableHead className="text-right">Harga</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {items.length > 0 ? (
-                        items.map((item, index) => (
-                            <TableRow key={index}>
-                                <TableCell className="font-medium">{item.description}</TableCell>
-                                <TableCell>{item.category}</TableCell>
-                                <TableCell className="text-right">{item.qty} {item.unit}</TableCell>
-                                <TableCell className="text-right">{formatRupiah(item.price)}</TableCell>
-                                <TableCell className="text-right">{formatRupiah(item.total)}</TableCell>
-                            </TableRow>
-                        ))
-                    ) : (
-                         <TableRow>
-                            <TableCell colSpan={4} className="text-muted-foreground">
-                                Deskripsi (Data Lama): {(request as any).description || 'Tidak ada deskripsi.'}
-                            </TableCell>
-                            <TableCell className="text-right font-bold">
-                                {formatRupiah(request.amount)}
-                            </TableCell>
-                        </TableRow>
-                    )}
-                    {items.length > 0 && request.transferFee && request.transferFee > 0 && (
-                        <TableRow>
-                            <TableCell colSpan={4} className="text-right font-semibold">Biaya Transfer ({request.transferType})</TableCell>
-                            <TableCell className="text-right font-semibold">{formatRupiah(request.transferFee)}</TableCell>
-                        </TableRow>
-                    )}
-                    <TableRow>
-                        <TableCell colSpan={4} className="text-right font-bold">Total Pengajuan</TableCell>
-                        <TableCell className="text-right font-bold">{formatRupiah(request.amount)}</TableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
-            <Separator />
-            <div className="space-y-3 text-sm">
-                <div className="flex items-start gap-3 text-muted-foreground">
-                    <Building className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span className='flex-1'>{request.department ? formatDepartment(request.department) : `${request.institution} / ${request.division}`}</span>
-                </div>
-                {request.supervisor && (
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                        <UserCheck className="w-4 h-4 flex-shrink-0" />
-                        <span>Penyetuju: {request.supervisor.name}</span>
-                    </div>
-                )}
-                {fundAccount && (
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                        <Wallet className="w-4 h-4 flex-shrink-0" />
-                        <span>Sumber Dana: {fundAccount.accountName} ({fundAccount.accountNumber})</span>
-                    </div>
-                )}
-                {request.paymentMethod === 'Transfer' && request.reimbursementAccount && (
-                     <div className="flex items-center gap-3 text-muted-foreground">
-                        <ArrowRight className="w-4 h-4 flex-shrink-0" />
-                        <span>Metode Pembayaran: {request.paymentMethod} ({request.transferType}) ke {request.reimbursementAccount.bankName} - {request.reimbursementAccount.accountNumber} (a/n {request.reimbursementAccount.accountHolderName})</span>
-                    </div>
-                )}
-                 {request.paymentMethod === 'Cash' && (
-                     <div className="flex items-center gap-3 text-muted-foreground">
-                        <ArrowRight className="w-4 h-4 flex-shrink-0" />
-                        <span>Metode Pembayaran: Tunai</span>
-                    </div>
-                )}
-                 <div className="flex items-center gap-3 text-muted-foreground">
-                     <Calendar className="w-4 h-4 flex-shrink-0" />
-                     <span>Manajer Bertindak: {request.managerActionAt ? format(new Date(request.managerActionAt), 'PPpp', { locale: id }) : 'Belum ada tindakan'}</span>
-                 </div>
-                 <div className="flex items-center gap-3 text-muted-foreground">
-                    <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>
-                      Dana Dicairkan: {request.releasedAt ? `${format(new Date(request.releasedAt), 'PPpp', { locale: id })} oleh ${request.releasedBy?.name}` : 'Belum Dicairkan'}
-                    </span>
-                 </div>
-            </div>
-          </div>
-          
-          {request.additionalInfo && (
-            <div className="space-y-2">
-                <h4 className="text-sm font-semibold flex items-center gap-2">
-                    <Info className="h-4 w-4" />
-                    Informasi Tambahan
-                </h4>
-                <p className="text-sm text-muted-foreground mt-1 p-3 bg-muted rounded-md">{request.additionalInfo}</p>
-            </div>
-          )}
-
-          {!isReadOnly && (
-            <div>
+        <div className="max-h-[70vh] overflow-y-auto pr-2 border-y py-4">
+            {loadingMemo && <Skeleton className="w-full h-[500px]" />}
+            {!loadingMemo && fundAccount && (
+                <ReleaseMemo
+                    requests={[request]}
+                    lembaga={request.institution}
+                    fundAccount={fundAccount}
+                    isPreview={true}
+                />
+            )}
+            {!loadingMemo && !fundAccount && request.status !== 'pending' && (
+                <p className="text-center text-red-500">Gagal memuat detail memo: Sumber dana tidak ditemukan.</p>
+            )}
+        </div>
+        
+        {!isReadOnly && (
+            <div className="px-1 pt-2">
                 <label htmlFor="manager-comment" className="mb-2 block text-sm font-medium">
                 Komentar Anda (Opsional)
                 </label>
@@ -238,16 +130,12 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
             </div>
           )}
 
-          {request.managerComment && (
-             <div>
-                <h4 className="text-sm font-semibold">Komentar Manajer</h4>
-                <p className="text-sm text-muted-foreground mt-1 p-3 bg-muted rounded-md">{request.managerComment}</p>
-             </div>
-          )}
-        </div>
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-0">
           {isReadOnly ? (
-            <Button variant="outline" onClick={() => setOpen(false)}>Tutup</Button>
+            <>
+              <Button variant="outline" onClick={() => setOpen(false)}>Tutup</Button>
+              {canPrint && <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" />Cetak</Button>}
+            </>
           ) : (
             <>
                 <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>

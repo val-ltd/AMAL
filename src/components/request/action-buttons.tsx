@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { ApprovalDialog } from '@/components/manager/approval-dialog';
 import { Eye, ThumbsUp, Edit, Copy, Printer } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 interface ActionButtonsProps {
   request: BudgetRequest;
@@ -16,8 +15,6 @@ interface ActionButtonsProps {
 
 export function ActionButtons({ request, isManagerView = false }: ActionButtonsProps) {
   const { user } = useAuth();
-  const router = useRouter();
-
   const isSupervisor = user?.uid === request.supervisor?.id;
   const isActionable = isManagerView && isSupervisor && request.status === 'pending';
   const isDraft = request.status === 'draft';
@@ -53,11 +50,6 @@ export function ActionButtons({ request, isManagerView = false }: ActionButtonsP
           triggerButton={<Button variant="outline"><Eye className="mr-2 h-4 w-4" />Lihat Detail</Button>}
         />
       )}
-      {canPrint && (
-        <Button variant="outline" size="icon" onClick={handlePrint} aria-label="Cetak Memo">
-          <Printer className="h-4 w-4" />
-        </Button>
-      )}
       {!isManagerView && (
         <Button asChild variant="ghost" size="icon" aria-label="Duplikat Permintaan">
           <Link href={`/request/new?duplicate=${request.id}`}>
@@ -68,3 +60,4 @@ export function ActionButtons({ request, isManagerView = false }: ActionButtonsP
     </div>
   );
 }
+
