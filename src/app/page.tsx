@@ -167,7 +167,7 @@ export default function EmployeeDashboard() {
                     <CardTitle>Total Pengajuan per Status</CardTitle>
                     <CardDescription>Visualisasi total dana yang diajukan berdasarkan status.</CardDescription>
                 </CardHeader>
-                <CardContent className="pl-2">
+                <CardContent>
                     <ChartContainer config={chartConfig} className="h-64 w-full">
                         <ResponsiveContainer>
                             <BarChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
