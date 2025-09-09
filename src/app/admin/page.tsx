@@ -8,7 +8,7 @@ import { collection, onSnapshot, query, orderBy, where } from "firebase/firestor
 import { db } from "@/lib/firebase";
 import { UserManagementTab } from "@/components/admin/user-management-tab";
 import { DepartmentManagementTab } from "@/components/admin/department-management-tab";
-import { ShieldAlert, PlusCircle } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { CategoryManagementTab } from "@/components/admin/category-management-tab";
 import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -20,8 +20,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { TransferTypeManagement } from "@/components/admin/transfer-type-management";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SaveDepartmentDialog } from "@/components/admin/save-department-dialog";
-import { Button } from "@/components/ui/button";
 
 function AdminPageContent({
     users,
@@ -65,7 +63,7 @@ function AdminPageContent({
                         <AccordionTrigger className="p-4 hover:no-underline">
                            <span className="font-semibold">{section.title}</span>
                         </AccordionTrigger>
-                        <AccordionContent className="px-4 pb-4">
+                        <AccordionContent className="p-0 border-t">
                             {section.component}
                         </AccordionContent>
                     </AccordionItem>
@@ -184,12 +182,6 @@ export default function AdminPage() {
     <div className="flex flex-col gap-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Manajemen Administrasi</h1>
-         <SaveDepartmentDialog>
-            <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Tambah Departemen
-            </Button>
-         </SaveDepartmentDialog>
       </div>
         <AdminPageContent 
             users={users}

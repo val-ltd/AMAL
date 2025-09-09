@@ -5,7 +5,7 @@ import type { Department } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, PlusCircle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SaveDepartmentDialog } from "./save-department-dialog";
 import { DeleteDataAlert } from "./delete-data-alert";
@@ -22,9 +22,16 @@ export function DepartmentManagementTab({ departments, loading }: DepartmentMana
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle>Daftar Departemen</CardTitle>
-                <CardDescription>Kelola departemen yang terdaftar dalam sistem.</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle>Daftar Departemen</CardTitle>
+                    <CardDescription>Kelola departemen yang terdaftar dalam sistem.</CardDescription>
+                </div>
+                <SaveDepartmentDialog>
+                    <Button size="sm" className="flex gap-2">
+                        <PlusCircle /> Tambah
+                    </Button>
+                </SaveDepartmentDialog>
             </CardHeader>
             <CardContent>
                 <Table>
