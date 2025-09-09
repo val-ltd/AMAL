@@ -148,7 +148,9 @@ export function ViewRequestDialog({ request: initialRequest, triggerButton }: Vi
           </DialogDescription>
         </DialogHeader>
         <div className="flex-1 overflow-auto bg-muted/50 p-2 sm:p-4 rounded-md">
-            {renderContent()}
+            <div className="h-[calc(297mm * (100vw / 230mm))] sm:h-auto overflow-hidden">
+                {renderContent()}
+            </div>
         </div>
         
         <DialogFooter className="gap-2 sm:gap-0 pt-4 border-t">

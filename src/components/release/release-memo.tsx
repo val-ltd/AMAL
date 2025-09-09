@@ -252,7 +252,7 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
                     <p>Menyetujui,</p>
                     <div className="h-16 relative">
                         {isApproved && <ApprovedStamp date={firstRequest.managerActionAt} />}
-                        {fundAccount.pejabatSignatureUrl && <Image src={fundAccount.pejabatSignatureUrl} alt="Signature" layout="fill" objectFit="contain" />}
+                        {fundAccount.pejabatSignatureUrl && <Image src={fundAccount.pejabatSignatureUrl} alt="Signature" layout="fill" objectFit="contain" data-ai-hint="signature" />}
                     </div>
                     <p className="font-semibold underline">({fundAccount.pejabatNama || '........................'})</p>
                     <p>{fundAccount.pejabatJabatan}</p>
@@ -260,7 +260,7 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
                 <div className="h-28 relative flex flex-col justify-between">
                     <p>Mengetahui,</p>
                     <div className="h-16 relative">
-                       {isApproved && fundAccount.bendaharaSignatureUrl && <Image src={fundAccount.bendaharaSignatureUrl} alt="Signature" layout="fill" objectFit="contain" />}
+                       {isApproved && fundAccount.bendaharaSignatureUrl && <Image src={fundAccount.bendaharaSignatureUrl} alt="Signature" layout="fill" objectFit="contain" data-ai-hint="signature" />}
                        <p className="text-center text-gray-400 text-xs absolute bottom-0 w-full">{isApproved ? format(new Date(firstRequest.managerActionAt!), 'dd-MM-yyyy HH:mm') : ''}</p>
                     </div>
                     <p className="font-semibold underline">({fundAccount.namaBendahara || '........................'})</p>
@@ -269,7 +269,7 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
                 <div className="h-28 relative flex flex-col justify-between">
                     <p>Pemohon,</p>
                      <div className="h-16 relative">
-                        {requesterProfile?.signatureUrl && <Image src={requesterProfile.signatureUrl} alt="Signature" layout="fill" objectFit="contain" />}
+                        {requesterProfile?.signatureUrl && <Image src={requesterProfile.signatureUrl} alt="Signature" layout="fill" objectFit="contain" data-ai-hint="signature" />}
                         <p className="text-center text-gray-400 text-xs absolute bottom-0 w-full">{format(new Date(firstRequest.createdAt), 'dd-MM-yyyy HH:mm')}</p>
                     </div>
                     <p className="font-semibold underline">({firstRequest.requester.name || '........................'})</p>

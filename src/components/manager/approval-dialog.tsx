@@ -120,23 +120,25 @@ export function ApprovalDialog({ request: initialRequest, isReadOnly: initialIsR
           </DialogDescription>
         </DialogHeader>
         <div className="flex-1 overflow-auto bg-muted/50 p-2 sm:p-4 rounded-md">
-            {loadingMemo && <Skeleton className="w-full h-full min-h-[500px]" />}
-            {!loadingMemo && fundAccount && request.requesterProfile && (
-                <div className="canvas-a4">
-                    <ReleaseMemo
-                        requests={[request]}
-                        lembaga={request.institution}
-                        fundAccount={fundAccount}
-                        isPreview={true}
-                    />
-                </div>
-            )}
-            {!loadingMemo && !fundAccount && request.status !== 'pending' && (
-                <p className="text-center text-red-500">Gagal memuat detail memo: Sumber dana tidak ditemukan.</p>
-            )}
-             {!loadingMemo && !request.requesterProfile && (
-                <p className="text-center text-red-500">Gagal memuat detail memo: Data pemohon tidak ditemukan.</p>
-            )}
+            <div className="h-[calc(297mm * (100vw / 230mm))] sm:h-auto overflow-hidden">
+                {loadingMemo && <Skeleton className="w-full h-full min-h-[500px]" />}
+                {!loadingMemo && fundAccount && request.requesterProfile && (
+                    <div className="canvas-a4">
+                        <ReleaseMemo
+                            requests={[request]}
+                            lembaga={request.institution}
+                            fundAccount={fundAccount}
+                            isPreview={true}
+                        />
+                    </div>
+                )}
+                {!loadingMemo && !fundAccount && request.status !== 'pending' && (
+                    <p className="text-center text-red-500">Gagal memuat detail memo: Sumber dana tidak ditemukan.</p>
+                )}
+                 {!loadingMemo && !request.requesterProfile && (
+                    <p className="text-center text-red-500">Gagal memuat detail memo: Data pemohon tidak ditemukan.</p>
+                )}
+            </div>
         </div>
         
         {!isReadOnly && (
