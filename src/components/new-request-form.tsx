@@ -297,12 +297,10 @@ export function NewRequestForm() {
             id: authUser.uid,
             name: profileData.name || 'Unknown User',
             avatarUrl: profileData.avatarUrl || '',
-            signatureUrl: profileData.signatureUrl || '',
         },
         supervisor: supervisor ? { 
             id: supervisor.id, 
             name: supervisor.name,
-            signatureUrl: supervisor.signatureUrl || '',
         } : undefined,
         fundSourceId,
         paymentMethod,

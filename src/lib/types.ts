@@ -67,7 +67,6 @@ export interface BudgetRequest {
     id:string;
     name: string;
     avatarUrl: string;
-    signatureUrl?: string;
   };
   subject: string; // New field for the memo subject/title
   items: RequestItem[];
@@ -82,7 +81,6 @@ export interface BudgetRequest {
   supervisor?: {
     id: string;
     name: string;
-    signatureUrl?: string;
   };
   department?: Omit<Department, 'id' | 'isDeleted'>;
   sheetStartRow?: number;
