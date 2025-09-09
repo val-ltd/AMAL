@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, signInWithPopup, signOut, GoogleAuthProvider, User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, signInWithRedirect, signOut, GoogleAuthProvider, getRedirectResult, User as FirebaseUser } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -79,9 +79,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
       } else {
-        setUser(null);
-        setIsVerified(null);
-        setLoading(false);
+         // Handle the redirect result when the page loads.
+        getRedirectResult(auth)
+          .catch((error) => {
+            console.error("Error getting redirect result:", error);
+          })
+          .finally(() => {
+              setUser(null);
+              setIsVerified(null);
+              setLoading(false);
+          });
       }
     });
 
@@ -105,11 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      // The onAuthStateChanged listener will handle the user state update
-      // and the correct redirection will be triggered by the effect hooks.
-      // We can push to '/' as an optimistic redirect.
-      router.push('/');
+      await signInWithRedirect(auth, provider);
     } catch (error) {
       console.error("Error signing in with Google: ", error);
       setLoading(false);
