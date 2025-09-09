@@ -629,6 +629,22 @@ export function NewRequestForm() {
                     ))}
                 </SelectContent>
             </Select>
+            {selectedFundAccount && (
+                <div className="mt-2 p-3 rounded-md bg-muted text-sm space-y-1">
+                    <div className="grid grid-cols-[auto_1fr] gap-x-2">
+                        <span className="text-muted-foreground">Nama Lembaga:</span>
+                        <span className="font-semibold">{selectedFundAccount.namaLembaga}</span>
+                        <span className="text-muted-foreground">Rekening:</span>
+                        <span className="font-semibold">{selectedFundAccount.accountName}</span>
+                        <span className="text-muted-foreground">No. Rekening:</span>
+                        <span className="font-semibold">{selectedFundAccount.accountNumber}</span>
+                        <span className="text-muted-foreground">Bank:</span>
+                        <span className="font-semibold">{selectedFundAccount.bankName}</span>
+                        <span className="text-muted-foreground">Cabang/Kode:</span>
+                        <span className="font-semibold">{selectedFundAccount.cabang} ({selectedFundAccount.kodeBank})</span>
+                    </div>
+                </div>
+            )}
         </div>
         <div>
             <Label htmlFor="supervisor" className="block text-sm font-medium mb-1">Nama Atasan*</Label>
