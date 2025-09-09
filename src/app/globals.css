@@ -87,20 +87,30 @@
 
 @layer components {
     .canvas-a4 {
-        @apply w-full max-w-full sm:w-[210mm] sm:h-[297mm] sm:mx-auto;
-        /* For mobile, allow scaling within the viewport */
-        @apply sm:origin-top sm:scale-[var(--tw-scale-x),_var(--tw-scale-y)];
+        /* A4 aspect ratio: 210 / 297 = 0.707 */
+        width: 100%;
+        max-width: 800px; /* Max width on desktop */
+        margin-left: auto;
+        margin-right: auto;
+        background: white;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    
+    /* Apply A4 aspect ratio */
+    .canvas-a4 {
+        aspect-ratio: 210 / 297;
     }
 
-    @media (max-width: 640px) { /* sm breakpoint */
+    /* For print and large screens, use mm units */
+    @media (min-width: 840px), print {
         .canvas-a4 {
-            width: 800px; /* Force a wide width to allow zooming on a scaled container */
-            transform-origin: top left;
-            /* Scale down to fit mobile, but allow zooming in */
-            transform: scale(calc(100vw / 820px)); /* 820px to account for padding */
+            width: 210mm;
+            height: 297mm;
+            aspect-ratio: auto; /* Disable aspect ratio when fixed dimensions are set */
         }
     }
 }
+
 
 /* --- Print Styles --- */
 @media print {

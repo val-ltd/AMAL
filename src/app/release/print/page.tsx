@@ -67,8 +67,8 @@ function PrintPageContent() {
     const memoCount = Object.keys(groupedRequests).length;
 
     return (
-        <div className="bg-gray-100 dark:bg-gray-800 print-container">
-            <div className="flex justify-end gap-2 p-4 no-print fixed top-2 right-2">
+        <div className="bg-gray-100 dark:bg-gray-800 p-4 sm:p-8 print:p-0 print-container">
+            <div className="flex justify-end gap-2 mb-4 no-print">
                 <Button onClick={() => window.print()}>
                     <Printer className="mr-2 h-4 w-4" />
                     Cetak Halaman Ini ({memoCount} Memo)
@@ -77,7 +77,7 @@ function PrintPageContent() {
             <div className="space-y-8 print:space-y-0">
                 {Object.entries(groupedRequests).map(([lembaga, reqs]) => (
                     reqs.length > 0 && (
-                        <div key={lembaga} className="memo-wrapper bg-white">
+                        <div key={lembaga} className="memo-wrapper canvas-a4">
                             <ReleaseMemo requests={reqs} lembaga={lembaga} fundAccount={fundAccount} />
                         </div>
                     )
