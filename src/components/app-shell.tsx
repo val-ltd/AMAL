@@ -3,9 +3,9 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Home, Shield, PlusCircle, User, LogOut, ChevronDown, Wallet, Users, ShieldCheck, DollarSign, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Logo } from './logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -32,7 +32,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex flex-col min-h-screen">
             <header className="sticky top-0 z-10 hidden items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:flex h-16">
                 <div className="flex items-center gap-6">
-                    <Logo />
+                    <Link href="/" className="flex items-center h-full">
+                        <Image src="/logo-wadi.png" alt="Amal Logo" width={100} height={40} className="object-contain h-full w-auto" />
+                    </Link>
                     <div className="flex items-center gap-4">
                         <div className="h-6 w-24 rounded-md bg-muted animate-pulse"></div>
                         <div className="h-6 w-24 rounded-md bg-muted animate-pulse"></div>
@@ -83,7 +85,9 @@ function Header() {
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm h-16">
       <div className="flex items-center gap-6">
-        <Logo />
+        <Link href="/" className="flex items-center h-full">
+            <Image src="/logo-wadi.png" alt="Amal Logo" width={100} height={40} className="object-contain h-full w-auto" />
+        </Link>
         {showFullHeader && <DesktopNav userRoles={authUser.profile?.roles} />}
       </div>
       <div className="flex items-center gap-2 sm:gap-4">
