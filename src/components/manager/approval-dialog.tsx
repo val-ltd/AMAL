@@ -120,7 +120,7 @@ export function ApprovalDialog({ request: initialRequest, isReadOnly: initialIsR
           </DialogDescription>
         </DialogHeader>
         <div className="flex-1 overflow-auto bg-muted/50 p-2 sm:p-4 rounded-md">
-            <div className="h-[calc(297mm * (100vw / 230mm))] sm:h-auto overflow-hidden">
+            <div className="h-[calc(297mm * (100vw / 230mm))] sm:h-auto overflow-y-auto">
                 {loadingMemo && <Skeleton className="w-full h-full min-h-[500px]" />}
                 {!loadingMemo && fundAccount && request.requesterProfile && (
                     <div className="canvas-a4">
