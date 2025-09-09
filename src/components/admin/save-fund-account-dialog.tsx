@@ -40,6 +40,8 @@ const initialFormState = {
     rekeningBendahara: '',
     kodeBank: '',
     petugas: '',
+    pejabatSignatureUrl: '',
+    bendaharaSignatureUrl: '',
 };
 
 export function SaveFundAccountDialog({ account, children }: SaveFundAccountDialogProps) {
@@ -66,6 +68,8 @@ export function SaveFundAccountDialog({ account, children }: SaveFundAccountDial
             rekeningBendahara: account.rekeningBendahara || '',
             kodeBank: account.kodeBank || '',
             petugas: account.petugas || '',
+            pejabatSignatureUrl: account.pejabatSignatureUrl || '',
+            bendaharaSignatureUrl: account.bendaharaSignatureUrl || '',
         });
       } else {
         setFormData(initialFormState);
@@ -118,7 +122,9 @@ export function SaveFundAccountDialog({ account, children }: SaveFundAccountDial
     { id: 'cabang', label: 'Cabang' },
     { id: 'pejabatNama', label: 'Nama Pejabat' },
     { id: 'pejabatJabatan', label: 'Jabatan Pejabat' },
+    { id: 'pejabatSignatureUrl', label: 'URL Tanda Tangan Pejabat' },
     { id: 'namaBendahara', label: 'Nama Bendahara' },
+    { id: 'bendaharaSignatureUrl', label: 'URL Tanda Tangan Bendahara' },
     { id: 'bankBendahara', label: 'Bank Bendahara' },
     { id: 'rekeningBendahara', label: 'Rekening Bendahara' },
     { id: 'kodeBank', label: 'Kode Bank' },

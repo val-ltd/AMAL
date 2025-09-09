@@ -209,6 +209,10 @@ export default function ProfilePage() {
                             <Label className="text-muted-foreground">Alamat</Label>
                             {isEditing ? <Input name="address" value={formData.address || ''} onChange={handleInputChange} /> : <p className="font-medium">{profileData.address || 'N/A'}</p>}
                         </div>
+                        <div>
+                            <Label className="text-muted-foreground">URL Tanda Tangan</Label>
+                            {isEditing ? <Input name="signatureUrl" value={formData.signatureUrl || ''} onChange={handleInputChange} placeholder="https://example.com/signature.png" /> : <p className="font-medium">{profileData.signatureUrl || 'N/A'}</p>}
+                        </div>
                      </div>
                 </div>
 

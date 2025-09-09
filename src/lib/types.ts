@@ -30,6 +30,7 @@ export interface User {
   phoneNumber?: string;
   address?: string;
   bankAccounts?: UserBankAccount[];
+  signatureUrl?: string;
 }
 
 export interface RequestItem {
@@ -66,6 +67,7 @@ export interface BudgetRequest {
     id:string;
     name: string;
     avatarUrl: string;
+    signatureUrl?: string;
   };
   subject: string; // New field for the memo subject/title
   items: RequestItem[];
@@ -80,6 +82,7 @@ export interface BudgetRequest {
   supervisor?: {
     id: string;
     name: string;
+    signatureUrl?: string;
   };
   department?: Omit<Department, 'id' | 'isDeleted'>;
   sheetStartRow?: number;
@@ -132,6 +135,9 @@ export interface FundAccount {
     rekeningBendahara: string;
     kodeBank?: string;
     petugas: string;
+    // signature fields
+    pejabatSignatureUrl?: string;
+    bendaharaSignatureUrl?: string;
 }
 
 export interface Notification {

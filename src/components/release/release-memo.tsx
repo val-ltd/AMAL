@@ -225,20 +225,23 @@ export function ReleaseMemo({ requests, lembaga, fundAccount, isPreview = false 
             </div>
 
             <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-                <div>
+                <div className="h-28 relative">
                     <p>Menyetujui,</p>
-                    <p className="mt-12 font-semibold underline">({approverName})</p>
-                    <p className="mt-1">{fundAccount.pejabatJabatan}</p>
+                    {fundAccount.pejabatSignatureUrl && <Image src={fundAccount.pejabatSignatureUrl} alt="Tanda Tangan Pejabat" layout="fill" objectFit="contain" />}
+                    <p className="absolute bottom-6 w-full font-semibold underline">({approverName})</p>
+                    <p className="absolute bottom-0 w-full">{fundAccount.pejabatJabatan}</p>
                 </div>
-                <div>
+                <div className="h-28 relative">
                     <p>Mengetahui,</p>
-                     <p className="mt-12 font-semibold underline">({fundAccount.namaBendahara || '........................'})</p>
-                    <p className="mt-1">Bendahara</p>
+                    {fundAccount.bendaharaSignatureUrl && <Image src={fundAccount.bendaharaSignatureUrl} alt="Tanda Tangan Bendahara" layout="fill" objectFit="contain" />}
+                    <p className="absolute bottom-6 w-full font-semibold underline">({fundAccount.namaBendahara || '........................'})</p>
+                    <p className="absolute bottom-0 w-full">Bendahara</p>
                 </div>
-                <div>
+                <div className="h-28 relative">
                     <p>Pemohon,</p>
-                     <p className="mt-12 font-semibold underline">({firstRequester?.name || '........................'})</p>
-                    <p className="mt-1">Staff</p>
+                    {firstRequest.requester.signatureUrl && <Image src={firstRequest.requester.signatureUrl} alt="Tanda Tangan Pemohon" layout="fill" objectFit="contain" />}
+                    <p className="absolute bottom-6 w-full font-semibold underline">({firstRequester?.name || '........................'})</p>
+                    <p className="absolute bottom-0 w-full">Staff</p>
                 </div>
             </div>
 
