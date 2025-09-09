@@ -157,32 +157,28 @@ export function ApprovalDialog({ request: initialRequest, isReadOnly: initialIsR
             </div>
           )}
 
-        <DialogFooter className="gap-2 sm:gap-0 pt-4 border-t">
+        <DialogFooter className="pt-4 border-t">
           {isReadOnly ? (
-            <>
-              <Button variant="outline" onClick={() => setOpen(false)}>Tutup</Button>
-              {canPrint && <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" />Cetak</Button>}
-            </>
+            <div className="flex w-full justify-between">
+                <Button variant="outline" onClick={() => setOpen(false)}>Tutup</Button>
+                {canPrint && <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" />Cetak</Button>}
+            </div>
           ) : (
-            <>
-                <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting} size="sm">
-                    Batal
-                </Button>
+            <div className="grid grid-cols-2 gap-2 w-full">
                 <Button
                     variant="destructive"
                     onClick={() => handleSubmit('rejected')}
                     disabled={isSubmitting}
                     className="bg-red-600 hover:bg-red-700"
-                    size="sm"
                 >
                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsDown className="mr-2 h-4 w-4" />}
                     Tolak
                 </Button>
-                <Button onClick={() => handleSubmit('approved')} disabled={isSubmitting} className="bg-green-600 hover:bg-green-700" size="sm">
+                <Button onClick={() => handleSubmit('approved')} disabled={isSubmitting} className="bg-green-600 hover:bg-green-700">
                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsUp className="mr-2 h-4 w-4" />}
                     Setujui
                 </Button>
-            </>
+            </div>
           )}
         </DialogFooter>
       </DialogContent>
