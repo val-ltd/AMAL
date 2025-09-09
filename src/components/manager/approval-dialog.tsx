@@ -98,7 +98,6 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
   }
 
   const items = Array.isArray(request.items) && request.items.length > 0 ? request.items : [];
-  const itemsTotal = items.reduce((sum, item) => sum + item.total, 0);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -130,19 +129,19 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
           <div className="rounded-lg border bg-card p-4 space-y-4">
              <h4 className="font-semibold text-base">{request.subject || 'ANGGARAN BULANAN'}</h4>
              <Separator />
-             {items.length > 0 ? (
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[40%]">Uraian</TableHead>
-                            <TableHead>Kategori</TableHead>
-                            <TableHead className="text-right">Qty</TableHead>
-                            <TableHead className="text-right">Harga</TableHead>
-                            <TableHead className="text-right">Total</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {items.map((item, index) => (
+             <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead className="w-[40%]">Uraian</TableHead>
+                        <TableHead>Kategori</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className="text-right">Harga</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {items.length > 0 ? (
+                        items.map((item, index) => (
                             <TableRow key={index}>
                                 <TableCell className="font-medium">{item.description}</TableCell>
                                 <TableCell>{item.category}</TableCell>
@@ -150,29 +149,31 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                                 <TableCell className="text-right">{formatRupiah(item.price)}</TableCell>
                                 <TableCell className="text-right">{formatRupiah(item.total)}</TableCell>
                             </TableRow>
-                        ))}
-                         {request.transferFee && request.transferFee > 0 && (
-                            <TableRow>
-                                <TableCell colSpan={4} className="text-right font-semibold">Biaya Transfer ({request.transferType})</TableCell>
-                                <TableCell className="text-right font-semibold">{formatRupiah(request.transferFee)}</TableCell>
-                            </TableRow>
-                        )}
+                        ))
+                    ) : (
+                        <TableRow>
+                            <TableCell colSpan={4} className="text-muted-foreground">
+                                Deskripsi (Data Lama): {(request as any).description || 'Tidak ada deskripsi.'}
+                            </TableCell>
+                            <TableCell className="text-right font-bold">
+                                {formatRupiah(request.amount)}
+                            </TableCell>
+                        </TableRow>
+                    )}
+                    {items.length > 0 && request.transferFee && request.transferFee > 0 && (
+                        <TableRow>
+                            <TableCell colSpan={4} className="text-right font-semibold">Biaya Transfer ({request.transferType})</TableCell>
+                            <TableCell className="text-right font-semibold">{formatRupiah(request.transferFee)}</TableCell>
+                        </TableRow>
+                    )}
+                    {items.length > 0 && (
                         <TableRow>
                             <TableCell colSpan={4} className="text-right font-bold">Total Pengajuan</TableCell>
                             <TableCell className="text-right font-bold">{formatRupiah(request.amount)}</TableCell>
                         </TableRow>
-                    </TableBody>
-                </Table>
-             ) : (
-                <div className="space-y-2">
-                    <p className="font-medium">Deskripsi (Data Lama)</p>
-                    <p className="text-sm text-muted-foreground">Tidak ada deskripsi.</p>
-                    <Separator />
-                    <div className="flex justify-end font-bold">
-                        <span>Total: {formatRupiah(request.amount)}</span>
-                    </div>
-                </div>
-             )}
+                    )}
+                </TableBody>
+            </Table>
             <Separator />
             <div className="space-y-3 text-sm">
                 <div className="flex items-start gap-3 text-muted-foreground">
