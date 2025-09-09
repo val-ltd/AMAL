@@ -15,8 +15,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { deleteDepartment } from '@/lib/data';
 
 interface DeleteDataAlertProps {
   id: string;
@@ -32,7 +33,11 @@ export function DeleteDataAlert({ id, collection, name, children }: DeleteDataAl
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      await updateDoc(doc(db, collection, id), { isDeleted: true });
+      if (collection === 'departments') {
+        await deleteDepartment(id);
+      } else {
+        await updateDoc(doc(db, collection, id), { isDeleted: true });
+      }
       toast({ title: `${name} Dihapus`, description: `${name} telah berhasil dihapus.` });
     } catch (error) {
       console.error(`Error deleting ${name}:`, error);

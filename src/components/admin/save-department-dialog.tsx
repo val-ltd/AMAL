@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Department } from '@/lib/types';
-import { Edit, Loader2, PlusCircle } from 'lucide-react';
+import { Loader2, PlusCircle } from 'lucide-react';
 import { collection, getDocs, query, addDoc, doc, updateDoc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Combobox } from './combobox';
@@ -25,10 +25,10 @@ import { Combobox } from './combobox';
 interface SaveDepartmentDialogProps {
   department?: Department;
   onDepartmentAdded?: (newDepartment: Department) => void;
-  triggerButton?: React.ReactElement;
+  children: React.ReactNode;
 }
 
-export function SaveDepartmentDialog({ department, onDepartmentAdded, triggerButton }: SaveDepartmentDialogProps) {
+export function SaveDepartmentDialog({ department, onDepartmentAdded, children }: SaveDepartmentDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -36,10 +36,10 @@ export function SaveDepartmentDialog({ department, onDepartmentAdded, triggerBut
 
   const [allDepartments, setAllDepartments] = useState<Department[]>([]);
   
-  const [lembaga, setLembaga] = useState(department?.lembaga || '');
-  const [divisi, setDivisi] = useState(department?.divisi || '');
-  const [bagian, setBagian] = useState(department?.bagian || '');
-  const [unit, setUnit] = useState(department?.unit || '');
+  const [lembaga, setLembaga] = useState('');
+  const [divisi, setDivisi] = useState('');
+  const [bagian, setBagian] = useState('');
+  const [unit, setUnit] = useState('');
   
   useEffect(() => {
     if (open) {
@@ -101,33 +101,10 @@ export function SaveDepartmentDialog({ department, onDepartmentAdded, triggerBut
     }
   };
 
-  const Trigger = () => {
-    if (triggerButton) {
-        return <div onClick={() => setOpen(true)}>{triggerButton}</div>
-    }
-    if (isEditing) {
-        return (
-            <DialogTrigger asChild>
-                <button className="flex items-center w-full text-left">
-                    <Edit className="mr-2 h-4 w-4" />
-                    Ubah Departemen
-                </button>
-            </DialogTrigger>
-        )
-    }
-    return (
-        <DialogTrigger asChild>
-            <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Tambah Departemen
-            </Button>
-        </DialogTrigger>
-    );
-  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Trigger />
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Ubah' : 'Tambah'} Departemen</DialogTitle>

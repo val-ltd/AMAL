@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SaveDepartmentDialog } from "./save-department-dialog";
-import { DeleteDepartmentAlert } from "./delete-department-alert";
+import { DeleteDataAlert } from "./delete-data-alert";
 import { usePagination } from "@/hooks/use-pagination";
 import { Pagination } from "../ui/pagination";
 
@@ -63,13 +63,13 @@ export function DepartmentManagementTab({ departments, loading }: DepartmentMana
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuLabel>Aksi</DropdownMenuLabel>
-                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                                    <SaveDepartmentDialog department={dept} />
-                                                </DropdownMenuItem>
+                                                <SaveDepartmentDialog department={dept}>
+                                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Ubah</DropdownMenuItem>
+                                                </SaveDepartmentDialog>
                                                 <DropdownMenuSeparator />
-                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
-                                                    <DeleteDepartmentAlert departmentId={dept.id} />
-                                                </DropdownMenuItem>
+                                                <DeleteDataAlert id={dept.id} collection="departments" name="Departemen">
+                                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">Hapus</DropdownMenuItem>
+                                                </DeleteDataAlert>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>

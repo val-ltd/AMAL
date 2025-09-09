@@ -4,27 +4,24 @@
 
 import { useEffect, useState } from "react";
 import type { User, Department, BudgetCategory, FundAccount, Bank, Unit, MemoSubject, TransferType } from "@/lib/types";
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, where } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { UserManagementTab } from "@/components/admin/user-management-tab";
 import { DepartmentManagementTab } from "@/components/admin/department-management-tab";
-import { Button } from "@/components/ui/button";
-import { Edit, Save, ShieldAlert, X } from "lucide-react";
+import { ShieldAlert, PlusCircle } from "lucide-react";
 import { CategoryManagementTab } from "@/components/admin/category-management-tab";
 import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FundAccountManagementTab } from "@/components/admin/fund-account-management-tab";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BankManagement } from "@/components/admin/bank-management";
 import { UnitManagement } from "@/components/admin/unit-management";
 import { MemoSubjectManagement } from "@/components/admin/memo-subject-management";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { TransferTypeManagement } from "@/components/admin/transfer-type-management";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { SaveDepartmentDialog } from "@/components/admin/save-department-dialog";
+import { Button } from "@/components/ui/button";
 
 function AdminPageContent({
     users,
@@ -62,24 +59,18 @@ function AdminPageContent({
 
     if (isMobile) {
         return (
-             <Tabs defaultValue="users" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="users">Pengguna</TabsTrigger>
-                    <TabsTrigger value="settings">Pengaturan</TabsTrigger>
-                </TabsList>
-                <TabsContent value="users" className="mt-4 flex-1">
-                    <UserManagementTab users={users} loading={loading} departments={departments} />
-                </TabsContent>
-                <TabsContent value="settings" className="mt-4 space-y-8">
-                     <DepartmentManagementTab departments={departments} loading={loading} />
-                     <FundAccountManagementTab fundAccounts={fundAccounts} loading={loading} />
-                     <CategoryManagementTab categories={categories} loading={loading} />
-                     <BankManagement banks={banks} loading={loading} />
-                     <UnitManagement units={units} loading={loading} />
-                     <MemoSubjectManagement subjects={memoSubjects} loading={loading} />
-                     <TransferTypeManagement transferTypes={transferTypes} loading={loading} />
-                </TabsContent>
-            </Tabs>
+             <Accordion type="single" collapsible defaultValue="users" className="w-full space-y-4">
+                {sections.map(section => (
+                    <AccordionItem value={section.id} key={section.id} className="border rounded-lg bg-card">
+                        <AccordionTrigger className="p-4 hover:no-underline">
+                           <span className="font-semibold">{section.title}</span>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-4 pb-4">
+                            {section.component}
+                        </AccordionContent>
+                    </AccordionItem>
+                ))}
+            </Accordion>
         )
     }
 
@@ -191,8 +182,14 @@ export default function AdminPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Manajemen Administrasi</h1>
+         <SaveDepartmentDialog>
+            <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Tambah Departemen
+            </Button>
+         </SaveDepartmentDialog>
       </div>
         <AdminPageContent 
             users={users}
