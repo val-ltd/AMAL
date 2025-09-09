@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import type { BudgetRequest, FundAccount } from '@/lib/types';
@@ -25,7 +24,7 @@ import { formatDepartment } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { useAuth } from '@/hooks/use-auth';
-import { getFundAccounts, getFundAccount, updateRequest } from '@/lib/data';
+import { getFundAccount, updateRequest } from '@/lib/data';
 import { Alert, AlertDescription } from '../ui/alert';
 
 interface ApprovalDialogProps {
@@ -57,7 +56,6 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
     }
   }, [open, request.fundSourceId]);
 
-  // A request is always read-only if its status is 'released' or if the initial prop says so.
   const isReadOnly = initialIsReadOnly || request.status === 'released' || request.status === 'completed';
 
   const handleSubmit = async (status: 'approved' | 'rejected') => {
@@ -65,7 +63,7 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
 
     setIsSubmitting(true);
     try {
-        const updatedRequest = await updateRequest(request.id, status, comment, managerUser.profile);
+        await updateRequest(request.id, status, comment, managerUser.profile);
         
         toast({
             title: `Permintaan ${status === 'approved' ? 'Disetujui' : 'Ditolak'}`,
@@ -119,7 +117,7 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                 <div>
                     <div className="font-semibold">{request.requester.name}</div>
                     <div className="text-sm text-muted-foreground">
-                        Dikirim pada {request.createdAt}
+                        Dikirim pada {format(new Date(request.createdAt), 'PPpp', { locale: id })}
                     </div>
                 </div>
             </div>
@@ -205,13 +203,13 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                  {request.managerActionAt && (
                      <div className="flex items-center gap-3 text-muted-foreground">
                          <Calendar className="w-4 h-4 flex-shrink-0" />
-                         <span>Manajer Bertindak: {request.managerActionAt}</span>
+                         <span>Manajer Bertindak: {request.managerActionAt ? format(new Date(request.managerActionAt), 'PPpp', { locale: id }) : 'Belum ada tindakan'}</span>
                      </div>
                  )}
                  <div className="flex items-center gap-3 text-muted-foreground">
                     <CheckCircle className="w-4 h-4 flex-shrink-0" />
                     <span>
-                      Dana Dicairkan: {request.releasedAt ? `${request.releasedAt} oleh ${request.releasedBy?.name}` : 'Belum Dicairkan'}
+                      Dana Dicairkan: {request.releasedAt ? `${format(new Date(request.releasedAt), 'PPpp', { locale: id })} oleh ${request.releasedBy?.name}` : 'Belum Dicairkan'}
                     </span>
                  </div>
             </div>
