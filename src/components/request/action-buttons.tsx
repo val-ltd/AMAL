@@ -5,8 +5,9 @@ import type { BudgetRequest } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { ApprovalDialog } from '@/components/manager/approval-dialog';
-import { Eye, ThumbsUp, Edit, Copy, Printer } from 'lucide-react';
+import { Eye, ThumbsUp, Edit, Copy } from 'lucide-react';
 import Link from 'next/link';
+import { ViewRequestDialog } from './view-request-dialog';
 
 interface ActionButtonsProps {
   request: BudgetRequest;
@@ -18,11 +19,6 @@ export function ActionButtons({ request, isManagerView = false }: ActionButtonsP
   const isSupervisor = user?.uid === request.supervisor?.id;
   const isActionable = isManagerView && isSupervisor && request.status === 'pending';
   const isDraft = request.status === 'draft';
-  const canPrint = request.status === 'approved' || request.status === 'released' || request.status === 'completed';
-
-  const handlePrint = () => {
-    window.open(`/request/${request.id}/print`, '_blank');
-  };
 
   if (isDraft) {
     return (
@@ -44,9 +40,8 @@ export function ActionButtons({ request, isManagerView = false }: ActionButtonsP
           triggerButton={<Button><ThumbsUp className="mr-2 h-4 w-4" />Tinjau</Button>}
         />
       ) : (
-        <ApprovalDialog 
+        <ViewRequestDialog 
           request={request}
-          isReadOnly={true}
           triggerButton={<Button variant="outline"><Eye className="mr-2 h-4 w-4" />Lihat Detail</Button>}
         />
       )}
@@ -60,4 +55,3 @@ export function ActionButtons({ request, isManagerView = false }: ActionButtonsP
     </div>
   );
 }
-
