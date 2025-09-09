@@ -82,8 +82,8 @@ function ApprovedStamp({ date }: { date?: string }) {
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-green-600 opacity-80"
         >
             <circle cx="50" cy="50" r="48" stroke="currentColor" strokeWidth="3" fill="none" />
-            <text x="50" y="45" fontFamily="Arial, sans-serif" fontSize="18" fontWeight="bold" textAnchor="middle" fill="currentColor">
-                APPROVED
+            <text x="50" y="45" fontFamily="'Scheherazade New', serif" fontSize="18" fontWeight="bold" textAnchor="middle" fill="currentColor">
+                تمت الموافقة
             </text>
             <text x="50" y="65" fontFamily="Arial, sans-serif" fontSize="10" textAnchor="middle" fill="currentColor">
                 {formattedDate}
