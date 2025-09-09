@@ -92,14 +92,19 @@ export default function ReleasePage() {
   const handleOpenPrintPage = () => {
     if (selectedRequestIds.length > 0) {
       const selectedRequests = allRequests.filter(req => selectedRequestIds.includes(req.id));
-      const fundSourceId = selectedRequests[0]?.fundSourceId; // Assume all selected are from the same source for one memo
       
-      const queryParams = new URLSearchParams({
-        fundAccountId: fundSourceId || '',
-        requestIds: selectedRequestIds.join(','),
-      }).toString();
+      // Group selected requests by fund source to generate one print page per fund source
+      const groupedByFund = groupRequestsByFundSource(selectedRequests);
       
-      window.open(`/release/print?${queryParams}`, '_blank');
+      Object.entries(groupedByFund).forEach(([fundSourceId, requests]) => {
+          const requestIds = requests.map(r => r.id);
+          const queryParams = new URLSearchParams({
+            fundAccountId: fundSourceId || '',
+            requestIds: requestIds.join(','),
+          }).toString();
+          
+          window.open(`/release/print?${queryParams}`, '_blank');
+      });
     }
   };
 
@@ -188,16 +193,20 @@ export default function ReleasePage() {
                     Buka Halaman Cetak ({Object.keys(groupedSelected).length} Memo)
                 </Button>
             </div>
-            {Object.entries(groupedSelected).map(([fundSourceId, reqs]) => {
-                const fundAccount = fundAccounts.find(acc => acc.id === fundSourceId);
-                if (!fundAccount || reqs.length === 0) return null;
+            <div className="space-y-8 print:space-y-0">
+                {Object.entries(groupedSelected).map(([fundSourceId, reqs]) => {
+                    const fundAccount = fundAccounts.find(acc => acc.id === fundSourceId);
+                    if (!fundAccount || reqs.length === 0) return null;
 
-                return (
-                    <div key={fundSourceId} className="memo-wrapper bg-white my-8 page-break-before">
-                        <ReleaseMemo requests={reqs} lembaga={reqs[0].institution} fundAccount={fundAccount} isPreview />
-                    </div>
-                )
-            })}
+                    return (
+                        <div key={fundSourceId} className="memo-wrapper bg-white my-8 page-break-before">
+                             <div className="canvas-a4">
+                                <ReleaseMemo requests={reqs} lembaga={reqs[0].institution} fundAccount={fundAccount} isPreview />
+                             </div>
+                        </div>
+                    )
+                })}
+            </div>
       </div>
     );
   }

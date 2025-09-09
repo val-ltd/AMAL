@@ -20,6 +20,8 @@ import { getFundAccount, updateRequest, getUser } from '@/lib/data';
 import { Loader2, ThumbsDown, ThumbsUp, Printer } from 'lucide-react';
 import { ReleaseMemo } from '../release/release-memo';
 import { Skeleton } from '../ui/skeleton';
+import { cn } from '@/lib/utils';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface ApprovalDialogProps {
   request: BudgetRequest;
@@ -112,33 +114,31 @@ export function ApprovalDialog({ request: initialRequest, isReadOnly: initialIsR
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Trigger />
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className={cn("max-w-4xl h-full flex flex-col sm:h-auto dialog-content-max-width")}>
         <DialogHeader>
           <DialogTitle>{isReadOnly ? 'Detail' : 'Tinjau'} Permintaan Anggaran</DialogTitle>
           <DialogDescription>
             {isReadOnly ? 'Anda dapat melihat detail dan mencetak memo untuk permintaan ini.' : 'Tinjau detail di bawah ini dan setujui atau tolak permintaan.'}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-1 overflow-auto bg-muted/50 p-2 sm:p-4 rounded-md">
-            <div className="h-[calc(297mm * (100vw / 230mm))] sm:h-auto overflow-y-auto">
-                {loadingMemo && <Skeleton className="w-full h-full min-h-[500px]" />}
-                {!loadingMemo && fundAccount && request.requesterProfile && (
-                    <div className="canvas-a4">
-                        <ReleaseMemo
-                            requests={[request]}
-                            lembaga={request.institution}
-                            fundAccount={fundAccount}
-                            isPreview={true}
-                        />
-                    </div>
-                )}
-                {!loadingMemo && !fundAccount && request.status !== 'pending' && (
-                    <p className="text-center text-red-500">Gagal memuat detail memo: Sumber dana tidak ditemukan.</p>
-                )}
-                 {!loadingMemo && !request.requesterProfile && (
-                    <p className="text-center text-red-500">Gagal memuat detail memo: Data pemohon tidak ditemukan.</p>
-                )}
-            </div>
+        <div className="flex-1 overflow-auto bg-muted/50 p-0 sm:p-4 rounded-md scrollable-memo-content">
+            {loadingMemo && <Skeleton className="w-full h-full min-h-[500px]" />}
+            {!loadingMemo && fundAccount && request.requesterProfile && (
+                <div className="canvas-a4">
+                    <ReleaseMemo
+                        requests={[request]}
+                        lembaga={request.institution}
+                        fundAccount={fundAccount}
+                        isPreview={true}
+                    />
+                </div>
+            )}
+            {!loadingMemo && !fundAccount && request.status !== 'pending' && (
+                <p className="text-center text-red-500">Gagal memuat detail memo: Sumber dana tidak ditemukan.</p>
+            )}
+             {!loadingMemo && !request.requesterProfile && (
+                <p className="text-center text-red-500">Gagal memuat detail memo: Data pemohon tidak ditemukan.</p>
+            )}
         </div>
         
         {!isReadOnly && (

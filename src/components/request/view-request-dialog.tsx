@@ -19,6 +19,7 @@ import { Skeleton } from '../ui/skeleton';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface ViewRequestDialogProps {
   request: BudgetRequest;
@@ -140,17 +141,15 @@ export function ViewRequestDialog({ request: initialRequest, triggerButton }: Vi
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Trigger />
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className={cn("max-w-4xl h-full flex flex-col sm:h-auto dialog-content-max-width")}>
         <DialogHeader>
           <DialogTitle>Detail Permintaan Anggaran</DialogTitle>
           <DialogDescription>
             Tinjau detail permintaan. Anda dapat mencetak memo jika telah disetujui.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-1 overflow-auto bg-muted/50 p-2 sm:p-4 rounded-md">
-            <div className="h-[calc(297mm * (100vw / 230mm))] sm:h-auto overflow-y-auto">
-                {renderContent()}
-            </div>
+        <div className="flex-1 overflow-auto bg-muted/50 p-0 sm:p-4 rounded-md scrollable-memo-content">
+            {renderContent()}
         </div>
         
         <DialogFooter className="gap-2 sm:gap-0 pt-4 border-t">

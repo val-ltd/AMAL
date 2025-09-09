@@ -78,7 +78,9 @@ function PrintPageContent() {
                 {Object.entries(groupedRequests).map(([lembaga, reqs]) => (
                     reqs.length > 0 && (
                         <div key={lembaga} className="memo-wrapper bg-white">
-                            <ReleaseMemo requests={reqs} lembaga={lembaga} fundAccount={fundAccount} />
+                             <div className="canvas-a4">
+                                <ReleaseMemo requests={reqs} lembaga={lembaga} fundAccount={fundAccount} />
+                            </div>
                         </div>
                     )
                 ))}
