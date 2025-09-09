@@ -136,7 +136,7 @@ export function NewRequestForm() {
                 if(userProfile.departmentIds && userProfile.departmentIds.length > 0) {
                   const deptPromises = userProfile.departmentIds.map(id => getDoc(doc(db, 'departments', id)));
                   const deptDocs = await Promise.all(deptPromises);
-                  loadedDepartments = deptDocs.map(d => ({id: d.id, ...d.data()}) as Department).filter(d => d.isDeleted);
+                  loadedDepartments = deptDocs.map(d => ({id: d.id, ...d.data()}) as Department).filter(d => !d.isDeleted);
                   setUserDepartments(loadedDepartments);
                   if (loadedDepartments.length > 0) {
                     setSelectedDepartmentId(loadedDepartments[0].id);
