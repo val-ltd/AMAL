@@ -119,7 +119,7 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                 <div>
                     <div className="font-semibold">{request.requester.name}</div>
                     <div className="text-sm text-muted-foreground">
-                        Dikirim pada {format(new Date(request.createdAt), 'PP', { locale: id })}
+                        Dikirim pada {format(new Date(request.createdAt), 'PPpp', { locale: id })}
                     </div>
                 </div>
             </div>
@@ -202,12 +202,12 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                         <span>Metode Pembayaran: Tunai</span>
                     </div>
                 )}
-                 <div className="flex items-center gap-3 text-muted-foreground">
-                     <Calendar className="w-4 h-4 flex-shrink-0" />
-                     <span>
-                       Manajer Bertindak: {request.managerActionAt ? format(new Date(request.managerActionAt), 'PPpp', { locale: id }) : 'Belum ada tindakan'}
-                     </span>
-                 </div>
+                 {request.managerActionAt && (
+                     <div className="flex items-center gap-3 text-muted-foreground">
+                         <Calendar className="w-4 h-4 flex-shrink-0" />
+                         <span>Manajer Bertindak: {format(new Date(request.managerActionAt), 'PPpp', { locale: id })}</span>
+                     </div>
+                 )}
                  <div className="flex items-center gap-3 text-muted-foreground">
                     <CheckCircle className="w-4 h-4 flex-shrink-0" />
                     <span>
