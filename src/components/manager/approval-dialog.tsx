@@ -119,7 +119,7 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                 <div>
                     <div className="font-semibold">{request.requester.name}</div>
                     <div className="text-sm text-muted-foreground">
-                        Dikirim pada {format(new Date(request.createdAt), 'PPpp', { locale: id })}
+                        Dikirim pada {request.createdAt}
                     </div>
                 </div>
             </div>
@@ -205,13 +205,13 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                  {request.managerActionAt && (
                      <div className="flex items-center gap-3 text-muted-foreground">
                          <Calendar className="w-4 h-4 flex-shrink-0" />
-                         <span>Manajer Bertindak: {format(new Date(request.managerActionAt), 'PPpp', { locale: id })}</span>
+                         <span>Manajer Bertindak: {request.managerActionAt}</span>
                      </div>
                  )}
                  <div className="flex items-center gap-3 text-muted-foreground">
                     <CheckCircle className="w-4 h-4 flex-shrink-0" />
                     <span>
-                      Dana Dicairkan: {request.releasedAt ? `${format(new Date(request.releasedAt), 'PPpp', { locale: id })} oleh ${request.releasedBy?.name}` : 'Belum Dicairkan'}
+                      Dana Dicairkan: {request.releasedAt ? `${request.releasedAt} oleh ${request.releasedBy?.name}` : 'Belum Dicairkan'}
                     </span>
                  </div>
             </div>
