@@ -25,10 +25,17 @@ import { auth, db } from './firebase';
 import { appendRequestToSheet, updateRequestInSheet } from './sheets';
 
 const toIsoIfTimestamp = (timestamp: any) => {
-    if (timestamp && typeof timestamp.toDate === 'function') {
+    if (timestamp instanceof Timestamp) {
         return timestamp.toDate().toISOString();
     }
-    return timestamp;
+    if (typeof timestamp === 'string') {
+        // Handle cases where it might already be an ISO string.
+        const date = new Date(timestamp);
+        if (!isNaN(date.getTime())) {
+            return date.toISOString();
+        }
+    }
+    return null;
 };
 
 
@@ -453,8 +460,15 @@ export async function getDepartmentsByIds(ids: string[]): Promise<Department[]> 
     return departments;
 }
 
-export async function getCollectionData<T>(collectionName: string, orderField: string): Promise<T[]> {
-    const q = query(collection(db, collectionName), where('isDeleted', '!=', true), orderBy('isDeleted'), orderBy(orderField));
+export async function getCollectionData<T>(collectionName: string, orderField?: string): Promise<T[]> {
+    const constraints = [where('isDeleted', '!=', true)];
+    if(orderField) {
+        constraints.push(orderBy('isDeleted')); // Required for inequality filter
+        constraints.push(orderBy(orderField));
+    }
+    
+    const q = query(collection(db, collectionName), ...constraints);
+
     const querySnapshot = await getDocs(q);
     const items: T[] = [];
     querySnapshot.forEach((doc) => {
@@ -468,23 +482,23 @@ export async function getBudgetCategories(): Promise<BudgetCategory[]> {
 }
 
 export async function getFundAccounts(): Promise<FundAccount[]> {
-    return getCollectionData<FundAccount>('accountName');
+    return getCollectionData<FundAccount>('fundAccounts', 'accountName');
 }
 
 export async function getBanks(): Promise<Bank[]> {
-    return getCollectionData<Bank>('name');
+    return getCollectionData<Bank>('banks', 'name');
 }
 
 export async function getUnits(): Promise<Unit[]> {
-    return getCollectionData<Unit>('name');
+    return getCollectionData<Unit>('units', 'name');
 }
 
 export async function getMemoSubjects(): Promise<MemoSubject[]> {
-    return getCollectionData<MemoSubject>('name');
+    return getCollectionData<MemoSubject>('memoSubjects', 'name');
 }
 
 export async function getTransferTypes(): Promise<TransferType[]> {
-    return getCollectionData<TransferType>('name');
+    return getCollectionData<TransferType>('transferTypes', 'name');
 }
 
 export async function getFundAccount(id: string): Promise<FundAccount | null> {
