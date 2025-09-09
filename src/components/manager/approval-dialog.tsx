@@ -277,5 +277,3 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
     </Dialog>
   );
 }
-
-    
