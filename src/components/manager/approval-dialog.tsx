@@ -112,22 +112,24 @@ export function ApprovalDialog({ request: initialRequest, isReadOnly: initialIsR
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Trigger />
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{isReadOnly ? 'Detail' : 'Tinjau'} Permintaan Anggaran</DialogTitle>
           <DialogDescription>
             {isReadOnly ? 'Anda dapat melihat detail dan mencetak memo untuk permintaan ini.' : 'Tinjau detail di bawah ini dan setujui atau tolak permintaan.'}
           </DialogDescription>
         </DialogHeader>
-        <div className="max-h-[70vh] overflow-y-auto pr-2 border-y py-4">
-            {loadingMemo && <Skeleton className="w-full h-[500px]" />}
+        <div className="flex-1 overflow-auto bg-muted/50 p-2 sm:p-4 rounded-md">
+            {loadingMemo && <Skeleton className="w-full h-full min-h-[500px]" />}
             {!loadingMemo && fundAccount && request.requesterProfile && (
-                <ReleaseMemo
-                    requests={[request]}
-                    lembaga={request.institution}
-                    fundAccount={fundAccount}
-                    isPreview={true}
-                />
+                <div className="canvas-a4">
+                    <ReleaseMemo
+                        requests={[request]}
+                        lembaga={request.institution}
+                        fundAccount={fundAccount}
+                        isPreview={true}
+                    />
+                </div>
             )}
             {!loadingMemo && !fundAccount && request.status !== 'pending' && (
                 <p className="text-center text-red-500">Gagal memuat detail memo: Sumber dana tidak ditemukan.</p>
@@ -152,7 +154,7 @@ export function ApprovalDialog({ request: initialRequest, isReadOnly: initialIsR
             </div>
           )}
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="gap-2 sm:gap-0 pt-4 border-t">
           {isReadOnly ? (
             <>
               <Button variant="outline" onClick={() => setOpen(false)}>Tutup</Button>

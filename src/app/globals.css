@@ -85,6 +85,23 @@
   }
 }
 
+@layer components {
+    .canvas-a4 {
+        @apply w-full max-w-full sm:w-[210mm] sm:h-[297mm] sm:mx-auto;
+        /* For mobile, allow scaling within the viewport */
+        @apply sm:origin-top sm:scale-[var(--tw-scale-x),_var(--tw-scale-y)];
+    }
+
+    @media (max-width: 640px) { /* sm breakpoint */
+        .canvas-a4 {
+            width: 800px; /* Force a wide width to allow zooming on a scaled container */
+            transform-origin: top left;
+            /* Scale down to fit mobile, but allow zooming in */
+            transform: scale(calc(100vw / 820px)); /* 820px to account for padding */
+        }
+    }
+}
+
 /* --- Print Styles --- */
 @media print {
   @page {

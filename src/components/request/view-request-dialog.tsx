@@ -77,16 +77,18 @@ export function ViewRequestDialog({ request: initialRequest, triggerButton }: Vi
 
   const renderContent = () => {
     if (loadingMemo) {
-      return <Skeleton className="w-full h-[500px]" />;
+      return <Skeleton className="w-full h-full min-h-[500px]" />;
     }
     if (fundAccount && request.requesterProfile) {
       return (
-          <ReleaseMemo
-              requests={[request]}
-              lembaga={request.institution}
-              fundAccount={fundAccount}
-              isPreview={true}
-          />
+          <div className="canvas-a4">
+            <ReleaseMemo
+                requests={[request]}
+                lembaga={request.institution}
+                fundAccount={fundAccount}
+                isPreview={true}
+            />
+          </div>
       );
     }
     
@@ -138,18 +140,18 @@ export function ViewRequestDialog({ request: initialRequest, triggerButton }: Vi
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Trigger />
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Detail Permintaan Anggaran</DialogTitle>
           <DialogDescription>
             Tinjau detail permintaan. Anda dapat mencetak memo jika telah disetujui.
           </DialogDescription>
         </DialogHeader>
-        <div className="max-h-[70vh] overflow-y-auto pr-2 border-y py-4">
+        <div className="flex-1 overflow-auto bg-muted/50 p-2 sm:p-4 rounded-md">
             {renderContent()}
         </div>
         
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="gap-2 sm:gap-0 pt-4 border-t">
             <Button variant="outline" onClick={() => setOpen(false)}>Tutup</Button>
             {canPrint && fundAccount && (
                 <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" />Cetak Memo</Button>
