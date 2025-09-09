@@ -105,9 +105,7 @@ function MemoHeader({ memoNumber, dari, releaser, unitKerja, perihal, memoDate }
                 </div>
                  <div className="text-center border-2 border-black p-1 w-[120px]">
                     <p className="font-bold text-lg">ICWM</p>
-                    <p className="text-xs">Versi 3.0.1</p>
-                    <div className="flex justify-between items-center text-xs mt-1">
-                        <span className="font-bold text-2xl">{format(new Date(memoDate), 'dd')}</span>
+                    <div className="flex justify-center items-center text-xs mt-1">
                         <span className="font-bold uppercase">{format(new Date(memoDate), 'MMMM yyyy', {locale: id})}</span>
                     </div>
                 </div>
