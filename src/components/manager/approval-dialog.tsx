@@ -152,6 +152,7 @@ export function ApprovalDialog({ request: initialRequest, isReadOnly: initialIsR
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 disabled={isSubmitting}
+                className="min-h-[60px]"
                 />
             </div>
           )}
@@ -164,7 +165,7 @@ export function ApprovalDialog({ request: initialRequest, isReadOnly: initialIsR
             </>
           ) : (
             <>
-                <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
+                <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting} size="sm">
                     Batal
                 </Button>
                 <Button
@@ -172,11 +173,12 @@ export function ApprovalDialog({ request: initialRequest, isReadOnly: initialIsR
                     onClick={() => handleSubmit('rejected')}
                     disabled={isSubmitting}
                     className="bg-red-600 hover:bg-red-700"
+                    size="sm"
                 >
                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsDown className="mr-2 h-4 w-4" />}
                     Tolak
                 </Button>
-                <Button onClick={() => handleSubmit('approved')} disabled={isSubmitting} className="bg-green-600 hover:bg-green-700">
+                <Button onClick={() => handleSubmit('approved')} disabled={isSubmitting} className="bg-green-600 hover:bg-green-700" size="sm">
                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsUp className="mr-2 h-4 w-4" />}
                     Setujui
                 </Button>
