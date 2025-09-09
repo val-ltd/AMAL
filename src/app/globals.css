@@ -104,17 +104,22 @@
         }
 
         .scrollable-memo-content {
-            height: calc(100vh - 120px); /* Adjust based on header/footer height */
-            overflow: auto;
-            -webkit-overflow-scrolling: touch;
+             height: calc(100vh - 120px);
+             overflow: auto;
+             -webkit-overflow-scrolling: touch;
+             padding: 0;
         }
-
+        
         .canvas-a4 {
-            width: 100%;
-            height: auto;
-            min-height: 0;
-            margin: 0;
+            /* 210mm is the width, we scale it down to fit the container */
+            --a4-width: 794px; 
+            /* Get the scale factor by dividing container width by paper width */
+            --scale-factor: calc(100vw / var(--a4-width));
+            
+            transform: scale(var(--scale-factor));
+            transform-origin: top left;
             box-shadow: none;
+            margin: 0;
         }
     }
 }
