@@ -166,12 +166,10 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                             <TableCell className="text-right font-semibold">{formatRupiah(request.transferFee)}</TableCell>
                         </TableRow>
                     )}
-                    {items.length > 0 && (
-                        <TableRow>
-                            <TableCell colSpan={4} className="text-right font-bold">Total Pengajuan</TableCell>
-                            <TableCell className="text-right font-bold">{formatRupiah(request.amount)}</TableCell>
-                        </TableRow>
-                    )}
+                    <TableRow>
+                        <TableCell colSpan={4} className="text-right font-bold">Total Pengajuan</TableCell>
+                        <TableCell className="text-right font-bold">{formatRupiah(request.amount)}</TableCell>
+                    </TableRow>
                 </TableBody>
             </Table>
             <Separator />
@@ -279,3 +277,5 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
     </Dialog>
   );
 }
+
+    
