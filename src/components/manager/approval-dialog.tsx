@@ -152,7 +152,7 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                             </TableRow>
                         ))
                     ) : (
-                        <TableRow>
+                         <TableRow>
                             <TableCell colSpan={4} className="text-muted-foreground">
                                 Deskripsi (Data Lama): {(request as any).description || 'Tidak ada deskripsi.'}
                             </TableCell>
@@ -205,12 +205,12 @@ export function ApprovalDialog({ request, isReadOnly: initialIsReadOnly = false,
                         <span>Metode Pembayaran: Tunai</span>
                     </div>
                 )}
-                 {request.managerActionAt && (
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                        <Calendar className="w-4 h-4 flex-shrink-0" />
-                        <span>Manajer Bertindak: {format(new Date(request.managerActionAt), 'PPpp', { locale: id })}</span>
-                    </div>
-                 )}
+                 <div className="flex items-center gap-3 text-muted-foreground">
+                     <Calendar className="w-4 h-4 flex-shrink-0" />
+                     <span>
+                       Manajer Bertindak: {request.managerActionAt ? format(new Date(request.managerActionAt), 'PPpp', { locale: id }) : 'Belum ada tindakan'}
+                     </span>
+                 </div>
                  <div className="flex items-center gap-3 text-muted-foreground">
                     <CheckCircle className="w-4 h-4 flex-shrink-0" />
                     <span>
