@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useMemo, ChangeEvent, Fragment } from 'react';
-import type { BudgetRequest, ReportAttachment, ExpenseItem, Unit, ExpenseReceipt } from "@/lib/types";
+import { useState, useMemo, ChangeEvent, Fragment, useEffect } from 'react';
+import type { BudgetRequest, ReportAttachment, ExpenseItem, Unit, ExpenseReceipt, BudgetCategory } from "@/lib/types";
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -13,11 +13,10 @@ import { formatRupiah, formatSimpleDate } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { submitReport, getUnits } from '@/lib/data';
+import { submitReport, getUnits, getBudgetCategories } from '@/lib/data';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Loader2, Paperclip, Trash2, Plus, UploadCloud, File as FileIcon, FileUp } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { useEffect } from 'react';
 import { Progress } from './ui/progress';
 
 interface ReportFormProps {
@@ -36,16 +35,26 @@ export function ReportForm({ request }: ReportFormProps) {
     const { toast } = useToast();
 
     const [expenseReceipts, setExpenseReceipts] = useState<ExpenseReceipt[]>([
-        { id: `${Date.now()}`, items: [{ id: `${Date.now()}-1`, description: '', qty: 1, unit: '', price: 0, total: 0 }], attachment: null },
+        { id: `${Date.now()}`, items: [{ id: `${Date.now()}-1`, description: '', qty: 1, unit: '', price: 0, total: 0, category: '' }], attachment: null },
     ]);
     const [units, setUnits] = useState<Unit[]>([]);
+    const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
     const [notes, setNotes] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [uploadingFiles, setUploadingFiles] = useState<Record<string, UploadingFile>>({});
 
     useEffect(() => {
-        getUnits().then(setUnits);
+        const fetchData = async () => {
+            const [fetchedUnits, fetchedCategories] = await Promise.all([
+                getUnits(),
+                getBudgetCategories(),
+            ]);
+            setUnits(fetchedUnits);
+            setBudgetCategories(fetchedCategories);
+        };
+        fetchData();
     }, []);
+
 
     const spentAmount = useMemo(() => {
         return expenseReceipts.reduce((receiptTotal, receipt) => {
@@ -61,7 +70,7 @@ export function ReportForm({ request }: ReportFormProps) {
         const newId = `${Date.now()}`;
         setExpenseReceipts([
             ...expenseReceipts,
-            { id: newId, items: [{ id: `${newId}-1`, description: '', qty: 1, unit: '', price: 0, total: 0 }], attachment: null },
+            { id: newId, items: [{ id: `${newId}-1`, description: '', qty: 1, unit: '', price: 0, total: 0, category: '' }], attachment: null },
         ]);
     };
 
@@ -99,7 +108,7 @@ export function ReportForm({ request }: ReportFormProps) {
         const receiptId = newReceipts[receiptIndex].id;
         newReceipts[receiptIndex].items.push({
             id: `${receiptId}-${Date.now()}`,
-            description: '', qty: 1, unit: '', price: 0, total: 0
+            description: '', qty: 1, unit: '', price: 0, total: 0, category: ''
         });
         setExpenseReceipts(newReceipts);
     };
@@ -184,8 +193,8 @@ export function ReportForm({ request }: ReportFormProps) {
                 toast({ title: `Bukti ${expenseReceipts.indexOf(receipt) + 1} belum diunggah.`, description: "Setiap rincian pengeluaran harus memiliki bukti (nota) yang diunggah.", variant: "destructive" });
                 return;
             }
-            if (receipt.items.some(item => !item.description || item.qty <= 0 || !item.unit )) {
-                 toast({ title: "Data tidak lengkap.", description: `Item pada Bukti ${expenseReceipts.indexOf(receipt) + 1} harus memiliki Uraian, Jml, dan Satuan.`, variant: "destructive" });
+            if (receipt.items.some(item => !item.description || item.qty <= 0 || !item.unit || !item.category )) {
+                 toast({ title: "Data tidak lengkap.", description: `Item pada Bukti ${expenseReceipts.indexOf(receipt) + 1} harus memiliki Uraian, Jml, Satuan, dan Kategori.`, variant: "destructive" });
                 return;
             }
         }
@@ -288,11 +297,12 @@ export function ReportForm({ request }: ReportFormProps) {
                                  <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead className="w-[45%]">Uraian</TableHead>
+                                            <TableHead className="w-[30%]">Uraian</TableHead>
                                             <TableHead className="w-[10%]">Jml</TableHead>
                                             <TableHead className="w-[15%]">Satuan</TableHead>
                                             <TableHead className="w-[15%]">Harga/Sat.</TableHead>
-                                            <TableHead className="w-[15%] text-right">Jumlah</TableHead>
+                                            <TableHead className="w-[20%]">Kategori</TableHead>
+                                            <TableHead className="w-[10%] text-right">Jumlah</TableHead>
                                             <TableHead className="w-12 p-0"></TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -310,6 +320,14 @@ export function ReportForm({ request }: ReportFormProps) {
                                                     </Select>
                                                 </TableCell>
                                                 <TableCell className="p-1"><Input type="number" value={item.price} onChange={e => handleItemChange(receiptIndex, itemIndex, 'price', parseInt(e.target.value, 10) || 0)} placeholder="100000"/></TableCell>
+                                                <TableCell className="p-1">
+                                                    <Select value={item.category} onValueChange={v => handleItemChange(receiptIndex, itemIndex, 'category', v)}>
+                                                        <SelectTrigger><SelectValue placeholder="Pilih..." /></SelectTrigger>
+                                                        <SelectContent>
+                                                             {budgetCategories.map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </TableCell>
                                                 <TableCell className="p-1 text-right align-middle">{formatRupiah(item.total)}</TableCell>
                                                 <TableCell className="p-1 align-middle">
                                                     <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItemFromReceipt(receiptIndex, itemIndex)} disabled={receipt.items.length <= 1}>
@@ -378,5 +396,3 @@ export function ReportForm({ request }: ReportFormProps) {
         </div>
     );
 }
-
-    

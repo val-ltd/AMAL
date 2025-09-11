@@ -56,6 +56,7 @@ export interface ExpenseItem {
   unit: string;
   price: number;
   total: number;
+  category: string;
 }
 
 export interface ExpenseReceipt {
@@ -199,6 +200,3 @@ export interface TransferType {
     fee: number;
     isDeleted?: boolean;
 }
-
-    
-    
