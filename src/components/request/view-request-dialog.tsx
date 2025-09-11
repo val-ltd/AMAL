@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { BudgetRequest, FundAccount } from '@/lib/types';
+import type { BudgetRequest, FundAccount, ExpenseReceipt } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -13,13 +13,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { getFundAccount, getUser } from '@/lib/data';
-import { Printer } from 'lucide-react';
+import { Printer, File as FileIcon } from 'lucide-react';
 import { ReleaseMemo } from '../release/release-memo';
 import { Skeleton } from '../ui/skeleton';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, formatRupiah } from '@/lib/utils';
+import { ScrollArea } from '../ui/scroll-area';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 
 interface ViewRequestDialogProps {
   request: BudgetRequest;
@@ -80,6 +83,73 @@ export function ViewRequestDialog({ request: initialRequest, triggerButton }: Vi
     if (loadingMemo) {
       return <Skeleton className="w-full h-full min-h-[500px]" />;
     }
+    
+    // For completed requests, show the report details
+    if (request.status === 'completed' && request.report) {
+        return (
+            <div className='space-y-4'>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Laporan Pertanggungjawaban</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Jumlah Pengeluaran</span>
+                            <span className="font-bold">{formatRupiah(request.report.spentAmount)}</span>
+                        </div>
+                         <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Sisa Dana</span>
+                            <span className="font-bold">{formatRupiah(request.amount - request.report.spentAmount)}</span>
+                        </div>
+                        {request.report.notes && (
+                            <div>
+                                <p className="text-sm font-medium">Catatan:</p>
+                                <p className="text-sm text-muted-foreground italic">"{request.report.notes}"</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {request.report.receipts.map((receipt, index) => (
+                    <Card key={index}>
+                        <CardHeader className="flex-row items-center justify-between">
+                            <CardTitle className="text-base">Bukti {index + 1}</CardTitle>
+                            <Button variant="outline" size="sm" asChild>
+                                <a href={receipt.attachment.url} target="_blank" rel="noopener noreferrer">
+                                    <FileIcon className="mr-2 h-4 w-4" />
+                                    Lihat Lampiran
+                                </a>
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Uraian</TableHead>
+                                        <TableHead className="text-center">Jml</TableHead>
+                                        <TableHead>Satuan</TableHead>
+                                        <TableHead className="text-right">Total</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {receipt.items.map((item, itemIndex) => (
+                                        <TableRow key={itemIndex}>
+                                            <TableCell>{item.description}</TableCell>
+                                            <TableCell className="text-center">{item.qty}</TableCell>
+                                            <TableCell>{item.unit}</TableCell>
+                                            <TableCell className="text-right">{formatRupiah(item.total)}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+        )
+    }
+
+    // For other statuses, show the memo
     if (fundAccount && request.requesterProfile) {
       return (
           <div className="canvas-a4">
@@ -141,16 +211,16 @@ export function ViewRequestDialog({ request: initialRequest, triggerButton }: Vi
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Trigger />
-      <DialogContent className={cn("max-w-4xl h-full flex flex-col sm:h-auto dialog-content-max-width")}>
+      <DialogContent className={cn("max-w-4xl h-full flex flex-col sm:h-auto sm:max-h-[95vh] dialog-content-max-width")}>
         <DialogHeader>
           <DialogTitle>Detail Permintaan Anggaran</DialogTitle>
           <DialogDescription>
             Tinjau detail permintaan. Anda dapat mencetak memo jika telah disetujui.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-1 overflow-auto bg-muted/50 p-0 sm:p-4 rounded-md scrollable-memo-content">
+        <ScrollArea className="flex-1 bg-muted/50 p-0 sm:p-4 rounded-md">
             {renderContent()}
-        </div>
+        </ScrollArea>
         
         <DialogFooter className="gap-2 sm:gap-0 pt-4 border-t">
             <Button variant="outline" onClick={() => setOpen(false)}>Tutup</Button>

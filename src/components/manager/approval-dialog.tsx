@@ -114,14 +114,14 @@ export function ApprovalDialog({ request: initialRequest, isReadOnly: initialIsR
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Trigger />
-      <DialogContent className={cn("max-w-4xl h-full flex flex-col sm:h-[90vh] dialog-content-max-width")}>
+      <DialogContent className={cn("max-w-4xl h-full flex flex-col sm:h-auto sm:max-h-[95vh] dialog-content-max-width")}>
         <DialogHeader>
           <DialogTitle>{isReadOnly ? 'Detail' : 'Tinjau'} Permintaan Anggaran</DialogTitle>
           <DialogDescription>
             {isReadOnly ? 'Anda dapat melihat detail dan mencetak memo untuk permintaan ini.' : 'Tinjau detail di bawah ini dan setujui atau tolak permintaan.'}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-1 overflow-auto bg-muted/50 p-0 sm:p-4 rounded-md scrollable-memo-content">
+        <ScrollArea className="flex-1 bg-muted/50 p-0 sm:p-4 rounded-md">
             {loadingMemo && <Skeleton className="w-full h-full min-h-[500px]" />}
             {!loadingMemo && fundAccount && request.requesterProfile && (
                 <div className="canvas-a4">
@@ -139,7 +139,7 @@ export function ApprovalDialog({ request: initialRequest, isReadOnly: initialIsR
              {!loadingMemo && !request.requesterProfile && (
                 <p className="text-center text-red-500">Gagal memuat detail memo: Data pemohon tidak ditemukan.</p>
             )}
-        </div>
+        </ScrollArea>
         
         {!isReadOnly && (
             <div className="px-1 pt-2 sm:px-0">
