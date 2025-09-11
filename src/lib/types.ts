@@ -49,6 +49,18 @@ export interface ReportAttachment {
     type: string;
 }
 
+export interface ExpenseItem {
+  id: string;
+  description: string;
+  qty: number;
+  unit: string;
+  price: number;
+  total: number;
+  attachment: ReportAttachment | null;
+  isUploading?: boolean; // Client-side state
+}
+
+
 export interface ExpenseReport {
     submittedBy: {
         id: string;
@@ -57,7 +69,7 @@ export interface ExpenseReport {
     submittedAt: any; // serverTimestamp()
     spentAmount: number;
     notes: string;
-    attachments: ReportAttachment[];
+    expenseItems: Omit<ExpenseItem, 'id' | 'isUploading'>[];
     requestId: string;
 }
 
@@ -97,7 +109,7 @@ export interface BudgetRequest {
   transferType?: string;
   transferTypeId?: string;
   reimbursementAccount?: UserBankAccount;
-  report?: ExpenseReport;
+  report?: Omit<ExpenseReport, 'requestId' | 'submittedAt'>;
   budgetPeriod?: string;
   transferFee?: number;
   // Populated by front-end for memo generation
@@ -181,3 +193,5 @@ export interface TransferType {
     fee: number;
     isDeleted?: boolean;
 }
+
+    

@@ -356,7 +356,7 @@ export async function markRequestsAsReleased(requestIds: string[], releasedBy: {
     }));
 }
 
-export async function submitReport(requestId: string, reportData: Omit<ExpenseReport, 'submittedAt'>) {
+export async function submitReport(requestId: string, reportData: Omit<ExpenseReport, 'submittedAt' | 'requestId' | 'attachments'>) {
     const reportWithTimestamp = {
         ...reportData,
         requestId,
@@ -370,6 +370,7 @@ export async function submitReport(requestId: string, reportData: Omit<ExpenseRe
     const requestRef = doc(db, 'requests', requestId);
     await updateDoc(requestRef, {
         status: 'completed',
+        report: reportData, // Embed report data for easy access
         updatedAt: serverTimestamp(),
     });
 }
@@ -609,3 +610,5 @@ export async function deleteDepartment(departmentId: string) {
   // Commit all operations atomically
   await batch.commit();
 }
+
+    
