@@ -58,6 +58,12 @@ export interface ExpenseItem {
   total: number;
 }
 
+export interface ExpenseReceipt {
+  id: string;
+  items: ExpenseItem[];
+  attachment: ReportAttachment | null;
+}
+
 export interface ExpenseReport {
     submittedBy: {
         id: string;
@@ -66,8 +72,10 @@ export interface ExpenseReport {
     submittedAt: any; // serverTimestamp()
     spentAmount: number;
     notes: string;
-    expenseItems: Omit<ExpenseItem, 'id'>[];
-    attachments: ReportAttachment[];
+    receipts: {
+        attachment: ReportAttachment;
+        items: Omit<ExpenseItem, 'id'>[];
+    }[];
     requestId: string;
 }
 
@@ -192,4 +200,5 @@ export interface TransferType {
     isDeleted?: boolean;
 }
 
+    
     
