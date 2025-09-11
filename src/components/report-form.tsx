@@ -14,8 +14,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { submitReport, getUnits, getBudgetCategories } from '@/lib/data';
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { Loader2, Paperclip, Trash2, Plus, UploadCloud, File as FileIcon, FileUp } from 'lucide-react';
+import { Loader2, Trash2, Plus, File as FileIcon, FileUp } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Progress } from './ui/progress';
 
@@ -75,18 +74,7 @@ export function ReportForm({ request }: ReportFormProps) {
     };
 
     const handleRemoveReceipt = async (receiptId: string) => {
-        const receiptToRemove = expenseReceipts.find(r => r.id === receiptId);
-        if (receiptToRemove?.attachment) {
-            // Also delete from storage
-            try {
-                const storage = getStorage();
-                const fileRef = ref(storage, receiptToRemove.attachment.url);
-                await deleteObject(fileRef);
-            } catch (error) {
-                console.error("Failed to delete file from storage:", error);
-                toast({ title: "Gagal Menghapus File dari Storage", variant: "destructive" });
-            }
-        }
+        // No need to delete from Cloudinary for this implementation
         setExpenseReceipts(expenseReceipts.filter(r => r.id !== receiptId));
     };
 
@@ -125,18 +113,39 @@ export function ReportForm({ request }: ReportFormProps) {
         const file = e.target.files?.[0];
         if (!file || !user) return;
 
-        const uniqueFileName = `${Date.now()}_${file.name}`;
+        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+        const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+        if (!cloudName || !uploadPreset) {
+            toast({
+                title: "Konfigurasi Cloudinary Hilang",
+                description: "Harap periksa variabel lingkungan Cloudinary Anda.",
+                variant: "destructive"
+            });
+            return;
+        }
+
         setUploadingFiles(prev => ({ ...prev, [receiptId]: { file, progress: 0 } }));
 
-        const storage = getStorage();
-        const storageRef = ref(storage, `reports/${request.id}/${uniqueFileName}`);
-
+        const url = `https://api.cloudinary.com/v1_1/${cloudName}/upload`;
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', uploadPreset);
+        
         try {
-            await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(storageRef);
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error('Upload failed');
+            }
+            
+            const data = await response.json();
 
             const newAttachment: ReportAttachment = {
-                url: downloadURL,
+                url: data.secure_url,
                 fileName: file.name,
                 type: file.type,
             };
@@ -145,7 +154,6 @@ export function ReportForm({ request }: ReportFormProps) {
                 r.id === receiptId ? { ...r, attachment: newAttachment } : r
             ));
             
-            // Clean up uploading state
             setUploadingFiles(prev => {
                 const newUploading = { ...prev };
                 delete newUploading[receiptId];
@@ -160,22 +168,9 @@ export function ReportForm({ request }: ReportFormProps) {
     };
     
     const handleRemoveAttachment = async (receiptId: string) => {
-        const receipt = expenseReceipts.find(r => r.id === receiptId);
-        if (!receipt?.attachment) return;
-
-        const attachmentUrl = receipt.attachment.url;
-        
-        // Remove from state
+        // For unsigned uploads, we typically don't handle deletion from the client.
+        // The file will remain in Cloudinary but will be detached from the report.
         setExpenseReceipts(prev => prev.map(r => r.id === receiptId ? { ...r, attachment: null } : r));
-
-        // Delete from storage
-        try {
-            const storage = getStorage();
-            const fileRef = ref(storage, attachmentUrl);
-            await deleteObject(fileRef);
-        } catch (error) {
-             console.error("Failed to delete file from storage:", error);
-        }
     };
 
 
