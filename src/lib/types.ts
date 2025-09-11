@@ -56,10 +56,7 @@ export interface ExpenseItem {
   unit: string;
   price: number;
   total: number;
-  attachment: ReportAttachment | null;
-  isUploading?: boolean; // Client-side state
 }
-
 
 export interface ExpenseReport {
     submittedBy: {
@@ -69,7 +66,8 @@ export interface ExpenseReport {
     submittedAt: any; // serverTimestamp()
     spentAmount: number;
     notes: string;
-    expenseItems: Omit<ExpenseItem, 'id' | 'isUploading'>[];
+    expenseItems: Omit<ExpenseItem, 'id'>[];
+    attachments: ReportAttachment[];
     requestId: string;
 }
 

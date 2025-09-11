@@ -356,7 +356,7 @@ export async function markRequestsAsReleased(requestIds: string[], releasedBy: {
     }));
 }
 
-export async function submitReport(requestId: string, reportData: Omit<ExpenseReport, 'submittedAt' | 'requestId' | 'attachments'>) {
+export async function submitReport(requestId: string, reportData: Omit<ExpenseReport, 'submittedAt' | 'requestId'>) {
     const reportWithTimestamp = {
         ...reportData,
         requestId,

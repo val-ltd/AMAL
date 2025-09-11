@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useMemo, ChangeEvent } from 'react';
-import type { BudgetRequest, ExpenseReport, ReportAttachment, ExpenseItem, Unit } from "@/lib/types";
+import { useState, useMemo, ChangeEvent, Fragment } from 'react';
+import type { BudgetRequest, ReportAttachment, ExpenseItem, Unit } from "@/lib/types";
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -14,20 +14,20 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { submitReport, getUnits } from '@/lib/data';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Loader2, Paperclip, Trash2, Plus, UploadCloud } from 'lucide-react';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { Loader2, Paperclip, Trash2, Plus, UploadCloud, File as FileIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useEffect } from 'react';
-
-const formatRupiahSimple = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      minimumFractionDigits: 0,
-    }).format(amount);
-};
-
+import { Progress } from './ui/progress';
 
 interface ReportFormProps {
     request: BudgetRequest;
+}
+
+interface AttachmentFile extends ReportAttachment {
+    isUploading: boolean;
+    progress: number;
+    file: File;
 }
 
 export function ReportForm({ request }: ReportFormProps) {
@@ -36,8 +36,9 @@ export function ReportForm({ request }: ReportFormProps) {
     const { toast } = useToast();
 
     const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([
-        { id: '1', description: '', qty: 1, unit: '', price: 0, total: 0, attachment: null, isUploading: false },
+        { id: '1', description: '', qty: 1, unit: '', price: 0, total: 0 },
     ]);
+    const [attachments, setAttachments] = useState<AttachmentFile[]>([]);
     const [units, setUnits] = useState<Unit[]>([]);
     const [notes, setNotes] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,46 +68,69 @@ export function ReportForm({ request }: ReportFormProps) {
     const handleAddItem = () => {
         setExpenseItems([
             ...expenseItems, 
-            { id: `${Date.now()}`, description: '', qty: 1, unit: '', price: 0, total: 0, attachment: null, isUploading: false }
+            { id: `${Date.now()}`, description: '', qty: 1, unit: '', price: 0, total: 0 }
         ]);
     };
 
     const handleRemoveItem = (index: number) => {
+        if (expenseItems.length <= 1) return;
         const newItems = expenseItems.filter((_, i) => i !== index);
         setExpenseItems(newItems);
     };
 
-    const handleAttachmentUpload = async (e: ChangeEvent<HTMLInputElement>, index: number) => {
-        const file = e.target.files?.[0];
-        if (!file || !user) return;
+    const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || !user) return;
 
-        handleItemChange(index, 'isUploading', true);
+        const newAttachments: AttachmentFile[] = Array.from(files).map(file => ({
+            file,
+            fileName: file.name,
+            type: file.type,
+            url: '',
+            isUploading: true,
+            progress: 0,
+        }));
 
-        const storage = getStorage();
-        const storageRef = ref(storage, `reports/${request.id}/${Date.now()}_${file.name}`);
+        setAttachments(prev => [...prev, ...newAttachments]);
 
-        try {
-            const snapshot = await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(snapshot.ref);
+        // Upload each file
+        newAttachments.forEach(async (attachment, index) => {
+            const storage = getStorage();
+            const storageRef = ref(storage, `reports/${request.id}/${Date.now()}_${attachment.file.name}`);
 
-            const newAttachment: ReportAttachment = {
-                url: downloadURL,
-                fileName: file.name,
-                type: file.type,
-            };
-            
-            handleItemChange(index, 'attachment', newAttachment);
+            try {
+                const snapshot = await uploadBytes(storageRef, attachment.file);
+                const downloadURL = await getDownloadURL(snapshot.ref);
 
-        } catch (error) {
-            console.error("Upload failed", error);
-            toast({ title: "Upload Gagal", description: "Gagal mengunggah lampiran.", variant: "destructive" });
-        } finally {
-            handleItemChange(index, 'isUploading', false);
-        }
+                setAttachments(prev => prev.map(att => 
+                    att.fileName === attachment.fileName && att.isUploading ? { ...att, url: downloadURL, isUploading: false, progress: 100 } : att
+                ));
+            } catch (error) {
+                console.error("Upload failed", error);
+                toast({ title: "Upload Gagal", description: `Gagal mengunggah ${attachment.fileName}.`, variant: "destructive" });
+                 setAttachments(prev => prev.filter(att => att.fileName !== attachment.fileName));
+            }
+        });
     };
 
-    const handleRemoveAttachment = (index: number) => {
-        handleItemChange(index, 'attachment', null);
+    const handleRemoveAttachment = async (fileName: string) => {
+        const attachmentToRemove = attachments.find(a => a.fileName === fileName);
+        if (!attachmentToRemove) return;
+        
+        // Remove from state immediately
+        setAttachments(prev => prev.filter(att => att.fileName !== fileName));
+
+        // If file was already uploaded, delete from storage
+        if (attachmentToRemove.url) {
+            try {
+                const storage = getStorage();
+                const fileRef = ref(storage, attachmentToRemove.url);
+                await deleteObject(fileRef);
+            } catch (error) {
+                console.error("Failed to delete file from storage:", error);
+                toast({ title: "Gagal Menghapus File", description: `File ${fileName} mungkin masih ada di storage.`, variant: "destructive" });
+            }
+        }
     };
 
 
@@ -126,13 +150,16 @@ export function ReportForm({ request }: ReportFormProps) {
         
         setIsSubmitting(true);
         try {
-            const finalExpenseItems = expenseItems.map(({ isUploading, ...rest }) => rest);
+            const finalAttachments = attachments
+                .filter(a => !a.isUploading && a.url)
+                .map(({ url, fileName, type }) => ({ url, fileName, type }));
 
             await submitReport(request.id, {
                 submittedBy: { id: user.uid, name: user.displayName || 'Unknown' },
                 spentAmount,
                 notes,
-                expenseItems: finalExpenseItems,
+                expenseItems: expenseItems.map(({id, ...rest}) => rest),
+                attachments: finalAttachments,
             });
             toast({ title: "Laporan Terkirim", description: "Laporan pertanggungjawaban telah berhasil dikirim." });
             router.push('/');
@@ -180,12 +207,11 @@ export function ReportForm({ request }: ReportFormProps) {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[30%]">Uraian</TableHead>
+                                <TableHead className="w-[45%]">Uraian</TableHead>
                                 <TableHead className="w-[10%]">Jml</TableHead>
-                                <TableHead className="w-[12%]">Satuan</TableHead>
+                                <TableHead className="w-[15%]">Satuan</TableHead>
                                 <TableHead className="w-[15%]">Harga/Sat.</TableHead>
                                 <TableHead className="w-[15%] text-right">Jumlah</TableHead>
-                                <TableHead className="w-[18%] text-center">Nota</TableHead>
                                 <TableHead className="w-12 p-0"></TableHead>
                             </TableRow>
                         </TableHeader>
@@ -210,23 +236,6 @@ export function ReportForm({ request }: ReportFormProps) {
                                         <Input type="number" value={item.price} onChange={e => handleItemChange(index, 'price', parseInt(e.target.value, 10) || 0)} placeholder="100000"/>
                                     </TableCell>
                                     <TableCell className="p-1 text-right align-middle">{formatRupiah(item.total)}</TableCell>
-                                    <TableCell className="p-1 text-center">
-                                        {item.attachment ? (
-                                             <div className="flex items-center justify-center gap-1">
-                                                <a href={item.attachment.url} target="_blank" rel="noopener noreferrer" className="text-xs truncate hover:underline">{item.attachment.fileName}</a>
-                                                <Button type="button" variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleRemoveAttachment(index)}>
-                                                    <Trash2 className="h-3 w-3 text-red-500" />
-                                                </Button>
-                                            </div>
-                                        ) : item.isUploading ? (
-                                            <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                                        ) : (
-                                            <Label htmlFor={`attachment-${index}`} className="cursor-pointer text-muted-foreground hover:text-primary">
-                                                <UploadCloud className="h-5 w-5 mx-auto"/>
-                                                <Input id={`attachment-${index}`} type="file" className="hidden" onChange={(e) => handleAttachmentUpload(e, index)} />
-                                            </Label>
-                                        )}
-                                    </TableCell>
                                     <TableCell className="p-1 align-middle">
                                         <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItem(index)} disabled={expenseItems.length <= 1}>
                                             <Trash2 className="h-4 w-4 text-red-500" />
@@ -248,13 +257,52 @@ export function ReportForm({ request }: ReportFormProps) {
                         </div>
                         <div className="flex justify-between items-center text-lg">
                             <span className="text-muted-foreground">Sisa Dana</span>
-                            <span className={`font-bold ${remainingAmount > 0 ? 'text-green-600' : remainingAmount < 0 ? 'text-red-600' : ''}`}>
+                            <span className={`font-bold ${remainingAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {formatRupiah(remainingAmount)}
                             </span>
                         </div>
                          {remainingAmount < 0 && <p className="text-red-500 text-xs mt-1 text-right">Jumlah pengeluaran melebihi dana yang dicairkan.</p>}
                     </div>
                 </CardFooter>
+            </Card>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg">Lampiran</CardTitle>
+                    <CardDescription>Unggah nota, kuitansi, atau bukti pengeluaran lainnya.</CardDescription>
+                </CardHeader>
+                 <CardContent>
+                     <div className="flex flex-col items-center justify-center w-full p-6 border-2 border-dashed rounded-lg">
+                         <UploadCloud className="w-12 h-12 text-muted-foreground" />
+                         <p className="mt-2 text-sm text-muted-foreground">Seret & lepas file di sini, atau klik untuk memilih file</p>
+                         <Button asChild variant="outline" className="mt-4">
+                             <Label htmlFor="file-upload">Pilih File</Label>
+                         </Button>
+                         <Input id="file-upload" type="file" multiple className="hidden" onChange={handleFileSelect} />
+                     </div>
+                     {attachments.length > 0 && (
+                         <div className="mt-6 space-y-3">
+                             {attachments.map(att => (
+                                 <div key={att.fileName} className="flex items-center p-2 border rounded-md">
+                                     <FileIcon className="h-5 w-5 mr-3 shrink-0" />
+                                     <div className="flex-1">
+                                         <p className="text-sm font-medium truncate">{att.fileName}</p>
+                                         {att.isUploading ? (
+                                             <Progress value={att.progress} className="h-2 mt-1" />
+                                         ) : (
+                                            <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                                                Lihat File
+                                            </a>
+                                         )}
+                                     </div>
+                                     <Button variant="ghost" size="icon" onClick={() => handleRemoveAttachment(att.fileName)}>
+                                        <Trash2 className="h-4 w-4 text-red-500" />
+                                     </Button>
+                                 </div>
+                             ))}
+                         </div>
+                     )}
+                 </CardContent>
             </Card>
             
             <Card>
@@ -282,5 +330,3 @@ export function ReportForm({ request }: ReportFormProps) {
         </div>
     );
 }
-
-    
