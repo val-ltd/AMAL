@@ -5,7 +5,7 @@ import type { BudgetRequest } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { ApprovalDialog } from '@/components/manager/approval-dialog';
-import { Eye, Search, Edit, Copy } from 'lucide-react';
+import { Eye, Search, Edit, Copy, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { ViewRequestDialog } from './view-request-dialog';
 
@@ -19,6 +19,7 @@ export function ActionButtons({ request, isManagerView = false }: ActionButtonsP
   const isSupervisor = user?.uid === request.supervisor?.id;
   const isActionable = isManagerView && isSupervisor && request.status === 'pending';
   const isDraft = request.status === 'draft';
+  const isReleased = request.status === 'released';
 
   if (isDraft) {
     return (
@@ -29,6 +30,23 @@ export function ActionButtons({ request, isManagerView = false }: ActionButtonsP
         </Link>
       </Button>
     );
+  }
+
+  if (isReleased && !isManagerView) {
+    return (
+       <div className="flex items-center gap-2">
+            <Button asChild>
+                <Link href={`/request/${request.id}/report`}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Buat Laporan
+                </Link>
+            </Button>
+            <ViewRequestDialog 
+                request={request}
+                triggerButton={<Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>}
+            />
+        </div>
+    )
   }
 
   return (
